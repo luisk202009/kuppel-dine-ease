@@ -168,7 +168,7 @@
 
   /* POS Card Styles */
   .pos-card {
-    @apply bg-card rounded-xl border shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-large)] transition-all duration-normal;
+    @apply bg-card rounded-xl border shadow-md hover:shadow-lg transition-all duration-normal;
   }
 
   .pos-card-interactive {
