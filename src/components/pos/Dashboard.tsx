@@ -1,0 +1,183 @@
+import React, { useState } from 'react';
+import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Logo } from '@/components/ui/logo';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { VersionInfo } from '@/components/common/VersionInfo';
+import { usePOS } from '@/contexts/POSContext';
+import { TableGrid } from './TableGrid';
+import { ProductCatalog } from './ProductCatalog';
+import { ShoppingCart } from './ShoppingCart';
+import { CustomerManager } from './CustomerManager';
+
+export const Dashboard: React.FC = () => {
+  const { authState, posState, logout, searchProducts } = usePOS();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers'>('tables');
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      const products = searchProducts(query);
+      console.log('Search results:', products);
+    }
+  };
+
+  const getCurrentDate = () => {
+    return new Date().toLocaleDateString('es-CO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Logo width={120} height={40} />
+            <div className="hidden md:block">
+              <h1 className="text-lg font-semibold text-foreground">
+                ¡Hola, {authState.user?.name}!
+              </h1>
+              <p className="text-sm text-muted-foreground capitalize">
+                {getCurrentDate()}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {/* Search Bar */}
+            <div className="relative w-64 md:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar productos, clientes..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Actions */}
+            <ThemeToggle />
+            
+            <Button variant="outline" size="sm" className="hidden md:flex">
+              <Settings className="h-4 w-4 mr-2" />
+              Config
+            </Button>
+            
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Salir
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Navigation Tabs */}
+          <div className="bg-card border-b border-border px-6 py-3">
+            <div className="flex space-x-4">
+              <Button
+                variant={activeView === 'tables' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('tables')}
+                className="flex items-center space-x-2"
+              >
+                <Receipt className="h-4 w-4" />
+                <span>Mesas</span>
+              </Button>
+              <Button
+                variant={activeView === 'products' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('products')}
+                className="flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Productos</span>
+              </Button>
+              <Button
+                variant={activeView === 'customers' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('customers')}
+                className="flex items-center space-x-2"
+              >
+                <Users className="h-4 w-4" />
+                <span>Clientes</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 p-6 overflow-auto">
+            {activeView === 'tables' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Mesas</h2>
+                  <p className="text-muted-foreground">
+                    Selecciona una mesa para iniciar o continuar un pedido
+                  </p>
+                </div>
+                
+                <Tabs defaultValue={posState.areas[0]?.id || 'plantas'} className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-6">
+                    {posState.areas.map((area) => (
+                      <TabsTrigger key={area.id} value={area.id} className="capitalize">
+                        {area.name}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {posState.areas.map((area) => (
+                    <TabsContent key={area.id} value={area.id}>
+                      <TableGrid area={area} />
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+            )}
+
+            {activeView === 'products' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Catálogo de Productos</h2>
+                  <p className="text-muted-foreground">
+                    Selecciona productos para agregar al pedido
+                  </p>
+                </div>
+                <ProductCatalog searchQuery={searchQuery} />
+              </div>
+            )}
+
+            {activeView === 'customers' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Clientes</h2>
+                  <p className="text-muted-foreground">
+                    Administra la información de tus clientes
+                  </p>
+                </div>
+                <CustomerManager />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Shopping Cart Sidebar */}
+        <div className="w-96 bg-card border-l border-border">
+          <ShoppingCart />
+        </div>
+      </div>
+      
+      {/* Version Info */}
+      <VersionInfo />
+    </div>
+  );
+};
+
+export default Dashboard;
