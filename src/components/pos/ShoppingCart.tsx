@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Minus, Plus, Trash2, ShoppingBag, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,9 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePOS } from '@/contexts/POSContext';
+import { PaymentModal } from './PaymentModal';
+import { CartItem } from '@/types/pos';
 
 export const ShoppingCart: React.FC = () => {
   const { posState, updateCartItem, removeFromCart, clearCart } = usePOS();
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const calculations = useMemo(() => {
     const subtotal = posState.cart.reduce((sum, item) => sum + item.total, 0);
@@ -40,9 +43,23 @@ export const ShoppingCart: React.FC = () => {
   };
 
   const handleCheckout = () => {
-    // TODO: Implement checkout process
-    console.log('Proceeding to checkout...');
+    setIsPaymentModalOpen(true);
   };
+
+  const handlePaymentComplete = () => {
+    clearCart();
+    // TODO: Save order to database/storage
+    console.log('Order completed successfully');
+  };
+
+  // Convert cart items to CartItem format for PaymentModal
+  const cartItems: CartItem[] = posState.cart.map(item => ({
+    id: item.id,
+    name: item.product.name,
+    price: item.unitPrice,
+    quantity: item.quantity,
+    notes: item.notes
+  }));
 
   return (
     <div className="h-full flex flex-col bg-card">
@@ -189,6 +206,17 @@ export const ShoppingCart: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        cartItems={cartItems}
+        subtotal={calculations.subtotal}
+        taxes={calculations.taxes}
+        total={calculations.total}
+        onPaymentComplete={handlePaymentComplete}
+      />
     </div>
   );
 };

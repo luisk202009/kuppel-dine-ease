@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun } from 'lucide-react';
+import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun, History, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +12,13 @@ import { TableGrid } from './TableGrid';
 import { ProductCatalog } from './ProductCatalog';
 import { ShoppingCart } from './ShoppingCart';
 import { CustomerManager } from './CustomerManager';
+import { OrderHistory } from './OrderHistory';
+import { SalesReports } from './SalesReports';
 
 export const Dashboard: React.FC = () => {
   const { authState, posState, logout, searchProducts } = usePOS();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers'>('tables');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports'>('tables');
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -85,11 +87,11 @@ export const Dashboard: React.FC = () => {
         <div className="flex-1 flex flex-col">
           {/* Navigation Tabs */}
           <div className="bg-card border-b border-border px-6 py-3">
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 overflow-x-auto">
               <Button
                 variant={activeView === 'tables' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('tables')}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 whitespace-nowrap"
               >
                 <Receipt className="h-4 w-4" />
                 <span>Mesas</span>
@@ -97,7 +99,7 @@ export const Dashboard: React.FC = () => {
               <Button
                 variant={activeView === 'products' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('products')}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 whitespace-nowrap"
               >
                 <Plus className="h-4 w-4" />
                 <span>Productos</span>
@@ -105,10 +107,26 @@ export const Dashboard: React.FC = () => {
               <Button
                 variant={activeView === 'customers' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('customers')}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 whitespace-nowrap"
               >
                 <Users className="h-4 w-4" />
                 <span>Clientes</span>
+              </Button>
+              <Button
+                variant={activeView === 'orders' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('orders')}
+                className="flex items-center space-x-2 whitespace-nowrap"
+              >
+                <History className="h-4 w-4" />
+                <span>Órdenes</span>
+              </Button>
+              <Button
+                variant={activeView === 'reports' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('reports')}
+                className="flex items-center space-x-2 whitespace-nowrap"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Reportes</span>
               </Button>
             </div>
           </div>
@@ -163,6 +181,30 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
                 <CustomerManager />
+              </div>
+            )}
+
+            {activeView === 'orders' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Historial de Órdenes</h2>
+                  <p className="text-muted-foreground">
+                    Consulta y gestiona todas las órdenes procesadas
+                  </p>
+                </div>
+                <OrderHistory />
+              </div>
+            )}
+
+            {activeView === 'reports' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
+                  <p className="text-muted-foreground">
+                    Analiza el rendimiento y estadísticas del negocio
+                  </p>
+                </div>
+                <SalesReports />
               </div>
             )}
           </div>

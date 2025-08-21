@@ -33,6 +33,14 @@ export interface Customer {
   createdAt: Date;
 }
 
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+}
+
 export interface OrderItem {
   id: string;
   productId: string;
