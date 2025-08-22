@@ -501,4 +501,10 @@ export const usePOS = () => {
 };
 
 // Export alias for compatibility
-export const usePOSContext = usePOS;
+export const usePOSContext = () => {
+  const context = useContext(POSContext);
+  if (context === undefined) {
+    throw new Error('usePOSContext must be used within a POSProvider');
+  }
+  return context;
+};
