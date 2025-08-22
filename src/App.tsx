@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { POSProvider, usePOS } from "@/contexts/POSContext";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { Dashboard } from "@/components/pos/Dashboard";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
@@ -43,29 +44,31 @@ const POSApp = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
-      disableTransitionOnChange={false}
-    >
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <POSProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<POSApp />} />
-              <Route path="/demo" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </POSProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem={false}
+        disableTransitionOnChange={false}
+      >
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <POSProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<POSApp />} />
+                <Route path="/demo" element={<Index />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </POSProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

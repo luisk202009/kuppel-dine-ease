@@ -9,9 +9,23 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useOpenCash, useCloseCash } from '@/hooks/useCash';
+import { useCashSession } from '@/hooks/useCashSession';
 import { usePOSContext } from '@/contexts/POSContext';
 
-interface CashSession {
+// Remove the local CashSession interface that conflicts with API types
+import { CashSession } from '@/types/api';
+
+interface CashMovement {
+  id: string;
+  type: 'sale' | 'expense' | 'adjustment';
+  amount: number;
+  description: string;
+  timestamp: Date;
+  reference?: string;
+}
+
+// Mock local session for history display only
+interface LocalCashSession {
   id: string;
   date: Date;
   openedBy: string;
@@ -28,23 +42,14 @@ interface CashSession {
   notes?: string;
 }
 
-interface CashMovement {
-  id: string;
-  type: 'sale' | 'expense' | 'adjustment';
-  amount: number;
-  description: string;
-  timestamp: Date;
-  reference?: string;
-}
-
 export const CashManager: React.FC = () => {
   const { toast } = useToast();
   const { authState } = usePOSContext();
   const openCash = useOpenCash();
   const closeCash = useCloseCash();
-  const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
+  const { data: currentSession, refetch: refetchSession } = useCashSession();
 
-  const [cashSessions] = useState<CashSession[]>([
+  const [cashSessions] = useState<LocalCashSession[]>([
     {
       id: '2',
       date: new Date(Date.now() - 86400000),
@@ -105,6 +110,7 @@ export const CashManager: React.FC = () => {
       };
 
       await openCash.mutateAsync(cashData);
+      await refetchSession(); // Refresh session data
       setIsOpeningCash(false);
       setOpenAmount('100000');
 
@@ -132,12 +138,13 @@ export const CashManager: React.FC = () => {
       };
 
       await closeCash.mutateAsync(cashData);
-      setCurrentSession(null);
+      await refetchSession(); // Refresh session data
       setIsClosingCash(false);
       setCloseAmount('');
       setCloseNotes('');
 
-      const difference = parseFloat(closeAmount) - (currentSession.expectedAmount || 0);
+      const expectedAmount = (currentSession.initialAmount || 0) + (currentSession.totalSales || 0) - (currentSession.totalExpenses || 0);
+      const difference = parseFloat(closeAmount) - expectedAmount;
       toast({
         title: "Caja Cerrada",
         description: difference === 0 
@@ -159,9 +166,21 @@ export const CashManager: React.FC = () => {
     return difference > 0 ? 'text-blue-600' : 'text-red-600';
   };
 
-  const getSessionDuration = (session: CashSession) => {
-    const end = session.closeTime || new Date();
-    const duration = end.getTime() - session.openTime.getTime();
+  const getSessionDuration = (session: CashSession | LocalCashSession) => {
+    let openTime: Date;
+    let endTime: Date;
+    
+    if ('openedAt' in session) {
+      // API CashSession
+      openTime = new Date(session.openedAt);
+      endTime = session.closedAt ? new Date(session.closedAt) : new Date();
+    } else {
+      // Local CashSession
+      openTime = session.openTime;
+      endTime = session.closeTime || new Date();
+    }
+    
+    const duration = endTime.getTime() - openTime.getTime();
     const hours = Math.floor(duration / (1000 * 60 * 60));
     const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
@@ -227,9 +246,9 @@ export const CashManager: React.FC = () => {
                   <Calculator className="h-8 w-8 text-secondary" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Esperado</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {formatCurrency(currentSession?.expectedAmount || 0)}
-                    </p>
+                     <p className="text-2xl font-bold text-foreground">
+                       {formatCurrency((currentSession?.initialAmount || 0) + (currentSession?.totalSales || 0) - (currentSession?.totalExpenses || 0))}
+                     </p>
                   </div>
                 </div>
               </CardContent>
@@ -247,18 +266,18 @@ export const CashManager: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-muted-foreground">Abierta por:</span>
-                    <p className="font-semibold">{currentSession.openedBy}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-muted-foreground">Hora apertura:</span>
-                    <p className="font-semibold">{currentSession.openTime.toLocaleTimeString('es-CO')}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-muted-foreground">Duración:</span>
-                    <p className="font-semibold">{getSessionDuration(currentSession)}</p>
-                  </div>
+                   <div>
+                     <span className="font-medium text-muted-foreground">Abierta por:</span>
+                     <p className="font-semibold">{currentSession.openedBy}</p>
+                   </div>
+                   <div>
+                     <span className="font-medium text-muted-foreground">Hora apertura:</span>
+                     <p className="font-semibold">{new Date(currentSession.openedAt).toLocaleTimeString('es-CO')}</p>
+                   </div>
+                   <div>
+                     <span className="font-medium text-muted-foreground">Duración:</span>
+                     <p className="font-semibold">{getSessionDuration(currentSession)}</p>
+                   </div>
                   <div>
                     <span className="font-medium text-muted-foreground">Gastos:</span>
                     <p className="font-semibold text-destructive">
@@ -318,10 +337,10 @@ export const CashManager: React.FC = () => {
                     <DialogTitle>Cerrar Caja</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Monto esperado:</p>
-                      <p className="text-2xl font-bold">{formatCurrency(currentSession.expectedAmount)}</p>
-                    </div>
+                     <div className="p-4 bg-muted rounded-lg">
+                       <p className="text-sm text-muted-foreground">Monto esperado:</p>
+                       <p className="text-2xl font-bold">{formatCurrency((currentSession.initialAmount || 0) + (currentSession.totalSales || 0) - (currentSession.totalExpenses || 0))}</p>
+                     </div>
                     
                     <div>
                       <label className="text-sm font-medium">Monto Real en Caja</label>
@@ -342,16 +361,16 @@ export const CashManager: React.FC = () => {
                       />
                     </div>
 
-                    {closeAmount && (
-                      <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Diferencia:</p>
-                        <p className={`text-xl font-bold ${getDifferenceColor(parseFloat(closeAmount) - currentSession.expectedAmount)}`}>
-                          {formatCurrency(Math.abs(parseFloat(closeAmount) - currentSession.expectedAmount))}
-                          {parseFloat(closeAmount) - currentSession.expectedAmount > 0 ? ' Sobrante' : 
-                           parseFloat(closeAmount) - currentSession.expectedAmount < 0 ? ' Faltante' : ' Cuadrado'}
-                        </p>
-                      </div>
-                    )}
+                     {closeAmount && (
+                       <div className="p-4 bg-muted rounded-lg">
+                         <p className="text-sm text-muted-foreground">Diferencia:</p>
+                         <p className={`text-xl font-bold ${getDifferenceColor(parseFloat(closeAmount) - ((currentSession.initialAmount || 0) + (currentSession.totalSales || 0) - (currentSession.totalExpenses || 0)))}`}>
+                           {formatCurrency(Math.abs(parseFloat(closeAmount) - ((currentSession.initialAmount || 0) + (currentSession.totalSales || 0) - (currentSession.totalExpenses || 0))))}
+                           {parseFloat(closeAmount) - ((currentSession.initialAmount || 0) + (currentSession.totalSales || 0) - (currentSession.totalExpenses || 0)) > 0 ? ' Sobrante' : 
+                            parseFloat(closeAmount) - ((currentSession.initialAmount || 0) + (currentSession.totalSales || 0) - (currentSession.totalExpenses || 0)) < 0 ? ' Faltante' : ' Cuadrado'}
+                         </p>
+                       </div>
+                     )}
 
                     <div className="flex gap-2 pt-4">
                       <Button onClick={handleCloseCash} className="btn-kuppel-secondary flex-1">

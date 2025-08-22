@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { usePOS } from '@/contexts/POSContext';
+import { hasPermission } from '@/utils/permissions';
 import { TableGrid } from './TableGrid';
 import { ProductCatalog } from './ProductCatalog';
 import { ShoppingCart } from './ShoppingCart';
@@ -124,30 +125,36 @@ export const Dashboard: React.FC = () => {
                 <History className="h-4 w-4" />
                 <span>Órdenes</span>
               </Button>
-              <Button
-                variant={activeView === 'reports' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('reports')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <BarChart3 className="h-4 w-4" />
-                <span>Reportes</span>
-              </Button>
-              <Button
-                variant={activeView === 'expenses' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('expenses')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <CreditCard className="h-4 w-4" />
-                <span>Gastos</span>
-              </Button>
-              <Button
-                variant={activeView === 'cash' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('cash')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <DollarSign className="h-4 w-4" />
-                <span>Caja</span>
-              </Button>
+              {hasPermission(authState.user, 'view_reports') && (
+                <Button
+                  variant={activeView === 'reports' ? 'default' : 'ghost'}
+                  onClick={() => setActiveView('reports')}
+                  className="flex items-center space-x-2 whitespace-nowrap"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Reportes</span>
+                </Button>
+              )}
+              {hasPermission(authState.user, 'view_expenses') && (
+                <Button
+                  variant={activeView === 'expenses' ? 'default' : 'ghost'}
+                  onClick={() => setActiveView('expenses')}
+                  className="flex items-center space-x-2 whitespace-nowrap"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span>Gastos</span>
+                </Button>
+              )}
+              {hasPermission(authState.user, 'view_cash') && (
+                <Button
+                  variant={activeView === 'cash' ? 'default' : 'ghost'}
+                  onClick={() => setActiveView('cash')}
+                  className="flex items-center space-x-2 whitespace-nowrap"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  <span>Caja</span>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -216,7 +223,7 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {activeView === 'reports' && (
+            {activeView === 'reports' && hasPermission(authState.user, 'view_reports') && (
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
@@ -228,7 +235,7 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {activeView === 'expenses' && (
+            {activeView === 'expenses' && hasPermission(authState.user, 'view_expenses') && (
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Gastos</h2>
@@ -240,7 +247,7 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {activeView === 'cash' && (
+            {activeView === 'cash' && hasPermission(authState.user, 'view_cash') && (
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Caja</h2>

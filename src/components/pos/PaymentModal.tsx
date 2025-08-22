@@ -46,10 +46,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const invoiceData = {
         tableId: posState.selectedTable?.id,
         branchId: authState.selectedBranch?.id || '',
-        items: cartItems.map(item => ({
-          productId: item.id,
+        items: posState.cart.map(item => ({
+          productId: item.productId,
           quantity: item.quantity,
-          unitPrice: item.price,
+          unitPrice: item.unitPrice,
           notes: item.notes
         })),
         subtotal,

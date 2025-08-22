@@ -161,9 +161,13 @@ class ApiClient {
 
   // Expenses endpoints
   async createExpense(expenseData: any) {
+    // Handle both regular data and FormData for file uploads
+    const isFormData = expenseData instanceof FormData;
+    
     return this.request('/expenses', {
       method: 'POST',
-      body: JSON.stringify(expenseData),
+      body: isFormData ? expenseData : JSON.stringify(expenseData),
+      headers: isFormData ? {} : { 'Content-Type': 'application/json' },
     });
   }
 
@@ -188,6 +192,10 @@ class ApiClient {
   }
 
   // Stats endpoints
+  async getCurrentCashSession() {
+    return this.request('/cash/current');
+  }
+
   async getDailyStats(date?: string) {
     const params = date ? `?date=${date}` : '';
     return this.request(`/stats/daily${params}`);
@@ -195,3 +203,4 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+export { ApiClient };

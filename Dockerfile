@@ -1,6 +1,10 @@
 # Multi-stage build for Kuppel POS
 FROM node:18-alpine AS builder
 
+# Build arguments
+ARG VITE_API_BASE_URL
+ARG VITE_SENTRY_DSN
+
 # Set working directory
 WORKDIR /app
 
@@ -9,6 +13,10 @@ COPY package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production
+
+# Set environment variables for build
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 
 # Copy source code
 COPY . .

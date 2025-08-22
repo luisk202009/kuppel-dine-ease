@@ -69,12 +69,28 @@ export const ExpenseManager: React.FC = () => {
     }
 
     try {
-      const expenseData = {
-        category: newExpense.category,
-        description: newExpense.description,
-        amount: parseFloat(newExpense.amount),
-        branchId: authState.selectedBranch?.id || ''
-      };
+      // Create FormData if there's a file attachment, otherwise use regular object
+      let expenseData: FormData | any;
+      
+      if (newExpense.receipt) {
+        expenseData = new FormData();
+        expenseData.append('category', newExpense.category);
+        expenseData.append('description', newExpense.description);
+        expenseData.append('amount', newExpense.amount);
+        expenseData.append('branchId', authState.selectedBranch?.id || '');
+        if (newExpense.vendor) {
+          expenseData.append('vendor', newExpense.vendor);
+        }
+        expenseData.append('attachments', newExpense.receipt);
+      } else {
+        expenseData = {
+          category: newExpense.category,
+          description: newExpense.description,
+          amount: parseFloat(newExpense.amount),
+          branchId: authState.selectedBranch?.id || '',
+          vendor: newExpense.vendor || undefined
+        };
+      }
 
       await createExpense.mutateAsync(expenseData);
       
