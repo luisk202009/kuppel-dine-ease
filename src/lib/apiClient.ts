@@ -23,7 +23,8 @@ class ApiClient {
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
-    // Token will be initialized when needed
+    // Initialize token from secure storage on construction
+    this.loadToken();
   }
 
   private loadToken() {
