@@ -23,21 +23,56 @@ class ApiClient {
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
-    this.loadToken();
+    // Token will be initialized when needed
   }
 
   private loadToken() {
+    try {
+      // Try to load from secure storage first
+      const { secureStorage } = require('@/lib/secureStorage');
+      const token = secureStorage.getToken();
+      if (token) {
+        this.token = token;
+        return;
+      }
+    } catch {
+      // Secure storage not available, fallback to localStorage
+    }
+    
+    // Fallback to localStorage for backwards compatibility
     this.token = localStorage.getItem('kuppel_token');
   }
 
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem('kuppel_token', token);
+    
+    try {
+      // Use secure storage if available
+      const { secureStorage } = require('@/lib/secureStorage');
+      secureStorage.setToken(token);
+    } catch {
+      // Fallback to localStorage
+      localStorage.setItem('kuppel_token', token);
+    }
   }
 
   clearToken() {
     this.token = null;
+    
+    try {
+      // Clear from secure storage
+      const { secureStorage } = require('@/lib/secureStorage');
+      secureStorage.clearToken();
+    } catch {
+      // Fallback to localStorage
+    }
+    
     localStorage.removeItem('kuppel_token');
+  }
+  
+  // Initialize token from secure storage
+  initializeToken() {
+    this.loadToken();
   }
 
   private async request<T>(

@@ -172,10 +172,10 @@ export const LoginScreen: React.FC = () => {
             </div>
           </form>
 
-          {/* Demo Credentials */}
+          {/* Security Notice */}
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <p className="text-xs text-muted-foreground text-center font-medium">
-              Demo: admin / admin123
+              Contacta al administrador para obtener credenciales
             </p>
           </div>
         </CardContent>
