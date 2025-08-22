@@ -1,11 +1,21 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCategory, Customer, POSSettings } from '@/types/pos';
+import { Company, Branch } from '@/types/api';
+import { useToast } from '@/hooks/use-toast';
+import { useLogin, useLogout, getStoredAuth } from '@/hooks/useAuth';
 
 interface POSContextType {
   posState: POSState;
-  authState: AuthState;
+  authState: AuthState & {
+    companies: Company[];
+    branches: Branch[];
+    selectedCompany: Company | null;
+    selectedBranch: Branch | null;
+    needsCompanySelection: boolean;
+  };
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  selectCompanyAndBranch: (company: Company, branch: Branch) => void;
   addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (itemId: string) => void;
   updateCartItem: (itemId: string, quantity: number) => void;
@@ -167,9 +177,31 @@ function posReducer(state: POSState & AuthState, action: POSAction): POSState & 
 }
 
 export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { toast } = useToast();
+  const loginMutation = useLogin();
+  const logout = useLogout();
+  
   const [state, dispatch] = useReducer(posReducer, {
     ...initialPOSState,
     ...initialAuthState
+  });
+
+  // Initialize authentication state
+  const [authState, setAuthState] = React.useState<AuthState & {
+    companies: Company[];
+    branches: Branch[];
+    selectedCompany: Company | null;
+    selectedBranch: Branch | null;
+    needsCompanySelection: boolean;
+  }>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+    companies: [],
+    branches: [],
+    selectedCompany: null,
+    selectedBranch: null,
+    needsCompanySelection: false,
   });
 
   useEffect(() => {
@@ -297,35 +329,55 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  // Login function
   const login = async (username: string, password: string): Promise<boolean> => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    if (username === 'admin' && password === 'admin123') {
-      const user: User = {
-        id: 'user-1',
-        username: 'admin',
-        name: 'Administrador Kuppel',
-        role: 'admin',
-        email: 'admin@kuppel.co',
-        isActive: true
-      };
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
       
-      dispatch({ type: 'SET_USER', payload: user });
-      localStorage.setItem('kuppel_user', JSON.stringify(user));
-      return true;
+      const result = await loginMutation.mutateAsync({ username, password });
+      
+      if (result.success) {
+        const needsSelection = result.companies.length > 1 || result.branches.length > 1;
+        
+        setAuthState(prev => ({
+          ...prev,
+          user: result.user,
+          companies: result.companies,
+          branches: result.branches,
+          isAuthenticated: !needsSelection, // Only authenticated if no selection needed
+          needsCompanySelection: needsSelection,
+          isLoading: false,
+        }));
+        
+        // If only one company/branch, auto-select them
+        if (!needsSelection && result.companies[0] && result.branches[0]) {
+          selectCompanyAndBranch(result.companies[0], result.branches[0]);
+        }
+        
+        return true;
+      }
+      
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return false;
     }
-    
-    dispatch({ type: 'SET_LOADING', payload: false });
-    return false;
   };
 
-  const logout = () => {
-    dispatch({ type: 'SET_USER', payload: null });
-    dispatch({ type: 'CLEAR_CART' });
-    localStorage.removeItem('kuppel_user');
+  // Company and branch selection
+  const selectCompanyAndBranch = (company: Company, branch: Branch) => {
+    localStorage.setItem('kuppel_selected_company', JSON.stringify(company));
+    localStorage.setItem('kuppel_selected_branch', JSON.stringify(branch));
+    
+    setAuthState(prev => ({
+      ...prev,
+      selectedCompany: company,
+      selectedBranch: branch,
+      isAuthenticated: true,
+      needsCompanySelection: false,
+    }));
   };
 
   const addToCart = (product: Product, quantity: number = 1) => {
@@ -384,23 +436,47 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Check for stored user on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('kuppel_user');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        dispatch({ type: 'SET_USER', payload: user });
-      } catch (error) {
-        localStorage.removeItem('kuppel_user');
+    const checkStoredAuth = () => {
+      const stored = getStoredAuth();
+      
+      if (stored.user && stored.selectedCompany && stored.selectedBranch) {
+        setAuthState({
+          user: stored.user,
+          companies: stored.companies,
+          branches: stored.branches,
+          selectedCompany: stored.selectedCompany,
+          selectedBranch: stored.selectedBranch,
+          isAuthenticated: true,
+          needsCompanySelection: false,
+          isLoading: false,
+        });
+      } else if (stored.user && stored.companies.length > 0) {
+        // User logged in but needs company selection
+        setAuthState({
+          user: stored.user,
+          companies: stored.companies,
+          branches: stored.branches,
+          selectedCompany: null,
+          selectedBranch: null,
+          isAuthenticated: false,
+          needsCompanySelection: true,
+          isLoading: false,
+        });
+      } else {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
       }
-    }
+    };
+
+    checkStoredAuth();
   }, []);
 
   return (
     <POSContext.Provider value={{
       posState: state,
-      authState: state,
+      authState: authState,
       login,
       logout,
+      selectCompanyAndBranch,
       addToCart,
       removeFromCart,
       updateCartItem,

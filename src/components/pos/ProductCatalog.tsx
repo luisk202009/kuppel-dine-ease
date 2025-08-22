@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Search, ShoppingCart, Plus, Loader2 } from 'lucide-react';
 import { usePOS } from '@/contexts/POSContext';
+import { useProductsByCategory } from '@/hooks/useProducts';
 import { Product } from '@/types/pos';
 
 interface ProductCatalogProps {
@@ -12,30 +14,45 @@ interface ProductCatalogProps {
 }
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({ searchQuery = '' }) => {
-  const { posState, addToCart } = usePOS();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const { addToCart } = usePOS();
+  const { data: categorizedProducts = {}, products = [], isLoading, error } = useProductsByCategory();
 
+  // Filter products based on search query
   const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return posState.categories;
-    }
+    if (!searchQuery.trim()) return [];
+    
+    return products.filter(product =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
 
-    return posState.categories.map(category => ({
-      ...category,
-      products: category.products.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    })).filter(category => category.products.length > 0);
-  }, [posState.categories, searchQuery]);
-
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(price);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Cargando productos...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64 text-destructive">
+        <p>Error al cargar productos. Por favor, intenta de nuevo.</p>
+      </div>
+    );
+  }
 
   const handleAddToCart = (product: Product) => {
     addToCart(product, 1);
@@ -89,89 +106,72 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ searchQuery = ''
     </Card>
   );
 
+  // If there's a search query, show search results
   if (searchQuery.trim()) {
-    // Search Results View
-    const allProducts = filteredProducts.flatMap(cat => cat.products);
-    
     return (
-      <div>
-        <div className="mb-4 flex items-center space-x-2">
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
           <Search className="h-5 w-5 text-muted-foreground" />
-          <span className="text-muted-foreground">
-            {allProducts.length} resultado{allProducts.length !== 1 ? 's' : ''} para "{searchQuery}"
-          </span>
+          <h2 className="text-lg font-semibold">
+            Resultados para "{searchQuery}" ({filteredProducts.length})
+          </h2>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {allProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-        
-        {allProducts.length === 0 && (
-          <div className="text-center py-12">
-            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              No se encontraron productos
-            </h3>
-            <p className="text-muted-foreground">
-              Intenta con otros términos de búsqueda
-            </p>
+
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No se encontraron productos
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
         )}
       </div>
     );
   }
 
-  // Category View
+  // Show products by category
+  const categories = Object.keys(categorizedProducts);
+  
+  if (categories.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No hay productos disponibles
+      </div>
+    );
+  }
+
   return (
-    <Tabs 
-      value={selectedCategory || filteredProducts[0]?.id || ''} 
-      onValueChange={setSelectedCategory}
-      className="w-full"
-    >
-      <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-6">
-        {filteredProducts.map((category) => (
-          <TabsTrigger 
-            key={category.id} 
-            value={category.id}
-            className="text-xs lg:text-sm"
+    <Tabs value={selectedCategory || categories[0]} onValueChange={setSelectedCategory}>
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
+        {categories.map((categoryName) => (
+          <TabsTrigger
+            key={categoryName}
+            value={categoryName}
+            className="text-xs md:text-sm"
           >
-            {category.name}
+            {categoryName}
           </TabsTrigger>
         ))}
       </TabsList>
 
-      {filteredProducts.map((category) => (
-        <TabsContent key={category.id} value={category.id}>
-          <div className="mb-4">
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              {category.name}
-            </h3>
-            <p className="text-muted-foreground">
-              {category.products.length} producto{category.products.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {category.products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+      {categories.map((categoryName) => (
+        <TabsContent key={categoryName} value={categoryName} className="mt-4">
+          {categorizedProducts[categoryName]?.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No hay productos en esta categoría
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {categorizedProducts[categoryName]?.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </TabsContent>
       ))}
-      
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-12">
-          <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            No hay productos disponibles
-          </h3>
-          <p className="text-muted-foreground">
-            Los productos aparecerán aquí cuando estén disponibles
-          </p>
-        </div>
-      )}
     </Tabs>
   );
 };

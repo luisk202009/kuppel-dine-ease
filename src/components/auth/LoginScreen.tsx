@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Logo } from '@/components/ui/logo';
 import { usePOS } from '@/contexts/POSContext';
 import { useToast } from '@/hooks/use-toast';
+import { CompanySelection } from '@/components/auth/CompanySelection';
 
 export const LoginScreen: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -14,8 +15,19 @@ export const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = usePOS();
+  const { authState, login, selectCompanyAndBranch } = usePOS();
   const { toast } = useToast();
+
+  // Show company selection if needed
+  if (authState.needsCompanySelection) {
+    return (
+      <CompanySelection
+        companies={authState.companies}
+        branches={authState.branches}
+        onSelect={selectCompanyAndBranch}
+      />
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
