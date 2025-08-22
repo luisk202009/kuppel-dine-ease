@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.kuppel.co';
+import { secureStorage } from '@/lib/secureStorage';
 
 export interface ApiError {
   message: string;
@@ -20,6 +21,7 @@ export class ApiClientError extends Error {
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
+  private secureStorage = secureStorage;
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
@@ -28,16 +30,10 @@ class ApiClient {
   }
 
   private loadToken() {
-    try {
-      // Try to load from secure storage first
-      const { secureStorage } = require('@/lib/secureStorage');
-      const token = secureStorage.getToken();
-      if (token) {
-        this.token = token;
-        return;
-      }
-    } catch {
-      // Secure storage not available, fallback to localStorage
+    const token = this.secureStorage.getToken();
+    if (token) {
+      this.token = token;
+      return;
     }
     
     // Fallback to localStorage for backwards compatibility
@@ -46,28 +42,14 @@ class ApiClient {
 
   setToken(token: string) {
     this.token = token;
-    
-    try {
-      // Use secure storage if available
-      const { secureStorage } = require('@/lib/secureStorage');
-      secureStorage.setToken(token);
-    } catch {
-      // Fallback to localStorage
-      localStorage.setItem('kuppel_token', token);
-    }
+    this.secureStorage.setToken(token);
+    // Also store in localStorage as fallback
+    localStorage.setItem('kuppel_token', token);
   }
 
   clearToken() {
     this.token = null;
-    
-    try {
-      // Clear from secure storage
-      const { secureStorage } = require('@/lib/secureStorage');
-      secureStorage.clearToken();
-    } catch {
-      // Fallback to localStorage
-    }
-    
+    this.secureStorage.clearToken();
     localStorage.removeItem('kuppel_token');
   }
   
