@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useDailyStats } from '@/hooks/useStats';
 
 interface SalesData {
   totalSales: number;
@@ -39,9 +40,9 @@ interface SalesData {
 
 export const SalesReports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: dailyStats, isLoading, refetch } = useDailyStats();
 
-  // Mock data - in real app this would come from backend
+  // Fallback data when API is not available
   const mockSalesData: SalesData = {
     totalSales: 485600,
     totalOrders: 34,
@@ -69,11 +70,31 @@ export const SalesReports: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
+    await refetch();
   };
+
+  // Use real data if available, otherwise fallback to mock
+  const salesData = dailyStats ? {
+    totalSales: dailyStats.totalSales,
+    totalOrders: dailyStats.totalTransactions,
+    avgOrderValue: dailyStats.averageTicket,
+    topProducts: dailyStats.topProducts.map(p => ({
+      name: p.productName,
+      quantity: p.quantity,
+      revenue: p.revenue
+    })),
+    hourlyData: dailyStats.hourlySales.map(h => ({
+      hour: `${h.hour.toString().padStart(2, '0')}:00`,
+      sales: h.sales,
+      orders: h.transactions
+    })),
+    paymentMethods: [
+      { method: 'Efectivo', amount: dailyStats.paymentMethods.cash, percentage: Math.round((dailyStats.paymentMethods.cash / dailyStats.totalSales) * 100) },
+      { method: 'Tarjeta', amount: dailyStats.paymentMethods.card, percentage: Math.round((dailyStats.paymentMethods.card / dailyStats.totalSales) * 100) },
+      { method: 'Crédito', amount: dailyStats.paymentMethods.credit, percentage: Math.round((dailyStats.paymentMethods.credit / dailyStats.totalSales) * 100) },
+      { method: 'Transferencia', amount: dailyStats.paymentMethods.transfer, percentage: Math.round((dailyStats.paymentMethods.transfer / dailyStats.totalSales) * 100) }
+    ].filter(method => method.amount > 0)
+  } : mockSalesData;
 
   const getPeriodText = () => {
     switch (selectedPeriod) {
@@ -149,7 +170,7 @@ export const SalesReports: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Ventas Totales</p>
-                <p className="text-2xl font-bold">${mockSalesData.totalSales.toLocaleString()}</p>
+                <p className="text-2xl font-bold">${salesData.totalSales.toLocaleString()}</p>
                 <p className="text-xs text-success flex items-center gap-1 mt-1">
                   <TrendingUp className="h-3 w-3" />
                   +12% vs ayer
@@ -167,7 +188,7 @@ export const SalesReports: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Órdenes Totales</p>
-                <p className="text-2xl font-bold">{mockSalesData.totalOrders}</p>
+                <p className="text-2xl font-bold">{salesData.totalOrders}</p>
                 <p className="text-xs text-primary flex items-center gap-1 mt-1">
                   <TrendingUp className="h-3 w-3" />
                   +8% vs ayer
@@ -185,7 +206,7 @@ export const SalesReports: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Ticket Promedio</p>
-                <p className="text-2xl font-bold">${mockSalesData.avgOrderValue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">${salesData.avgOrderValue.toLocaleString()}</p>
                 <p className="text-xs text-warning flex items-center gap-1 mt-1">
                   <TrendingUp className="h-3 w-3" />
                   +3% vs ayer
@@ -211,7 +232,7 @@ export const SalesReports: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockSalesData.topProducts.map((product, index) => (
+                {salesData.topProducts.map((product, index) => (
                   <div key={product.name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center p-0">
@@ -244,7 +265,7 @@ export const SalesReports: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockSalesData.hourlyData.map((data) => (
+                {salesData.hourlyData.map((data) => (
                   <div key={data.hour} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
                     <div className="flex items-center gap-3">
                       <Badge variant="outline">{data.hour}</Badge>
@@ -259,7 +280,7 @@ export const SalesReports: React.FC = () => {
                       <div 
                         className="bg-primary h-2 rounded-full"
                         style={{ 
-                          width: `${(data.sales / Math.max(...mockSalesData.hourlyData.map(d => d.sales))) * 100}%` 
+                          width: `${(data.sales / Math.max(...salesData.hourlyData.map(d => d.sales))) * 100}%` 
                         }}
                       />
                     </div>
@@ -277,7 +298,7 @@ export const SalesReports: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockSalesData.paymentMethods.map((method) => (
+                {salesData.paymentMethods.map((method) => (
                   <div key={method.method} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">

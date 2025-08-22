@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useExpenses, useCreateExpense } from '@/hooks/useExpenses';
+import { usePOSContext } from '@/contexts/POSContext';
 
 interface Expense {
   id: string;
@@ -33,28 +35,9 @@ const EXPENSE_CATEGORIES = [
 
 export const ExpenseManager: React.FC = () => {
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: '1',
-      date: new Date(),
-      category: 'Inventario',
-      description: 'Compra de ingredientes para cocina',
-      amount: 450000,
-      vendor: 'Distribuidora Central',
-      status: 'approved',
-      createdBy: 'admin'
-    },
-    {
-      id: '2',
-      date: new Date(Date.now() - 86400000),
-      category: 'Servicios Públicos',
-      description: 'Factura de electricidad - Mes actual',
-      amount: 280000,
-      vendor: 'EPM',
-      status: 'pending',
-      createdBy: 'admin'
-    }
-  ]);
+  const { authState } = usePOSContext();
+  const { data: expenses = [], isLoading } = useExpenses();
+  const createExpense = useCreateExpense();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -68,8 +51,7 @@ export const ExpenseManager: React.FC = () => {
   });
 
   const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         expense.vendor?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = expense.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || expense.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -86,26 +68,30 @@ export const ExpenseManager: React.FC = () => {
       return;
     }
 
-    const expense: Expense = {
-      id: Date.now().toString(),
-      date: new Date(),
-      category: newExpense.category,
-      description: newExpense.description,
-      amount: parseFloat(newExpense.amount),
-      vendor: newExpense.vendor,
-      status: 'pending',
-      createdBy: 'admin',
-      receipt: newExpense.receipt ? URL.createObjectURL(newExpense.receipt) : undefined
-    };
+    try {
+      const expenseData = {
+        category: newExpense.category,
+        description: newExpense.description,
+        amount: parseFloat(newExpense.amount),
+        branchId: authState.selectedBranch?.id || ''
+      };
 
-    setExpenses(prev => [expense, ...prev]);
-    setNewExpense({ category: '', description: '', amount: '', vendor: '', receipt: null });
-    setIsAddingExpense(false);
+      await createExpense.mutateAsync(expenseData);
+      
+      setNewExpense({ category: '', description: '', amount: '', vendor: '', receipt: null });
+      setIsAddingExpense(false);
 
-    toast({
-      title: "Gasto Registrado",
-      description: "El gasto ha sido registrado exitosamente",
-    });
+      toast({
+        title: "Gasto Registrado",
+        description: "El gasto ha sido registrado exitosamente",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo registrar el gasto. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -162,7 +148,7 @@ export const ExpenseManager: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Este Mes</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {expenses.filter(e => e.date.getMonth() === new Date().getMonth()).length}
+                  {expenses.filter(e => new Date(e.createdAt).getMonth() === new Date().getMonth()).length}
                 </p>
               </div>
             </div>
@@ -282,21 +268,17 @@ export const ExpenseManager: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-semibold text-foreground">{expense.description}</h3>
-                    {getStatusBadge(expense.status)}
+                    <Badge variant="secondary">Registrado</Badge>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Categoría:</span>
                       <p>{expense.category}</p>
                     </div>
                     <div>
                       <span className="font-medium">Fecha:</span>
-                      <p>{expense.date.toLocaleDateString('es-CO')}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Proveedor:</span>
-                      <p>{expense.vendor || 'N/A'}</p>
+                      <p>{new Date(expense.createdAt).toLocaleDateString('es-CO')}</p>
                     </div>
                     <div>
                       <span className="font-medium">Monto:</span>
@@ -304,10 +286,10 @@ export const ExpenseManager: React.FC = () => {
                     </div>
                   </div>
 
-                  {expense.receipt && (
+                  {expense.attachments && expense.attachments.length > 0 && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-primary">
                       <Paperclip className="h-4 w-4" />
-                      <span>Recibo adjunto</span>
+                      <span>{expense.attachments.length} archivo(s) adjunto(s)</span>
                     </div>
                   )}
                 </div>

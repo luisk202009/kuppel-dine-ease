@@ -499,3 +499,6 @@ export const usePOS = () => {
   }
   return context;
 };
+
+// Export alias for compatibility
+export const usePOSContext = usePOS;

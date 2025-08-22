@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useOpenCash, useCloseCash } from '@/hooks/useCash';
+import { usePOSContext } from '@/contexts/POSContext';
 
 interface CashSession {
   id: string;
@@ -37,17 +39,10 @@ interface CashMovement {
 
 export const CashManager: React.FC = () => {
   const { toast } = useToast();
-  const [currentSession, setCurrentSession] = useState<CashSession | null>({
-    id: '1',
-    date: new Date(),
-    openedBy: 'admin',
-    openTime: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-    initialAmount: 100000,
-    totalSales: 850000,
-    totalExpenses: 45000,
-    expectedAmount: 905000,
-    status: 'open'
-  });
+  const { authState } = usePOSContext();
+  const openCash = useOpenCash();
+  const closeCash = useCloseCash();
+  const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
 
   const [cashSessions] = useState<CashSession[]>([
     {
@@ -102,56 +97,61 @@ export const CashManager: React.FC = () => {
   };
 
   const handleOpenCash = async () => {
-    const newSession: CashSession = {
-      id: Date.now().toString(),
-      date: new Date(),
-      openedBy: 'admin',
-      openTime: new Date(),
-      initialAmount: parseFloat(openAmount),
-      totalSales: 0,
-      totalExpenses: 0,
-      expectedAmount: parseFloat(openAmount),
-      status: 'open'
-    };
+    try {
+      const cashData = {
+        branchId: authState.selectedBranch?.id || '',
+        initialAmount: parseFloat(openAmount),
+        notes: 'Apertura de caja'
+      };
 
-    setCurrentSession(newSession);
-    setIsOpeningCash(false);
-    setOpenAmount('100000');
+      await openCash.mutateAsync(cashData);
+      setIsOpeningCash(false);
+      setOpenAmount('100000');
 
-    toast({
-      title: "Caja Abierta",
-      description: `Caja abierta con ${formatCurrency(parseFloat(openAmount))}`,
-    });
+      toast({
+        title: "Caja Abierta",
+        description: `Caja abierta con ${formatCurrency(parseFloat(openAmount))}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo abrir la caja. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCloseCash = async () => {
     if (!currentSession || !closeAmount) return;
 
-    const finalAmount = parseFloat(closeAmount);
-    const difference = finalAmount - currentSession.expectedAmount;
+    try {
+      const cashData = {
+        sessionId: currentSession.id,
+        finalAmount: parseFloat(closeAmount),
+        notes: closeNotes || 'Cierre de caja'
+      };
 
-    const closedSession: CashSession = {
-      ...currentSession,
-      closedBy: 'admin',
-      closeTime: new Date(),
-      finalAmount,
-      difference,
-      status: 'closed',
-      notes: closeNotes
-    };
+      await closeCash.mutateAsync(cashData);
+      setCurrentSession(null);
+      setIsClosingCash(false);
+      setCloseAmount('');
+      setCloseNotes('');
 
-    setCurrentSession(null);
-    setIsClosingCash(false);
-    setCloseAmount('');
-    setCloseNotes('');
-
-    toast({
-      title: "Caja Cerrada",
-      description: difference === 0 
-        ? "Cierre cuadrado exitoso" 
-        : `Diferencia: ${formatCurrency(Math.abs(difference))} ${difference > 0 ? 'sobrante' : 'faltante'}`,
-      variant: difference === 0 ? "default" : "destructive"
-    });
+      const difference = parseFloat(closeAmount) - (currentSession.expectedAmount || 0);
+      toast({
+        title: "Caja Cerrada",
+        description: difference === 0 
+          ? "Cierre cuadrado exitoso" 
+          : `Diferencia: ${formatCurrency(Math.abs(difference))} ${difference > 0 ? 'sobrante' : 'faltante'}`,
+        variant: difference === 0 ? "default" : "destructive"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la caja. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getDifferenceColor = (difference: number) => {

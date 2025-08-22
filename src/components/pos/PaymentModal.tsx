@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { CreditCard, Banknote, Calculator } from 'lucide-react';
 import { CartItem } from '@/types/pos';
 import { toast } from '@/hooks/use-toast';
+import { useCreateInvoice } from '@/hooks/useInvoices';
+import { usePOSContext } from '@/contexts/POSContext';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -28,6 +30,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   total,
   onPaymentComplete
 }) => {
+  const { posState, authState } = usePOSContext();
+  const createInvoice = useCreateInvoice();
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const [amountReceived, setAmountReceived] = useState<string>(total.toString());
   const [cardNumber, setCardNumber] = useState('');
@@ -38,17 +42,42 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handlePayment = async () => {
     setIsProcessing(true);
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    toast({
-      title: "Pago procesado exitosamente",
-      description: `Método: ${paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'} - Total: $${total.toFixed(2)}`,
-    });
+    try {
+      const invoiceData = {
+        tableId: posState.selectedTable?.id,
+        branchId: authState.selectedBranch?.id || '',
+        items: cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          notes: item.notes
+        })),
+        subtotal,
+        taxes,
+        discount: 0,
+        total,
+        paymentMethod: paymentMethod as 'cash' | 'card',
+        receivedAmount: paymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
+      };
 
-    onPaymentComplete();
-    onClose();
-    setIsProcessing(false);
+      await createInvoice.mutateAsync(invoiceData);
+
+      toast({
+        title: "Factura generada exitosamente",
+        description: `Método: ${paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'} - Total: $${total.toFixed(2)}`,
+      });
+
+      onPaymentComplete();
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Error al procesar pago",
+        description: "No se pudo generar la factura. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const calculatorButtons = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '.', 'C'];
