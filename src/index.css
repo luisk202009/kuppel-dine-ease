@@ -16,20 +16,20 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 18%;
 
-    /* Kuppel Primary - Professional Blue */
-    --primary: 217 91% 60%;
+    /* Kuppel Primary - Teal/Turquoise */
+    --primary: 180 100% 40%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 84% 55%;
+    --primary-hover: 180 100% 35%;
 
-    /* Secondary Colors */
-    --secondary: 210 17% 95%;
-    --secondary-foreground: 220 13% 18%;
+    /* Kuppel Secondary - Purple */
+    --secondary: 263 100% 40%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 17% 95%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 217 91% 95%;
-    --accent-foreground: 217 91% 35%;
+    --accent: 150 50% 50%;
+    --accent-foreground: 0 0% 100%;
 
     /* Status Colors */
     --success: 142 76% 36%;
@@ -44,22 +44,24 @@
     /* UI Elements */
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --ring: 180 100% 40%;
 
     --radius: 0.75rem;
 
-    /* POS Specific Colors */
+    /* POS Specific Colors - Kuppel */
     --pos-sidebar: 220 13% 15%;
     --pos-sidebar-foreground: 0 0% 98%;
-    --pos-active: 217 91% 60%;
+    --pos-active: 180 100% 40%;
     --pos-pending: 38 92% 50%;
     --pos-occupied: 0 84% 60%;
     --pos-available: 142 76% 36%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 84% 70%));
+    /* Kuppel Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(180 100% 40%), hsl(180 100% 50%));
+    --gradient-secondary: linear-gradient(135deg, hsl(263 100% 40%), hsl(263 100% 50%));
     --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 70% 45%));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 13% 97%));
+    --gradient-kuppel: linear-gradient(135deg, hsl(180 100% 40%) 0%, hsl(150 50% 50%) 100%);
 
     /* Shadows */
     --shadow-soft: 0 1px 3px 0 hsl(220 13% 18% / 0.1), 0 1px 2px -1px hsl(220 13% 18% / 0.1);
@@ -99,11 +101,11 @@
     --popover: 220 13% 12%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 217 91% 65%;
+    --primary: 180 100% 45%;
     --primary-foreground: 220 13% 9%;
-    --primary-hover: 217 84% 60%;
+    --primary-hover: 180 100% 40%;
 
-    --secondary: 220 13% 18%;
+    --secondary: 263 100% 50%;
     --secondary-foreground: 0 0% 95%;
 
     --muted: 220 13% 18%;
@@ -123,19 +125,21 @@
 
     --border: 220 13% 20%;
     --input: 220 13% 18%;
-    --ring: 217 91% 65%;
+    --ring: 180 100% 45%;
 
     --pos-sidebar: 220 13% 7%;
     --pos-sidebar-foreground: 0 0% 98%;
-    --pos-active: 217 91% 65%;
+    --pos-active: 180 100% 45%;
     --pos-pending: 38 92% 55%;
     --pos-occupied: 0 84% 65%;
     --pos-available: 142 76% 45%;
 
-    /* Dark Mode Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 65%), hsl(217 84% 75%));
+    /* Dark Mode Gradients - Kuppel */
+    --gradient-primary: linear-gradient(135deg, hsl(180 100% 45%), hsl(180 100% 55%));
+    --gradient-secondary: linear-gradient(135deg, hsl(263 100% 50%), hsl(263 100% 60%));
     --gradient-success: linear-gradient(135deg, hsl(142 76% 45%), hsl(142 70% 55%));
     --gradient-card: linear-gradient(145deg, hsl(220 13% 12%), hsl(220 13% 15%));
+    --gradient-kuppel: linear-gradient(135deg, hsl(180 100% 45%) 0%, hsl(150 50% 50%) 100%);
 
     --sidebar-background: 220 13% 7%;
     --sidebar-foreground: 0 0% 95%;
@@ -149,21 +153,22 @@
 }
 
 @layer components {
-  /* POS Button Variants */
-  .btn-pos-primary {
-    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
+  /* Kuppel POS Button Variants */
+  .btn-kuppel-primary {
+    @apply bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
   }
 
-  .btn-pos-success {
-    @apply bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
+  .btn-kuppel-secondary {
+    @apply bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
   }
 
-  .btn-pos-warning {
-    @apply bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
+  .btn-kuppel-success {
+    @apply bg-accent hover:bg-accent/90 text-accent-foreground font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
   }
 
-  .btn-pos-danger {
-    @apply bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
+  .btn-kuppel-gradient {
+    background: var(--gradient-kuppel);
+    @apply text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
   }
 
   /* POS Card Styles */

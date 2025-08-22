@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun, History, BarChart3 } from 'lucide-react';
+import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { usePOS } from '@/contexts/POSContext';
 import { TableGrid } from './TableGrid';
@@ -14,11 +15,13 @@ import { ShoppingCart } from './ShoppingCart';
 import { CustomerManager } from './CustomerManager';
 import { OrderHistory } from './OrderHistory';
 import { SalesReports } from './SalesReports';
+import { ExpenseManager } from './ExpenseManager';
+import { CashManager } from './CashManager';
 
 export const Dashboard: React.FC = () => {
   const { authState, posState, logout, searchProducts } = usePOS();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports'>('tables');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -68,6 +71,7 @@ export const Dashboard: React.FC = () => {
 
             {/* Actions */}
             <ThemeToggle />
+            <LayoutConfig />
             
             <Button variant="outline" size="sm" className="hidden md:flex">
               <Settings className="h-4 w-4 mr-2" />
@@ -127,6 +131,22 @@ export const Dashboard: React.FC = () => {
               >
                 <BarChart3 className="h-4 w-4" />
                 <span>Reportes</span>
+              </Button>
+              <Button
+                variant={activeView === 'expenses' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('expenses')}
+                className="flex items-center space-x-2 whitespace-nowrap"
+              >
+                <CreditCard className="h-4 w-4" />
+                <span>Gastos</span>
+              </Button>
+              <Button
+                variant={activeView === 'cash' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('cash')}
+                className="flex items-center space-x-2 whitespace-nowrap"
+              >
+                <DollarSign className="h-4 w-4" />
+                <span>Caja</span>
               </Button>
             </div>
           </div>
@@ -205,6 +225,30 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
                 <SalesReports />
+              </div>
+            )}
+
+            {activeView === 'expenses' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Gastos</h2>
+                  <p className="text-muted-foreground">
+                    Registra y administra los gastos del negocio
+                  </p>
+                </div>
+                <ExpenseManager />
+              </div>
+            )}
+
+            {activeView === 'cash' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Caja</h2>
+                  <p className="text-muted-foreground">
+                    Controla la apertura, cierre y movimientos de caja
+                  </p>
+                </div>
+                <CashManager />
               </div>
             )}
           </div>
