@@ -10,6 +10,7 @@ import { CartItem } from '@/types/pos';
 import { toast } from '@/hooks/use-toast';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { usePOSContext } from '@/contexts/POSContext';
+import { formatCurrency } from '@/lib/utils';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -38,6 +39,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(amountReceived) - total) : 0;
+  
+  // Card number validation
+  const isValidCardNumber = (number: string) => {
+    return number.replace(/\s/g, '').length >= 15; // Accept 15+ digits
+  };
+
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    return parts.length ? parts.join(' ') : v;
+  };
 
   const handlePayment = async () => {
     setIsProcessing(true);
@@ -64,7 +81,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
       toast({
         title: "Factura generada exitosamente",
-        description: `Método: ${paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'} - Total: $${total.toFixed(2)}`,
+        description: `Método: ${paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'} - Total: ${formatCurrency(total)}`,
       });
 
       onPaymentComplete();
@@ -117,31 +134,31 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center py-2">
                   <div>
-                    <span className="font-medium">{item.name}</span>
-                    <span className="text-muted-foreground ml-2">x{item.quantity}</span>
-                  </div>
-                  <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                   <span className="font-medium">{item.name}</span>
+                   <span className="text-muted-foreground ml-2">x{item.quantity}</span>
+                 </div>
+                 <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
 
             <Separator />
             
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Impuestos (19%):</span>
-                <span>${taxes.toFixed(2)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
-            </div>
+             <div className="space-y-2">
+               <div className="flex justify-between">
+                 <span>Subtotal:</span>
+                 <span>{formatCurrency(subtotal)}</span>
+               </div>
+               <div className="flex justify-between">
+                 <span>Impuestos (19%):</span>
+                 <span>{formatCurrency(taxes)}</span>
+               </div>
+               <Separator />
+               <div className="flex justify-between text-lg font-bold">
+                 <span>Total:</span>
+                 <span>{formatCurrency(total)}</span>
+               </div>
+             </div>
           </div>
 
           {/* Payment Options */}
@@ -184,14 +201,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   />
                 </div>
                 
-                {parseFloat(amountReceived) >= total && (
-                  <div className="bg-success/10 border border-success/20 rounded-lg p-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-success font-medium">Cambio:</span>
-                      <span className="text-success font-bold text-xl">${change.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
+                 {parseFloat(amountReceived) >= total && (
+                   <div className="bg-success/10 border border-success/20 rounded-lg p-3">
+                     <div className="flex justify-between items-center">
+                       <span className="text-success font-medium">Cambio:</span>
+                       <span className="text-success font-bold text-xl">{formatCurrency(change)}</span>
+                     </div>
+                   </div>
+                 )}
 
                 {/* Calculator */}
                 <div className="bg-secondary/10 rounded-lg p-4">
@@ -218,16 +235,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
             {paymentMethod === 'card' && (
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="card-number">Número de Tarjeta</Label>
-                  <Input
-                    id="card-number"
-                    placeholder="**** **** **** ****"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                    className="text-center tracking-widest"
-                  />
-                </div>
+                 <div>
+                   <Label htmlFor="card-number">Número de Tarjeta</Label>
+                   <Input
+                     id="card-number"
+                     placeholder="**** **** **** ****"
+                     value={formatCardNumber(cardNumber)}
+                     onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, ''))}
+                     className={`text-center tracking-widest ${!isValidCardNumber(cardNumber) && cardNumber ? 'border-destructive' : ''}`}
+                     maxLength={19} // 16 digits + 3 spaces
+                   />
+                   {cardNumber && !isValidCardNumber(cardNumber) && (
+                     <p className="text-sm text-destructive mt-1">Número de tarjeta inválido</p>
+                   )}
+                 </div>
                 <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-center">
                   <p className="text-primary font-medium">
                     Terminal de pago activado
@@ -240,17 +261,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             )}
 
             <div className="pt-4">
-              <Button 
-                onClick={handlePayment} 
-                className="w-full h-14 text-lg font-bold"
-                disabled={
-                  isProcessing || 
-                  (paymentMethod === 'cash' && parseFloat(amountReceived) < total) ||
-                  (paymentMethod === 'card' && cardNumber.length < 16)
-                }
-              >
-                {isProcessing ? 'Procesando...' : `Procesar Pago - $${total.toFixed(2)}`}
-              </Button>
+               <Button 
+                 onClick={handlePayment} 
+                 className="w-full h-14 text-lg font-bold"
+                 disabled={
+                   isProcessing || 
+                   (paymentMethod === 'cash' && parseFloat(amountReceived) < total) ||
+                   (paymentMethod === 'card' && !isValidCardNumber(cardNumber))
+                 }
+               >
+                 {isProcessing ? 'Procesando...' : `Procesar Pago - ${formatCurrency(total)}`}
+               </Button>
             </div>
           </div>
         </div>

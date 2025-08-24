@@ -10,6 +10,7 @@ import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { usePOS } from '@/contexts/POSContext';
 import { hasPermission } from '@/utils/permissions';
+import { isFeatureEnabled } from '@/config/environment';
 import { TableGrid } from './TableGrid';
 import { ProductCatalog } from './ProductCatalog';
 import { ShoppingCart } from './ShoppingCart';
@@ -117,15 +118,17 @@ export const Dashboard: React.FC = () => {
                 <Users className="h-4 w-4" />
                 <span>Clientes</span>
               </Button>
-              <Button
-                variant={activeView === 'orders' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('orders')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <History className="h-4 w-4" />
-                <span>Órdenes</span>
-              </Button>
-              {hasPermission(authState.user, 'view_reports') && (
+              {isFeatureEnabled('orderHistory') && (
+                <Button
+                  variant={activeView === 'orders' ? 'default' : 'ghost'}
+                  onClick={() => setActiveView('orders')}
+                  className="flex items-center space-x-2 whitespace-nowrap"
+                >
+                  <History className="h-4 w-4" />
+                  <span>Órdenes</span>
+                </Button>
+              )}
+              {hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
                 <Button
                   variant={activeView === 'reports' ? 'default' : 'ghost'}
                   onClick={() => setActiveView('reports')}
@@ -211,7 +214,7 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {activeView === 'orders' && (
+            {activeView === 'orders' && isFeatureEnabled('orderHistory') && (
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-foreground mb-2">Historial de Órdenes</h2>
@@ -223,7 +226,7 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {activeView === 'reports' && hasPermission(authState.user, 'view_reports') && (
+            {activeView === 'reports' && hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
               <div>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
