@@ -1,283 +1,330 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  History, 
-  Search, 
-  Filter, 
-  Calendar,
-  Clock,
-  User,
-  Receipt,
-  Eye
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, Clock, Search, Eye, Receipt, Filter } from 'lucide-react';
+import { useInvoices } from '@/hooks/useInvoices';
+import { formatCurrency } from '@/lib/utils';
+import { Order, PaymentMethod } from '@/types/pos';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-interface Order {
-  id: string;
-  tableId: string;
-  tableName: string;
-  customerName?: string;
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  subtotal: number;
-  taxes: number;
-  total: number;
-  paymentMethod: string;
-  status: 'completed' | 'cancelled' | 'refunded';
-  timestamp: Date;
-  cashier: string;
+interface OrderHistoryProps {
+  className?: string;
 }
 
-export const OrderHistory: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'cancelled' | 'refunded'>('all');
+type OrderStatus = 'all' | 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid' | 'cancelled';
+type TimeFilter = 'today' | 'week' | 'month' | 'all';
+
+export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<OrderStatus>('all');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Mock data - in real app this would come from backend
-  const mockOrders: Order[] = [
-    {
-      id: 'ORD-001',
-      tableId: 'table-1',
-      tableName: 'Mesa 1',
-      customerName: 'Juan Pérez',
-      items: [
-        { name: 'Café Americano', quantity: 2, price: 3500 },
-        { name: 'Croissant', quantity: 1, price: 4500 }
-      ],
-      subtotal: 11500,
-      taxes: 2185,
-      total: 13685,
-      paymentMethod: 'Efectivo',
-      status: 'completed',
-      timestamp: new Date(2024, 7, 21, 14, 30),
-      cashier: 'María García'
-    },
-    {
-      id: 'ORD-002',  
-      tableId: 'table-3',
-      tableName: 'Mesa 3',
-      items: [
-        { name: 'Hamburguesa Clásica', quantity: 1, price: 15000 },
-        { name: 'Papas Fritas', quantity: 1, price: 6000 },
-        { name: 'Coca Cola', quantity: 1, price: 3000 }
-      ],
-      subtotal: 24000,
-      taxes: 4560,
-      total: 28560,
-      paymentMethod: 'Tarjeta',
-      status: 'completed',
-      timestamp: new Date(2024, 7, 21, 13, 15),
-      cashier: 'Carlos Ruiz'
-    },
-    {
-      id: 'ORD-003',
-      tableId: 'table-5',
-      tableName: 'Mesa 5',
-      customerName: 'Ana López',
-      items: [
-        { name: 'Ensalada César', quantity: 1, price: 12000 },
-        { name: 'Agua', quantity: 1, price: 2000 }
-      ],
-      subtotal: 14000,
-      taxes: 2660,
-      total: 16660,
-      paymentMethod: 'Efectivo',
-      status: 'cancelled',
-      timestamp: new Date(2024, 7, 21, 12, 45),
-      cashier: 'María García'
+  const { data: orders = [], isLoading, error, refetch } = useInvoices();
+
+  // Filter orders based on search and filters
+  const filteredOrders = React.useMemo(() => {
+    let filtered = orders;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(order =>
+        order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.tableId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.items.some(item => 
+          item.product.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
     }
-  ];
 
-  const filteredOrders = mockOrders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.tableName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
 
-  const getStatusColor = (status: string) => {
+    // Apply time filter
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    switch (timeFilter) {
+      case 'today':
+        filtered = filtered.filter(order => new Date(order.createdAt) >= today);
+        break;
+      case 'week':
+        filtered = filtered.filter(order => new Date(order.createdAt) >= weekAgo);
+        break;
+      case 'month':
+        filtered = filtered.filter(order => new Date(order.createdAt) >= monthAgo);
+        break;
+      default:
+        break;
+    }
+
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders, searchQuery, statusFilter, timeFilter]);
+
+  const getStatusColor = (status: Order['status']) => {
     switch (status) {
-      case 'completed': return 'bg-success text-success-foreground';
-      case 'cancelled': return 'bg-destructive text-destructive-foreground';
-      case 'refunded': return 'bg-warning text-warning-foreground';
-      default: return 'bg-secondary';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'preparing': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'ready': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'delivered': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'paid': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: Order['status']) => {
     switch (status) {
-      case 'completed': return 'Completado';
+      case 'pending': return 'Pendiente';
+      case 'preparing': return 'Preparando';
+      case 'ready': return 'Listo';
+      case 'delivered': return 'Entregado';
+      case 'paid': return 'Pagado';
       case 'cancelled': return 'Cancelado';
-      case 'refunded': return 'Reembolsado';
       default: return status;
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <History className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-bold">Historial de Órdenes</h2>
+  const OrderCard: React.FC<{ order: Order }> = ({ order }) => (
+    <Card className="pos-card-interactive cursor-pointer" onClick={() => setSelectedOrder(order)}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="font-semibold text-base">Orden #{order.id.slice(-6)}</h3>
+            <p className="text-sm text-muted-foreground">Mesa {order.tableId}</p>
+          </div>
+          <Badge className={getStatusColor(order.status)}>
+            {getStatusText(order.status)}
+          </Badge>
         </div>
-        <Badge variant="outline" className="text-sm">
-          {filteredOrders.length} órdenes
-        </Badge>
-      </div>
 
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 mr-2" />
+            {format(new Date(order.createdAt), 'PPp', { locale: es })}
+          </div>
+          <div className="text-sm">
+            {order.items.length} producto{order.items.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-bold text-primary">
+            {formatCurrency(order.total)}
+          </div>
+          <Button variant="outline" size="sm">
+            <Eye className="h-4 w-4 mr-1" />
+            Ver detalles
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const OrderDetailsModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, onClose }) => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Orden #{order.id.slice(-6)}</CardTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>×</Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium">Mesa</p>
+              <p className="text-sm text-muted-foreground">{order.tableId}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Estado</p>
+              <Badge className={getStatusColor(order.status)}>
+                {getStatusText(order.status)}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Fecha</p>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(order.createdAt), 'PPP', { locale: es })}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Hora</p>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(order.createdAt), 'p', { locale: es })}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium mb-2">Productos</h4>
+            <div className="space-y-2">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex justify-between items-center py-2 border-b">
+                  <div>
+                    <p className="font-medium">{item.product.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.quantity} × {formatCurrency(item.unitPrice)}
+                    </p>
+                    {item.notes && (
+                      <p className="text-xs text-muted-foreground italic">
+                        Nota: {item.notes}
+                      </p>
+                    )}
+                  </div>
+                  <p className="font-medium">{formatCurrency(item.total)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>{formatCurrency(order.subtotal)}</span>
+              </div>
+              {order.discount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Descuento:</span>
+                  <span>-{formatCurrency(order.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Impuestos:</span>
+                <span>{formatCurrency(order.taxes)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
+                <span>Total:</span>
+                <span>{formatCurrency(order.total)}</span>
+              </div>
+            </div>
+          </div>
+
+          {order.paymentMethod && (
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Método de pago:</span>
+              <Badge variant="outline">{order.paymentMethod}</Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p>Cargando historial...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive mb-4">Error al cargar el historial de órdenes</p>
+        <Button onClick={() => refetch()}>Reintentar</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={className}>
       {/* Filters */}
-      <Card>
+      <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por número de orden, mesa o cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar órdenes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === 'all' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('all')}
-                size="sm"
-              >
-                Todas
-              </Button>
-              <Button
-                variant={statusFilter === 'completed' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('completed')}
-                size="sm"
-              >
-                Completadas
-              </Button>
-              <Button
-                variant={statusFilter === 'cancelled' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('cancelled')}
-                size="sm"
-              >
-                Canceladas
-              </Button>
-            </div>
+            
+            <Select value={statusFilter} onValueChange={(value: OrderStatus) => setStatusFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="pending">Pendiente</SelectItem>
+                <SelectItem value="preparing">Preparando</SelectItem>
+                <SelectItem value="ready">Listo</SelectItem>
+                <SelectItem value="delivered">Entregado</SelectItem>
+                <SelectItem value="paid">Pagado</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={timeFilter} onValueChange={(value: TimeFilter) => setTimeFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Hoy</SelectItem>
+                <SelectItem value="week">Esta semana</SelectItem>
+                <SelectItem value="month">Este mes</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" onClick={() => refetch()}>
+              <Filter className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Orders List */}
-      <div className="grid gap-4">
-        {filteredOrders.map((order) => (
-          <Card key={order.id} className="pos-card-interactive">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <h3 className="font-bold text-lg">{order.id}</h3>
-                    <p className="text-muted-foreground flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      {order.tableName}
-                      {order.customerName && ` • ${order.customerName}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge className={getStatusColor(order.status)}>
-                    {getStatusText(order.status)}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {format(order.timestamp, 'dd/MM/yyyy HH:mm', { locale: es })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">Productos</h4>
-                  <div className="space-y-1 text-sm">
-                    {order.items.slice(0, 3).map((item, index) => (
-                      <div key={index} className="flex justify-between">
-                        <span>{item.quantity}x {item.name}</span>
-                        <span>${(item.price * item.quantity).toFixed(0)}</span>
-                      </div>
-                    ))}
-                    {order.items.length > 3 && (
-                      <p className="text-muted-foreground">
-                        +{order.items.length - 3} productos más
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>${order.subtotal.toFixed(0)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Impuestos:</span>
-                      <span>${order.taxes.toFixed(0)}</span>
-                    </div>
-                    <Separator className="my-1" />
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>${order.total.toFixed(0)}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Método:</span>
-                      <span>{order.paymentMethod}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Cajero:</span>
-                      <span>{order.cashier}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mt-4 pt-3 border-t">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setSelectedOrder(order)}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  Ver Detalles
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Receipt className="h-4 w-4 mr-1" />
-                  Reimprimir
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredOrders.length === 0 && (
+      {filteredOrders.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center">
-            <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-medium text-lg mb-2">No se encontraron órdenes</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Aún no hay órdenes registradas'}
-            </p>
+          <CardContent className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2">No se encontraron órdenes</p>
+              <p className="text-muted-foreground">
+                {searchQuery || statusFilter !== 'all' || timeFilter !== 'today'
+                  ? 'Intenta cambiar los filtros de búsqueda'
+                  : 'No hay órdenes para mostrar'
+                }
+              </p>
+            </div>
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredOrders.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
+        </div>
       )}
 
-      {/* Order Detail Modal would go here */}
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+        />
+      )}
     </div>
   );
 };
+
+export default OrderHistory;

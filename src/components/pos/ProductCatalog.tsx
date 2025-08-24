@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Search, ShoppingCart, Plus, Loader2 } from 'lucide-react';
 import { usePOS } from '@/contexts/POSContext';
-import { useProductsByCategory } from '@/hooks/useProducts';
+import { useProductsByCategory, useProductSearch } from '@/hooks/useProducts';
 import { Product } from '@/types/pos';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProductCatalogProps {
   searchQuery?: string;
@@ -17,25 +18,14 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ searchQuery = ''
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const { addToCart } = usePOS();
   const { data: categorizedProducts = {}, products = [], isLoading, error } = useProductsByCategory();
+  
+  // Use enhanced search hook for real-time API search
+  const { data: searchResults = [], isLoading: isSearching } = useProductSearch(
+    searchQuery,
+    selectedCategory || undefined
+  );
 
-  // Filter products based on search query
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    
-    return products.filter(product =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [products, searchQuery]);
-
-  const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  // Remove local formatPrice since we're using the one from utils
 
   if (isLoading) {
     return (
@@ -81,7 +71,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ searchQuery = ''
 
         <div className="flex items-center justify-between">
           <div className="text-lg font-bold text-primary">
-            {formatPrice(product.price)}
+            {formatCurrency(product.price)}
           </div>
           
           <Button
@@ -108,22 +98,31 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ searchQuery = ''
 
   // If there's a search query, show search results
   if (searchQuery.trim()) {
+    if (isSearching) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Buscando productos...</span>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center space-x-2">
           <Search className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">
-            Resultados para "{searchQuery}" ({filteredProducts.length})
+            Resultados para "{searchQuery}" ({searchResults.length})
           </h2>
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {searchResults.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No se encontraron productos
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredProducts.map((product) => (
+            {searchResults.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

@@ -117,6 +117,12 @@ class ApiClient {
     return this.request(`/products${params}`);
   }
 
+  async searchProducts(query: string, category?: string) {
+    const params = new URLSearchParams({ q: query });
+    if (category) params.append('category', category);
+    return this.request(`/products/search?${params}`);
+  }
+
   // Invoices endpoints
   async createInvoice(invoiceData: any) {
     return this.request('/invoices', {
@@ -127,6 +133,10 @@ class ApiClient {
 
   async getInvoice(id: string) {
     return this.request(`/invoices/${id}`);
+  }
+
+  async getInvoices() {
+    return this.request('/invoices');
   }
 
   // Customers endpoints

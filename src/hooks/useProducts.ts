@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { ProductsResponse } from '@/types/api';
 import { Product } from '@/types/pos';
+import { env, shouldUseMockData } from '@/config/environment';
 
 // Transform API product to internal product type
 const transformProduct = (apiProduct: any): Product => ({
@@ -48,4 +49,33 @@ export const useProductsByCategory = () => {
     data: categorizedProducts,
     products,
   };
+};
+
+// Enhanced search hook with unified API and local search
+export const useProductSearch = (query: string, category?: string) => {
+  return useQuery({
+    queryKey: ['products', 'search', query, category],
+    queryFn: async () => {
+      if (!query.trim()) return [];
+      
+      // If using mock data or query is very short, use local search
+      if (shouldUseMockData() || query.length < 3) {
+        const response = await apiClient.getProducts(category) as ProductsResponse;
+        if (!response.success || !response.data) return [];
+        
+        return response.data.filter(product =>
+          product.name.toLowerCase().includes(query.toLowerCase()) ||
+          product.category.toLowerCase().includes(query.toLowerCase()) ||
+          product.description?.toLowerCase().includes(query.toLowerCase())
+        ).map(transformProduct);
+      }
+      
+      // Use API search for production
+      const response = await apiClient.searchProducts(query, category) as ProductsResponse;
+      if (!response.success || !response.data) return [];
+      return response.data.map(transformProduct);
+    },
+    enabled: !!query.trim(),
+    staleTime: 30000, // 30 seconds
+  });
 };

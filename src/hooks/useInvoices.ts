@@ -43,3 +43,17 @@ export const useGetInvoice = (invoiceId: string) => {
     enabled: !!invoiceId,
   });
 };
+
+export const useInvoices = () => {
+  return useQuery({
+    queryKey: ['invoices'],
+    queryFn: async () => {
+      const response = await apiClient.getInvoices() as any;
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return [];
+    },
+    staleTime: 30000, // 30 seconds
+  });
+};
