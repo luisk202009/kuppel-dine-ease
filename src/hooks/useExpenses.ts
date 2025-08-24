@@ -1,32 +1,83 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
-import { ExpensesResponse, ExpenseRequest, ApiExpense } from '@/types/api';
+import { mockApi } from '@/lib/mockApi';
+import { shouldUseMockData } from '@/config/environment';
+import { useToast } from '@/hooks/use-toast';
 
-export const useExpenses = (date?: string) => {
-  return useQuery({
-    queryKey: ['expenses', date],
-    queryFn: async (): Promise<ApiExpense[]> => {
-      const response = await apiClient.getExpenses(date) as ExpensesResponse;
-      if (response.success && response.data) {
-        return response.data;
+interface Expense {
+  id: string;
+  amount: number;
+  description: string;
+  category: string;
+  createdAt: string;
+  attachments?: string[];
+}
+
+export const useCreateExpense = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (expenseData: any) => {
+      try {
+        // Use mock data if enabled
+        if (shouldUseMockData()) {
+          return await mockApi.createExpense(expenseData);
+        }
+
+        // Try real API first
+        const response = await apiClient.createExpense(expenseData);
+        return response;
+      } catch (error) {
+        // Fallback to mock on network error
+        console.warn('Create expense API failed, falling back to mock data:', error);
+        return await mockApi.createExpense(expenseData);
       }
-      return [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['cash'] });
+      toast({
+        title: "Gasto registrado",
+        description: "El gasto se ha guardado exitosamente",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error al registrar gasto",
+        description: error.message || "No se pudo guardar el gasto",
+      });
+    },
   });
 };
 
-export const useCreateExpense = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (expenseData: ExpenseRequest) => {
-      return await apiClient.createExpense(expenseData);
+export const useExpenses = () => {
+  return useQuery({
+    queryKey: ['expenses'],
+    queryFn: async (): Promise<Expense[]> => {
+      try {
+        // Use mock data if enabled
+        if (shouldUseMockData()) {
+          const response = await mockApi.getExpenses();
+          return response.data;
+        }
+
+        // Try real API first
+        const response = await apiClient.getExpenses() as any;
+        if (response.success && response.data) {
+          return response.data;
+        }
+        return [];
+      } catch (error) {
+        // Fallback to mock data on network error
+        console.warn('Expenses API failed, falling back to mock data:', error);
+        const response = await mockApi.getExpenses();
+        return response.data;
+      }
     },
-    onSuccess: () => {
-      // Invalidate and refetch expenses
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-    },
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 };

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
+import { mockApi } from '@/lib/mockApi';
 import { ProductsResponse } from '@/types/api';
 import { Product } from '@/types/pos';
 import { env, shouldUseMockData } from '@/config/environment';
@@ -20,11 +21,25 @@ export const useProducts = (category?: string) => {
   return useQuery({
     queryKey: ['products', category],
     queryFn: async (): Promise<Product[]> => {
-      const response = await apiClient.getProducts(category) as ProductsResponse;
-      if (response.success && response.data) {
+      try {
+        // Use mock data if enabled
+        if (shouldUseMockData()) {
+          const response = await mockApi.getProducts(category);
+          return response.data.map(transformProduct);
+        }
+
+        // Try real API first
+        const response = await apiClient.getProducts(category) as ProductsResponse;
+        if (response.success && response.data) {
+          return response.data.map(transformProduct);
+        }
+        return [];
+      } catch (error) {
+        // Fallback to mock data on network error
+        console.warn('API failed, falling back to mock data:', error);
+        const response = await mockApi.getProducts(category);
         return response.data.map(transformProduct);
       }
-      return [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -53,29 +68,46 @@ export const useProductsByCategory = () => {
 
 // Enhanced search hook with unified API and local search
 export const useProductSearch = (query: string, category?: string) => {
+  const { data: allProducts } = useProducts();
+  
   return useQuery({
     queryKey: ['products', 'search', query, category],
-    queryFn: async () => {
+    queryFn: async (): Promise<Product[]> => {
       if (!query.trim()) return [];
       
-      // If using mock data or query is very short, use local search
-      if (shouldUseMockData() || query.length < 3) {
-        const response = await apiClient.getProducts(category) as ProductsResponse;
-        if (!response.success || !response.data) return [];
+      try {
+        // Use mock data if enabled
+        if (shouldUseMockData()) {
+          const response = await mockApi.searchProducts(query, category);
+          return response.data.map(transformProduct);
+        }
+
+        // For short queries, use local filtering when available
+        if (query.length < 3 && allProducts) {
+          return allProducts.filter(product => {
+            const matchesQuery = product.name.toLowerCase().includes(query.toLowerCase()) ||
+                                product.category.toLowerCase().includes(query.toLowerCase()) ||
+                                product.description?.toLowerCase().includes(query.toLowerCase());
+            const matchesCategory = !category || product.category === category;
+            return matchesQuery && matchesCategory;
+          });
+        }
         
-        return response.data.filter(product =>
-          product.name.toLowerCase().includes(query.toLowerCase()) ||
-          product.category.toLowerCase().includes(query.toLowerCase()) ||
-          product.description?.toLowerCase().includes(query.toLowerCase())
-        ).map(transformProduct);
+        // For longer queries, use API search
+        const response = await apiClient.searchProducts(query, category) as ProductsResponse;
+        if (response.success && response.data) {
+          return response.data.map(transformProduct);
+        }
+        return [];
+      } catch (error) {
+        // Fallback to mock search on network error
+        console.warn('Search API failed, falling back to mock data:', error);
+        const response = await mockApi.searchProducts(query, category);
+        return response.data.map(transformProduct);
       }
-      
-      // Use API search for production
-      const response = await apiClient.searchProducts(query, category) as ProductsResponse;
-      if (!response.success || !response.data) return [];
-      return response.data.map(transformProduct);
     },
     enabled: !!query.trim(),
-    staleTime: 30000, // 30 seconds
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 };

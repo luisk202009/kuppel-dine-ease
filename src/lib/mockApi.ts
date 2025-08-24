@@ -9,6 +9,7 @@ interface Expense {
   description: string;
   category: string;
   createdAt: string;
+  attachments?: string[];
 }
 
 // Local storage keys for persistence
@@ -114,13 +115,54 @@ export class MockApi {
     await delay(500);
     
     const invoices = getStoredData<any>(STORAGE_KEYS.invoices);
+    const products = getStoredData<Product>(STORAGE_KEYS.products);
+    
+    // Transform invoice items to match API response format
+    const transformedItems = invoiceData.items.map((item, index) => {
+      const product = products.find(p => p.id === item.productId);
+      return {
+        id: `item-${Date.now()}-${index}`,
+        productId: item.productId,
+        product: product ? {
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          price: product.price,
+          description: product.description,
+          available: product.available,
+          isAlcoholic: product.isAlcoholic
+        } : {
+          id: item.productId,
+          name: 'Unknown Product',
+          category: 'unknown',
+          price: item.unitPrice,
+          available: true
+        },
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.unitPrice * item.quantity,
+        notes: item.notes
+      };
+    });
+
     const newInvoice = {
       id: `INV-${Date.now()}`,
       number: `${invoices.length + 1}`.padStart(6, '0'),
-      ...invoiceData,
+      customerId: invoiceData.customerId,
+      tableId: invoiceData.tableId,
+      branchId: invoiceData.branchId,
+      items: transformedItems,
+      subtotal: invoiceData.subtotal,
+      taxes: invoiceData.taxes,
+      discount: invoiceData.discount,
+      total: invoiceData.total,
+      paymentMethod: invoiceData.paymentMethod,
+      receivedAmount: invoiceData.receivedAmount,
+      change: invoiceData.receivedAmount ? invoiceData.receivedAmount - invoiceData.total : undefined,
+      status: 'paid' as const,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      status: 'paid'
+      notes: invoiceData.notes
     };
 
     invoices.push(newInvoice);
