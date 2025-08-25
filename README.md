@@ -50,6 +50,14 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Demo Mode
+
+This project includes a demo mode for development and testing:
+
+- **Development**: Demo mode is automatically enabled - click "Entrar en modo demo" on the login screen
+- **Production**: Demo mode is disabled - requires real API connection
+- **Features**: Full POS functionality with mock data (products, sales, expenses, reports)
+
 ## What technologies are used for this project?
 
 This project is built with:

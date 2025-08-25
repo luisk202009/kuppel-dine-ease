@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Logo } from '@/components/ui/logo';
 import { usePOS } from '@/contexts/POSContext';
 import { useToast } from '@/hooks/use-toast';
 import { CompanySelection } from '@/components/auth/CompanySelection';
+import { shouldUseMockData } from '@/config/environment';
 
 export const LoginScreen: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -62,6 +63,27 @@ export const LoginScreen: React.FC = () => {
       toast({
         title: "Error",
         description: "Error al conectar con el servidor",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    try {
+      const success = await login('demo', 'Demo!2345');
+      if (success) {
+        toast({
+          title: "¡Modo Demo Activado!",
+          description: "Bienvenido al sistema de demostración",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al iniciar modo demo",
         variant: "destructive",
       });
     } finally {
@@ -152,9 +174,22 @@ export const LoginScreen: React.FC = () => {
                   <span>Iniciando sesión...</span>
                 </div>
               ) : (
-                'Iniciar Sesión'
+              'Iniciar Sesión'
               )}
             </Button>
+
+            {shouldUseMockData() && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12"
+                onClick={handleDemoLogin}
+                disabled={isLoading}
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Entrar en modo demo
+              </Button>
+            )}
 
             <div className="text-center">
               <button
@@ -174,9 +209,20 @@ export const LoginScreen: React.FC = () => {
 
           {/* Security Notice */}
           <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground text-center font-medium">
-              Contacta al administrador para obtener credenciales
-            </p>
+            {shouldUseMockData() ? (
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground font-medium mb-1">
+                  Modo demo activo - No requiere backend
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Usuario: alfanumérico | Contraseña: min 8 caracteres
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center font-medium">
+                Contacta al administrador para obtener credenciales
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

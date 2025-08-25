@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { secureStorage } from '@/lib/secureStorage';
 import { sanitizeString, validateUsername, validatePassword } from '@/lib/inputSanitizer';
 import { logAuthEvent, logSecurityEvent } from '@/lib/monitoring';
+import { shouldUseMockData } from '@/config/environment';
 
 export const useLogin = () => {
   const { toast } = useToast();
@@ -31,6 +32,44 @@ export const useLogin = () => {
         username: sanitizeString(credentials.username),
         password: credentials.password // Don't sanitize password content, just validate
       };
+      
+      // Demo mode - return mock auth response
+      if (shouldUseMockData()) {
+        const mockResponse: AuthResponse = {
+          success: true,
+          token: `mock-${Date.now()}`,
+          user: {
+            id: 'u-demo',
+            username: sanitizedCredentials.username,
+            name: 'Usuario Demo',
+            email: 'demo@kuppel.co',
+            role: 'manager',
+            isActive: true
+          },
+          companies: [{
+            id: 'c-demo',
+            name: 'Empresa Demo',
+            address: 'Av. Principal 123, Ciudad',
+            phone: '+1 234-567-8900'
+          }],
+          branches: [{
+            id: 'b-demo',
+            name: 'Sucursal Centro',
+            address: 'Centro Comercial Plaza, Local 15',
+            companyId: 'c-demo'
+          }]
+        };
+        
+        // Store demo session
+        secureStorage.setToken(mockResponse.token);
+        apiClient.setToken(mockResponse.token);
+        secureStorage.setUserData('user', mockResponse.user);
+        secureStorage.setUserData('companies', mockResponse.companies);
+        secureStorage.setUserData('branches', mockResponse.branches);
+        
+        logAuthEvent('login_success', sanitizedCredentials.username);
+        return mockResponse;
+      }
       
       const response = await apiClient.login(sanitizedCredentials) as AuthResponse;
       if (response.success && response.token) {
