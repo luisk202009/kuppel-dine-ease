@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { usePOSContext } from '@/contexts/POSContext';
 import { formatCurrency } from '@/lib/utils';
+import { PrintableReceipt } from './PrintableReceipt';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -37,8 +38,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [amountReceived, setAmountReceived] = useState<string>(total.toString());
   const [cardNumber, setCardNumber] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [tipAmount, setTipAmount] = useState<number>(0);
+  const [customTip, setCustomTip] = useState<string>('');
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastInvoice, setLastInvoice] = useState<any>(null);
 
-  const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(amountReceived) - total) : 0;
+  const { enableTips, defaultTipPercentage } = posState.settings;
+  const finalTotal = total + tipAmount;
+  const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(amountReceived) - finalTotal) : 0;
+
+  // Update amount received when tip changes
+  React.useEffect(() => {
+    if (paymentMethod === 'cash') {
+      setAmountReceived(finalTotal.toString());
+    }
+  }, [finalTotal, paymentMethod]);
   
   // Card number validation
   const isValidCardNumber = (number: string) => {
@@ -54,6 +68,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       parts.push(match.substring(i, i + 4));
     }
     return parts.length ? parts.join(' ') : v;
+  };
+
+  const handleTipSelection = (percentage: number) => {
+    const tip = Math.round(total * (percentage / 100));
+    setTipAmount(tip);
+    setCustomTip('');
+  };
+
+  const handleCustomTip = (value: string) => {
+    setCustomTip(value);
+    const tip = parseFloat(value) || 0;
+    setTipAmount(tip);
   };
 
   const handlePayment = async () => {
@@ -72,29 +98,36 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         subtotal,
         taxes,
         discount: 0,
-        total,
+        total: finalTotal,
         paymentMethod: paymentMethod as 'cash' | 'card',
-        receivedAmount: paymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
+        receivedAmount: paymentMethod === 'cash' ? parseFloat(amountReceived) : undefined,
+        notes: tipAmount > 0 ? `Propina: ${formatCurrency(tipAmount)}` : undefined
       };
 
-      await createInvoice.mutateAsync(invoiceData);
+      const result = await createInvoice.mutateAsync(invoiceData);
+      setLastInvoice({ ...invoiceData, id: result.data?.id || `INV-${Date.now()}`, createdAt: new Date() });
 
       toast({
         title: "Factura generada exitosamente",
-        description: `Método: ${paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'} - Total: ${formatCurrency(total)}`,
+        description: `Método: ${paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'} - Total: ${formatCurrency(finalTotal)}`,
       });
 
-      onPaymentComplete();
-      onClose();
+      setShowReceipt(true);
     } catch (error) {
       toast({
         title: "Error al procesar pago",
         description: "No se pudo generar la factura. Intenta nuevamente.",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleCloseReceipt = () => {
+    setShowReceipt(false);
+    onPaymentComplete();
+    onClose();
+    setIsProcessing(false);
   };
 
   const calculatorButtons = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '.', 'C'];
@@ -144,21 +177,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
             <Separator />
             
-             <div className="space-y-2">
-               <div className="flex justify-between">
-                 <span>Subtotal:</span>
-                 <span>{formatCurrency(subtotal)}</span>
-               </div>
-               <div className="flex justify-between">
-                 <span>Impuestos (19%):</span>
-                 <span>{formatCurrency(taxes)}</span>
-               </div>
-               <Separator />
-               <div className="flex justify-between text-lg font-bold">
-                 <span>Total:</span>
-                 <span>{formatCurrency(total)}</span>
-               </div>
-             </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Impuestos (19%):</span>
+                  <span>{formatCurrency(taxes)}</span>
+                </div>
+                {tipAmount > 0 && (
+                  <div className="flex justify-between text-success">
+                    <span>Propina:</span>
+                    <span>{formatCurrency(tipAmount)}</span>
+                  </div>
+                )}
+                <Separator />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total:</span>
+                  <span>{formatCurrency(finalTotal)}</span>
+                </div>
+              </div>
           </div>
 
           {/* Payment Options */}
@@ -188,20 +227,70 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </Button>
             </div>
 
+            {/* Tips Section */}
+            {enableTips && (
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Propina</h3>
+                
+                <div className="grid grid-cols-4 gap-2">
+                  <Button
+                    variant={tipAmount === Math.round(total * 0.05) ? 'default' : 'outline'}
+                    onClick={() => handleTipSelection(5)}
+                    size="sm"
+                  >
+                    5%
+                  </Button>
+                  <Button
+                    variant={tipAmount === Math.round(total * (defaultTipPercentage / 100)) ? 'default' : 'outline'}
+                    onClick={() => handleTipSelection(defaultTipPercentage)}
+                    size="sm"
+                  >
+                    {defaultTipPercentage}%
+                  </Button>
+                  <Button
+                    variant={tipAmount === Math.round(total * 0.15) ? 'default' : 'outline'}
+                    onClick={() => handleTipSelection(15)}
+                    size="sm"
+                  >
+                    15%
+                  </Button>
+                  <Button
+                    variant={tipAmount === 0 ? 'default' : 'outline'}
+                    onClick={() => { setTipAmount(0); setCustomTip(''); }}
+                    size="sm"
+                  >
+                    Sin propina
+                  </Button>
+                </div>
+
+                <div>
+                  <Label htmlFor="custom-tip">Propina personalizada</Label>
+                  <Input
+                    id="custom-tip"
+                    type="number"
+                    placeholder="0"
+                    value={customTip}
+                    onChange={(e) => handleCustomTip(e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+              </div>
+            )}
+
             {paymentMethod === 'cash' && (
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="amount-received">Monto Recibido</Label>
-                  <Input
-                    id="amount-received"
-                    type="number"
-                    value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
-                    className="text-xl font-bold text-center"
-                  />
-                </div>
-                
-                 {parseFloat(amountReceived) >= total && (
+                   <Input
+                     id="amount-received"
+                     type="number"
+                     value={amountReceived}
+                     onChange={(e) => setAmountReceived(e.target.value)}
+                     className="text-xl font-bold text-center"
+                   />
+                 </div>
+                 
+                  {parseFloat(amountReceived) >= finalTotal && (
                    <div className="bg-success/10 border border-success/20 rounded-lg p-3">
                      <div className="flex justify-between items-center">
                        <span className="text-success font-medium">Cambio:</span>
@@ -264,18 +353,33 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                <Button 
                  onClick={handlePayment} 
                  className="w-full h-14 text-lg font-bold"
-                 disabled={
-                   isProcessing || 
-                   (paymentMethod === 'cash' && parseFloat(amountReceived) < total) ||
-                   (paymentMethod === 'card' && !isValidCardNumber(cardNumber))
-                 }
-               >
-                 {isProcessing ? 'Procesando...' : `Procesar Pago - ${formatCurrency(total)}`}
+                  disabled={
+                    isProcessing || 
+                    (paymentMethod === 'cash' && parseFloat(amountReceived) < finalTotal) ||
+                    (paymentMethod === 'card' && !isValidCardNumber(cardNumber))
+                  }
+                >
+                  {isProcessing ? 'Procesando...' : `Procesar Pago - ${formatCurrency(finalTotal)}`}
                </Button>
             </div>
           </div>
         </div>
       </DialogContent>
+      
+      {/* Printable Receipt */}
+      {showReceipt && lastInvoice && (
+        <PrintableReceipt
+          invoice={lastInvoice}
+          cartItems={cartItems}
+          subtotal={subtotal}
+          taxes={taxes}
+          tipAmount={tipAmount}
+          total={finalTotal}
+          paymentMethod={paymentMethod}
+          change={change}
+          onClose={handleCloseReceipt}
+        />
+      )}
     </Dialog>
   );
 };

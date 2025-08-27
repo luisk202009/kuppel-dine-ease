@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard } from 'lucide-react';
+import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,9 @@ import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { usePOS } from '@/contexts/POSContext';
 import { hasPermission } from '@/utils/permissions';
-import { isFeatureEnabled } from '@/config/environment';
+import { isFeatureEnabled, shouldUseMockData } from '@/config/environment';
+import { toast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableGrid } from './TableGrid';
 import { ProductCatalog } from './ProductCatalog';
 import { ShoppingCart } from './ShoppingCart';
@@ -40,6 +42,31 @@ export const Dashboard: React.FC = () => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const handleResetDemoData = () => {
+    if (!shouldUseMockData()) return;
+    
+    // Clear all mock data from localStorage
+    const keysToRemove = [
+      'kuppel_mock_products',
+      'kuppel_mock_invoices', 
+      'kuppel_mock_expenses',
+      'kuppel_mock_cash_session',
+      'kuppel_mock_customers'
+    ];
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    toast({
+      title: "Datos demo restablecidos",
+      description: "Los datos han sido restablecidos a los valores iniciales. Recarga la página para ver los cambios.",
+    });
+    
+    // Reload the page after a short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
 
   return (
@@ -74,6 +101,31 @@ export const Dashboard: React.FC = () => {
             {/* Actions */}
             <ThemeToggle />
             <LayoutConfig />
+            
+            {shouldUseMockData() && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="hidden md:flex">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Demo
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Restablecer datos demo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción eliminará todos los datos de demostración (facturas, gastos, sesiones de caja) y los restablecerá a los valores iniciales. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetDemoData}>
+                      Restablecer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             
             <Button variant="outline" size="sm" className="hidden md:flex">
               <Settings className="h-4 w-4 mr-2" />
