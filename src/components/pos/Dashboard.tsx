@@ -10,8 +10,9 @@ import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { usePOS } from '@/contexts/POSContext';
 import { hasPermission } from '@/utils/permissions';
-import { isFeatureEnabled, shouldUseMockData } from '@/config/environment';
+import { isFeatureEnabled, shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableGrid } from './TableGrid';
 import { ProductCatalog } from './ProductCatalog';
@@ -84,6 +85,11 @@ export const Dashboard: React.FC = () => {
                 {getCurrentDate()}
               </p>
             </div>
+            {!isAuthRequired() && (
+              <Badge variant="secondary" className="hidden md:flex">
+                Modo Demo
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center space-x-4">

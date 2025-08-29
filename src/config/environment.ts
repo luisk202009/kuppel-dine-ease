@@ -10,6 +10,7 @@ export interface Environment {
     realTimeUpdates: boolean;
     advancedReporting: boolean;
     multiCompany: boolean;
+    requireLogin: boolean;
   };
 }
 
@@ -31,6 +32,7 @@ const getEnvironment = (): Environment => {
         realTimeUpdates: false,
         advancedReporting: true,
         multiCompany: true,
+        requireLogin: false,
       },
     };
   }
@@ -47,6 +49,7 @@ const getEnvironment = (): Environment => {
       realTimeUpdates: true,
       advancedReporting: true,
       multiCompany: true,
+      requireLogin: true,
     },
   };
 };
@@ -58,3 +61,4 @@ export const isProduction = () => env.name === 'production';
 export const isDevelopment = () => env.name === 'development';
 export const shouldUseMockData = () => env.enableMockData;
 export const isFeatureEnabled = (feature: keyof Environment['features']) => env.features[feature];
+export const isAuthRequired = () => env.features.requireLogin;

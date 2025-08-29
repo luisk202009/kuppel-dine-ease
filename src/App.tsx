@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { Dashboard } from "@/components/pos/Dashboard";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
+import { isAuthRequired } from "@/config/environment";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -36,7 +37,7 @@ const POSApp = () => {
     return <LoadingScreen message="Verificando credenciales..." />;
   }
 
-  if (!authState.isAuthenticated) {
+  if (isAuthRequired() && !authState.isAuthenticated) {
     return <LoginScreen />;
   }
 

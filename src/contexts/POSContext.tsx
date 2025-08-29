@@ -3,6 +3,7 @@ import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCate
 import { Company, Branch } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import { useLogin, useLogout, getStoredAuth } from '@/hooks/useAuth';
+import { isAuthRequired } from '@/config/environment';
 
 interface POSContextType {
   posState: POSState;
@@ -434,9 +435,9 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  // Check for stored user on mount
+  // Check for stored user on mount and auto-login in demo mode
   useEffect(() => {
-    const checkStoredAuth = () => {
+    const checkStoredAuth = async () => {
       const stored = getStoredAuth();
       
       if (stored.user && stored.selectedCompany && stored.selectedBranch) {
@@ -463,7 +464,17 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           isLoading: false,
         });
       } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        // Auto-login in demo mode if no auth required
+        if (!isAuthRequired()) {
+          try {
+            await login('demo', 'Demo!2345');
+          } catch (error) {
+            console.error('Auto demo login failed:', error);
+            setAuthState(prev => ({ ...prev, isLoading: false }));
+          }
+        } else {
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+        }
       }
     };
 
