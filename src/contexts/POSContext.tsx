@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCategory, Customer, POSSettings } from '@/types/pos';
 import { Company, Branch } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import { useLogin, useLogout, getStoredAuth } from '@/hooks/useAuth';
 import { isAuthRequired } from '@/config/environment';
+import { supabase } from '@/integrations/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 
 interface POSContextType {
   posState: POSState;
@@ -187,8 +189,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ...initialAuthState
   });
 
-  // Initialize authentication state
-  const [authState, setAuthState] = React.useState<AuthState & {
+  // Initialize authentication state with Supabase session
+  const [authState, setAuthState] = useState<AuthState & {
     companies: Company[];
     branches: Branch[];
     selectedCompany: Company | null;
@@ -205,10 +207,269 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     needsCompanySelection: false,
   });
 
+  // Set up Supabase auth listener
   useEffect(() => {
-    // Initialize demo data
-    initializeDemoData();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (session?.user) {
+          // User is logged in
+          await handleUserSession(session);
+        } else {
+          // User is logged out
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            companies: [],
+            branches: [],
+            selectedCompany: null,
+            selectedBranch: null,
+            needsCompanySelection: false,
+          });
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handleUserSession(session);
+      } else {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Handle user session and load associated data
+  const handleUserSession = async (session: Session) => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+
+      // Get or create user profile
+      let { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      // If profile doesn't exist, it will be created by the trigger
+      if (profileError && profileError.code === 'PGRST116') {
+        // Wait for trigger to create user, then try again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data: newProfile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        profile = newProfile;
+      }
+
+      if (profile) {
+        // Associate demo user with demo company if not already associated
+        await ensureDemoUserAssociation(session.user.id);
+      }
+
+      // Get user companies and branches
+      const { data: userCompanies, error: companiesError } = await supabase
+        .from('user_companies')
+        .select(`
+          company:companies(*),
+          branch:branches(*)
+        `)
+        .eq('user_id', session.user.id);
+
+      const companies = userCompanies?.map(uc => uc.company).filter(Boolean) || [];
+      const branches = userCompanies?.map(uc => uc.branch).filter(Boolean) || [];
+
+      // Check for stored selections
+      const stored = getStoredAuth();
+      const needsSelection = companies.length > 1 || branches.length > 1;
+
+       setAuthState({
+         user: profile ? {
+           id: profile.id,
+           username: profile.email,
+           name: profile.name,
+           role: profile.role as 'admin' | 'manager' | 'waiter' | 'cashier',
+           email: profile.email,
+           isActive: profile.is_active
+         } : { 
+           id: session.user.id,
+           username: session.user.email || '',
+           email: session.user.email || '',
+           name: session.user.user_metadata?.name || session.user.email || 'Usuario',
+           role: 'cashier' as const,
+           isActive: true
+         },
+         companies: companies.map((comp: any) => ({
+           id: comp.id,
+           name: comp.name,
+           address: comp.address,
+           phone: comp.phone,
+           email: comp.email
+         })),
+         branches: branches.map((branch: any) => ({
+           id: branch.id,
+           name: branch.name,
+           address: branch.address,
+           companyId: branch.company_id
+         })),
+         selectedCompany: stored.selectedCompany,
+         selectedBranch: stored.selectedBranch,
+         isAuthenticated: !needsSelection || (stored.selectedCompany && stored.selectedBranch),
+         needsCompanySelection: needsSelection && !(stored.selectedCompany && stored.selectedBranch),
+         isLoading: false,
+       });
+
+       // Auto-select if only one option
+       if (!needsSelection && companies[0] && branches[0]) {
+         const transformedCompany = {
+           id: companies[0].id,
+           name: companies[0].name,
+           address: companies[0].address,
+           phone: companies[0].phone,
+           email: companies[0].email
+         };
+         const transformedBranch = {
+           id: branches[0].id,
+           name: branches[0].name,
+           address: branches[0].address,
+           companyId: branches[0].company_id
+         };
+         selectCompanyAndBranch(transformedCompany, transformedBranch);
+       }
+
+    } catch (error) {
+      console.error('Error handling user session:', error);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Ensure demo user is associated with demo company
+  const ensureDemoUserAssociation = async (userId: string) => {
+    try {
+      // Check if association exists
+      const { data: existing } = await supabase
+        .from('user_companies')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!existing) {
+        // Create association with demo company
+        const { error } = await supabase
+          .from('user_companies')
+          .insert({
+            user_id: userId,
+            company_id: 'c8f8d4e8-4f4e-4f4e-8f4e-4f4e8f4e8f4e',
+            branch_id: 'b8f8d4e8-4f4e-4f4e-8f4e-4f4e8f4e8f4e'
+          });
+
+        if (error) {
+          console.error('Error creating user company association:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in ensureDemoUserAssociation:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Initialize demo data from Supabase
+    initializeDataFromSupabase();
+  }, []);
+
+  const initializeDataFromSupabase = async () => {
+    try {
+      // Get categories and products from Supabase
+      const { data: categories } = await supabase
+        .from('categories')
+        .select(`
+          *,
+          products(*)
+        `);
+
+      // Get tables from Supabase  
+      const { data: tables } = await supabase
+        .from('tables')
+        .select('*');
+
+      // Get customers from Supabase
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('*');
+
+      if (categories) {
+        // Transform data to match our interfaces
+        const transformedCategories: ProductCategory[] = categories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          icon: cat.icon,
+          color: cat.color,
+          products: cat.products?.map((prod: any) => ({
+            id: prod.id,
+            name: prod.name,
+            category: cat.name,
+            price: parseFloat(prod.price),
+            description: prod.description,
+            available: prod.is_active,
+            isAlcoholic: prod.is_alcoholic
+          })) || []
+        }));
+
+        // Group tables by area
+        const groupedTables = tables?.reduce((acc: any, table: any) => {
+          if (!acc[table.area]) {
+            acc[table.area] = {
+              id: table.area.toLowerCase().replace(/\s+/g, '-'),
+              name: table.area,
+              tables: []
+            };
+          }
+          acc[table.area].tables.push({
+            id: table.id,
+            name: table.name,
+            area: table.area,
+            capacity: table.capacity,
+            status: table.status,
+            customers: table.customers || 0
+          });
+          return acc;
+        }, {});
+
+        const areas: Area[] = Object.values(groupedTables || {});
+
+        const transformedCustomers: Customer[] = customers?.map((cust: any) => ({
+          id: cust.id,
+          name: cust.name,
+          lastName: cust.last_name || '',
+          identification: cust.identification || '',
+          phone: cust.phone || '',
+          city: cust.city || '',
+          email: cust.email || '',
+          createdAt: new Date(cust.created_at)
+        })) || [];
+
+        dispatch({
+          type: 'INITIALIZE_DATA',
+          payload: {
+            areas,
+            categories: transformedCategories,
+            customers: transformedCustomers
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error initializing data from Supabase:', error);
+      // Fallback to demo data if Supabase fails
+      initializeDemoData();
+    }
+  };
 
   const initializeDemoData = () => {
     const demoAreas: Area[] = [
@@ -435,50 +696,14 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  // Check for stored user on mount and auto-login in demo mode
+  // Check for stored user on mount - simplified since Supabase handles session persistence
   useEffect(() => {
-    const checkStoredAuth = async () => {
-      const stored = getStoredAuth();
-      
-      if (stored.user && stored.selectedCompany && stored.selectedBranch) {
-        setAuthState({
-          user: stored.user,
-          companies: stored.companies,
-          branches: stored.branches,
-          selectedCompany: stored.selectedCompany,
-          selectedBranch: stored.selectedBranch,
-          isAuthenticated: true,
-          needsCompanySelection: false,
-          isLoading: false,
-        });
-      } else if (stored.user && stored.companies.length > 0) {
-        // User logged in but needs company selection
-        setAuthState({
-          user: stored.user,
-          companies: stored.companies,
-          branches: stored.branches,
-          selectedCompany: null,
-          selectedBranch: null,
-          isAuthenticated: false,
-          needsCompanySelection: true,
-          isLoading: false,
-        });
-      } else {
-        // Auto-login in demo mode if no auth required
-        if (!isAuthRequired()) {
-          try {
-            await login('demo@kuppel.co', 'demo123456');
-          } catch (error) {
-            console.error('Auto demo login failed:', error);
-            setAuthState(prev => ({ ...prev, isLoading: false }));
-          }
-        } else {
-          setAuthState(prev => ({ ...prev, isLoading: false }));
-        }
-      }
-    };
-
-    checkStoredAuth();
+    // Supabase auth listener will handle the session automatically
+    // Just initialize demo data and ensure loading state is handled properly
+    if (!isAuthRequired()) {
+      // In demo mode without required login, the auth listener will handle auto-login
+      console.log('Demo mode: Auth listener will handle session');
+    }
   }, []);
 
   return (

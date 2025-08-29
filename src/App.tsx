@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { POSProvider, usePOS } from "@/contexts/POSContext";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { LoginScreen } from "@/components/auth/LoginScreen";
+import AuthScreen from "@/components/auth/AuthScreen";
 import { Dashboard } from "@/components/pos/Dashboard";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
 import { isAuthRequired } from "@/config/environment";
@@ -38,7 +38,7 @@ const POSApp = () => {
   }
 
   if (isAuthRequired() && !authState.isAuthenticated) {
-    return <LoginScreen />;
+    return <AuthScreen />;
   }
 
   return <Dashboard />;

@@ -32,7 +32,7 @@ const getEnvironment = (): Environment => {
         realTimeUpdates: false,
         advancedReporting: true,
         multiCompany: true,
-        requireLogin: false,
+        requireLogin: true,
       },
     };
   }

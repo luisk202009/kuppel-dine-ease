@@ -8,6 +8,7 @@ import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
+import { VotingWidget } from '@/components/voting/VotingWidget';
 import { usePOS } from '@/contexts/POSContext';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled, shouldUseMockData, isAuthRequired } from '@/config/environment';
@@ -325,8 +326,15 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Shopping Cart Sidebar */}
-        <div className="w-96 bg-card border-l border-border">
-          <ShoppingCart />
+        <div className="w-96 bg-card border-l border-border flex flex-col">
+          <div className="flex-1">
+            <ShoppingCart />
+          </div>
+          
+          {/* Voting Widget */}
+          <div className="border-t border-border p-4">
+            <VotingWidget />
+          </div>
         </div>
       </div>
       
