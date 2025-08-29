@@ -14,7 +14,7 @@ interface POSContextType {
     selectedBranch: Branch | null;
     needsCompanySelection: boolean;
   };
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   selectCompanyAndBranch: (company: Company, branch: Branch) => void;
   addToCart: (product: Product, quantity?: number) => void;
@@ -331,28 +331,28 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Login function
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
-      const result = await loginMutation.mutateAsync({ username, password });
+      const result = await loginMutation.mutateAsync({ email, password });
       
-      if (result.success) {
-        const needsSelection = result.companies.length > 1 || result.branches.length > 1;
+      if (result.success && result.data) {
+        const needsSelection = result.data.companies.length > 1 || result.data.branches.length > 1;
         
         setAuthState(prev => ({
           ...prev,
-          user: result.user,
-          companies: result.companies,
-          branches: result.branches,
+          user: result.data!.user,
+          companies: result.data!.companies,
+          branches: result.data!.branches,
           isAuthenticated: !needsSelection, // Only authenticated if no selection needed
           needsCompanySelection: needsSelection,
           isLoading: false,
         }));
         
         // If only one company/branch, auto-select them
-        if (!needsSelection && result.companies[0] && result.branches[0]) {
-          selectCompanyAndBranch(result.companies[0], result.branches[0]);
+        if (!needsSelection && result.data.companies[0] && result.data.branches[0]) {
+          selectCompanyAndBranch(result.data.companies[0], result.data.branches[0]);
         }
         
         return true;
@@ -467,7 +467,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Auto-login in demo mode if no auth required
         if (!isAuthRequired()) {
           try {
-            await login('demo', 'Demo!2345');
+            await login('demo@kuppel.co', 'demo123456');
           } catch (error) {
             console.error('Auto demo login failed:', error);
             setAuthState(prev => ({ ...prev, isLoading: false }));

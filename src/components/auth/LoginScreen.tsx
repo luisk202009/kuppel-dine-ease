@@ -11,7 +11,7 @@ import { CompanySelection } from '@/components/auth/CompanySelection';
 import { shouldUseMockData } from '@/config/environment';
 
 export const LoginScreen: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,10 +33,10 @@ export const LoginScreen: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!email || !password) {
       toast({
         title: "Error",
-        description: "Por favor ingresa usuario y contraseña",
+        description: "Por favor ingresa email y contraseña",
         variant: "destructive",
       });
       return;
@@ -45,12 +45,12 @@ export const LoginScreen: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(username, password);
+      const success = await login(email, password);
       
       if (!success) {
         toast({
           title: "Error de autenticación",
-          description: "Usuario o contraseña incorrectos",
+          description: "Email o contraseña incorrectos",
           variant: "destructive",
         });
       } else {
@@ -73,7 +73,7 @@ export const LoginScreen: React.FC = () => {
   const handleDemoLogin = async () => {
     setIsLoading(true);
     try {
-      const success = await login('demo', 'Demo!2345');
+      const success = await login('demo@kuppel.co', 'demo123456');
       if (success) {
         toast({
           title: "¡Modo Demo Activado!",
@@ -120,17 +120,17 @@ export const LoginScreen: React.FC = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium">
-                Usuario
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Ingresa tu usuario"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Ingresa tu email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 h-12"
                   disabled={isLoading}
                 />
@@ -211,12 +211,12 @@ export const LoginScreen: React.FC = () => {
           <div className="mt-6 p-4 bg-muted rounded-lg">
             {shouldUseMockData() ? (
               <div className="text-center">
-                <p className="text-xs text-muted-foreground font-medium mb-1">
-                  Modo demo activo - No requiere backend
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Usuario: alfanumérico | Contraseña: min 8 caracteres
-                </p>
+                 <p className="text-xs text-muted-foreground mb-1">
+                   Modo demo activo - Supabase Auth
+                 </p>
+                 <p className="text-xs text-muted-foreground">
+                   Email: demo@kuppel.co | Contraseña: demo123456
+                 </p>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground text-center font-medium">

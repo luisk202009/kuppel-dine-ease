@@ -1,163 +1,210 @@
 import { useMutation } from '@tanstack/react-query';
-import { apiClient } from '@/lib/apiClient';
-import { AuthRequest, AuthResponse } from '@/types/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { secureStorage } from '@/lib/secureStorage';
-import { sanitizeString, validateUsername, validatePassword } from '@/lib/inputSanitizer';
-import { logAuthEvent, logSecurityEvent } from '@/lib/monitoring';
 import { shouldUseMockData } from '@/config/environment';
+import type { User, Session } from '@supabase/supabase-js';
+
+interface AuthRequest {
+  email: string;
+  password: string;
+}
+
+interface AuthResponse {
+  success: boolean;
+  data?: {
+    user: any;
+    session: Session;
+    companies: any[];
+    branches: any[];
+  };
+  error?: string;
+}
 
 export const useLogin = () => {
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (credentials: AuthRequest): Promise<AuthResponse> => {
-      logAuthEvent('login_attempt', credentials.username);
-      
-      // Validate and sanitize inputs
-      const usernameValidation = validateUsername(credentials.username);
-      if (!usernameValidation.isValid) {
-        logSecurityEvent('invalid_username_format', { username: credentials.username.substring(0, 3) + '***' });
-        throw new Error(usernameValidation.error);
+      // Validate inputs
+      if (!credentials.email || !credentials.password) {
+        throw new Error('Email and password are required');
       }
-      
-      const passwordValidation = validatePassword(credentials.password);
-      if (!passwordValidation.isValid) {
-        logSecurityEvent('weak_password_attempt', { username: credentials.username.substring(0, 3) + '***' });
-        throw new Error(passwordValidation.error);
-      }
-      
-      // Sanitize credentials
-      const sanitizedCredentials: AuthRequest = {
-        username: sanitizeString(credentials.username),
-        password: credentials.password // Don't sanitize password content, just validate
-      };
-      
-      // Demo mode - return mock auth response
-      if (shouldUseMockData()) {
-        const mockResponse: AuthResponse = {
+
+      try {
+        // Sign in with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        });
+
+        if (authError) {
+          throw new Error(getAuthErrorMessage(authError.message));
+        }
+
+        if (!authData.user || !authData.session) {
+          throw new Error('Authentication failed');
+        }
+
+        // Get user profile and associated data
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+        }
+
+        // Get user companies and branches
+        const { data: userCompanies, error: companiesError } = await supabase
+          .from('user_companies')
+          .select(`
+            company:companies(*),
+            branch:branches(*)
+          `)
+          .eq('user_id', authData.user.id);
+
+        if (companiesError) {
+          console.error('Error fetching user companies:', companiesError);
+        }
+
+        const companies = userCompanies?.map(uc => uc.company).filter(Boolean) || [];
+        const branches = userCompanies?.map(uc => uc.branch).filter(Boolean) || [];
+
+        return {
           success: true,
-          token: `mock-${Date.now()}`,
-          user: {
-            id: 'u-demo',
-            username: sanitizedCredentials.username,
-            name: 'Usuario Demo',
-            email: 'demo@kuppel.co',
-            role: 'manager',
-            isActive: true
-          },
-          companies: [{
-            id: 'c-demo',
-            name: 'Empresa Demo',
-            address: 'Av. Principal 123, Ciudad',
-            phone: '+1 234-567-8900'
-          }],
-          branches: [{
-            id: 'b-demo',
-            name: 'Sucursal Centro',
-            address: 'Centro Comercial Plaza, Local 15',
-            companyId: 'c-demo'
-          }]
+          data: {
+            user: profile || { ...authData.user, role: 'demo' },
+            session: authData.session,
+            companies,
+            branches
+          }
         };
-        
-        // Store demo session
-        secureStorage.setToken(mockResponse.token);
-        apiClient.setToken(mockResponse.token);
-        secureStorage.setUserData('user', mockResponse.user);
-        secureStorage.setUserData('companies', mockResponse.companies);
-        secureStorage.setUserData('branches', mockResponse.branches);
-        
-        logAuthEvent('login_success', sanitizedCredentials.username);
-        return mockResponse;
+      } catch (error) {
+        throw error;
       }
-      
-      const response = await apiClient.login(sanitizedCredentials) as AuthResponse;
-      if (response.success && response.token) {
-        // Use secure storage instead of localStorage
-        secureStorage.setToken(response.token);
-        apiClient.setToken(response.token);
-        
-        // Store user data securely
-        secureStorage.setUserData('user', response.user);
-        secureStorage.setUserData('companies', response.companies);
-        secureStorage.setUserData('branches', response.branches);
-        
-        logAuthEvent('login_success', credentials.username);
-        return response;
-      }
-      
-      logAuthEvent('login_failure', credentials.username);
-      throw new Error('Login failed');
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        variant: "destructive",
         title: "Error de autenticación",
-        description: error.message || "Credenciales inválidas",
+        description: error instanceof Error ? error.message : "Error desconocido al iniciar sesión",
+        variant: "destructive"
+      });
+    }
+  });
+};
+
+export const useSignUp = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ email, password, name }: { email: string; password: string; name: string }) => {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: { name }
+        }
+      });
+
+      if (error) {
+        throw new Error(getAuthErrorMessage(error.message));
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cuenta creada",
+        description: "Revisa tu email para confirmar tu cuenta.",
       });
     },
+    onError: (error) => {
+      toast({
+        title: "Error de registro",
+        description: error instanceof Error ? error.message : "Error desconocido al crear la cuenta",
+        variant: "destructive"
+      });
+    }
+  });
+};
+
+export const useResetPassword = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        throw new Error(getAuthErrorMessage(error.message));
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email enviado",
+        description: "Revisa tu email para restablecer tu contraseña.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al enviar el email",
+        variant: "destructive"
+      });
+    }
   });
 };
 
 export const useLogout = () => {
-  return () => {
-    logAuthEvent('logout');
+  return async () => {
+    await supabase.auth.signOut();
     
-    apiClient.clearToken();
-    secureStorage.clearAll();
-    
-    // Clear any remaining localStorage items
-    localStorage.removeItem('kuppel_user');
-    localStorage.removeItem('kuppel_companies');
-    localStorage.removeItem('kuppel_branches');
+    // Clear localStorage items
     localStorage.removeItem('kuppel_selected_company');
     localStorage.removeItem('kuppel_selected_branch');
     
+    // Reload to reset app state
     window.location.reload();
   };
 };
 
 export const getStoredAuth = () => {
-  try {
-    // Try secure storage first
-    let user = secureStorage.getUserData('user');
-    let companies = secureStorage.getUserData('companies');
-    let branches = secureStorage.getUserData('branches');
+  // Get selected company and branch from localStorage
+  const selectedCompany = localStorage.getItem('kuppel_selected_company') 
+    ? JSON.parse(localStorage.getItem('kuppel_selected_company')!) 
+    : null;
     
-    // Fallback to localStorage for backwards compatibility
-    if (!user) {
-      const userLocal = localStorage.getItem('kuppel_user');
-      user = userLocal ? JSON.parse(userLocal) : null;
-    }
-    
-    if (!companies) {
-      const companiesLocal = localStorage.getItem('kuppel_companies');
-      companies = companiesLocal ? JSON.parse(companiesLocal) : [];
-    }
-    
-    if (!branches) {
-      const branchesLocal = localStorage.getItem('kuppel_branches');
-      branches = branchesLocal ? JSON.parse(branchesLocal) : [];
-    }
-    
-    // Selected company/branch still use localStorage for now
-    const selectedCompany = localStorage.getItem('kuppel_selected_company');
-    const selectedBranch = localStorage.getItem('kuppel_selected_branch');
+  const selectedBranch = localStorage.getItem('kuppel_selected_branch')
+    ? JSON.parse(localStorage.getItem('kuppel_selected_branch')!)
+    : null;
 
-    return {
-      user: user || null,
-      companies: companies || [],
-      branches: branches || [],
-      selectedCompany: selectedCompany ? JSON.parse(selectedCompany) : null,
-      selectedBranch: selectedBranch ? JSON.parse(selectedBranch) : null,
-    };
-  } catch {
-    return {
-      user: null,
-      companies: [],
-      branches: [],
-      selectedCompany: null,
-      selectedBranch: null,
-    };
-  }
+  return {
+    user: null, // Will be handled by Supabase session
+    companies: [],
+    branches: [],
+    selectedCompany,
+    selectedBranch
+  };
 };
+
+// Helper function to translate auth error messages to Spanish
+function getAuthErrorMessage(errorMessage: string): string {
+  const errorMap: Record<string, string> = {
+    'Invalid login credentials': 'Credenciales inválidas',
+    'Email not confirmed': 'Email no confirmado. Revisa tu bandeja de entrada.',
+    'Too many requests': 'Demasiados intentos. Inténtalo más tarde.',
+    'User already registered': 'Este email ya está registrado',
+    'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres',
+    'Unable to validate email address: invalid format': 'Formato de email inválido',
+    'Signup is disabled': 'El registro está deshabilitado',
+  };
+
+  return errorMap[errorMessage] || errorMessage;
+}
