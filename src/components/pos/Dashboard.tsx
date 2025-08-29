@@ -75,26 +75,28 @@ export const Dashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Logo width={120} height={40} />
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-4">
+              <Logo width={120} height={40} />
+              {!isAuthRequired() && (
+                <Badge variant="secondary" className="hidden md:flex">
+                  Modo Demo
+                </Badge>
+              )}
+            </div>
             <div className="hidden md:block">
-              <h1 className="text-lg font-semibold text-foreground">
+              <h1 className="text-sm font-semibold text-foreground">
                 ¡Hola, {authState.user?.name}!
               </h1>
-              <p className="text-sm text-muted-foreground capitalize">
+              <p className="text-xs text-muted-foreground capitalize">
                 {getCurrentDate()}
               </p>
             </div>
-            {!isAuthRequired() && (
-              <Badge variant="secondary" className="hidden md:flex">
-                Modo Demo
-              </Badge>
-            )}
           </div>
 
           <div className="flex items-center space-x-4">
             {/* Search Bar */}
-            <div className="relative w-64 md:w-80">
+            <div className="relative w-80 md:w-96">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar productos, clientes..."
