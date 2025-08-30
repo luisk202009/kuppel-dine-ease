@@ -115,6 +115,7 @@ export type Database = {
       categories: {
         Row: {
           color: string | null
+          company_id: string
           created_at: string
           description: string | null
           icon: string | null
@@ -124,6 +125,7 @@ export type Database = {
         }
         Insert: {
           color?: string | null
+          company_id: string
           created_at?: string
           description?: string | null
           icon?: string | null
@@ -133,6 +135,7 @@ export type Database = {
         }
         Update: {
           color?: string | null
+          company_id?: string
           created_at?: string
           description?: string | null
           icon?: string | null
@@ -182,6 +185,7 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          company_id: string
           created_at: string
           email: string | null
           id: string
@@ -195,6 +199,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
+          company_id: string
           created_at?: string
           email?: string | null
           id?: string
@@ -208,6 +213,7 @@ export type Database = {
         Update: {
           address?: string | null
           city?: string | null
+          company_id?: string
           created_at?: string
           email?: string | null
           id?: string
@@ -472,6 +478,7 @@ export type Database = {
       products: {
         Row: {
           category_id: string
+          company_id: string
           cost: number | null
           created_at: string
           description: string | null
@@ -487,6 +494,7 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          company_id: string
           cost?: number | null
           created_at?: string
           description?: string | null
@@ -502,6 +510,7 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          company_id?: string
           cost?: number | null
           created_at?: string
           description?: string | null

@@ -4,6 +4,7 @@ import { mockApi } from '@/lib/mockApi';
 import { ProductsResponse } from '@/types/api';
 import { Product } from '@/types/pos';
 import { env, shouldUseMockData } from '@/config/environment';
+import { supabase } from '@/integrations/supabase/client';
 
 // Transform API product to internal product type
 const transformProduct = (apiProduct: any): Product => ({
@@ -28,12 +29,36 @@ export const useProducts = (category?: string) => {
           return response.data.map(transformProduct);
         }
 
-        // Try real API first
-        const response = await apiClient.getProducts(category) as ProductsResponse;
-        if (response.success && response.data) {
-          return response.data.map(transformProduct);
+        // Query products from Supabase with proper tenant filtering
+        let query = supabase
+          .from('products')
+          .select(`
+            *,
+            categories(name)
+          `)
+          .eq('is_active', true);
+
+        if (category) {
+          query = query.eq('categories.name', category);
         }
-        return [];
+
+        const { data: products, error } = await query;
+
+        if (error) {
+          console.error('Error fetching products:', error);
+          throw error;
+        }
+
+        return products?.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          category: product.categories?.name || 'Sin categoría',
+          price: parseFloat(product.price || '0'),
+          description: product.description,
+          image: product.image_url,
+          available: product.is_active,
+          isAlcoholic: product.is_alcoholic,
+        })) || [];
       } catch (error) {
         // Fallback to mock data on network error
         console.warn('API failed, falling back to mock data:', error);
@@ -93,12 +118,37 @@ export const useProductSearch = (query: string, category?: string) => {
           });
         }
         
-        // For longer queries, use API search
-        const response = await apiClient.searchProducts(query, category) as ProductsResponse;
-        if (response.success && response.data) {
-          return response.data.map(transformProduct);
+        // Search products with Supabase
+        let searchQuery = supabase
+          .from('products')
+          .select(`
+            *,
+            categories(name)
+          `)
+          .eq('is_active', true)
+          .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+
+        if (category) {
+          searchQuery = searchQuery.eq('categories.name', category);
         }
-        return [];
+
+        const { data: products, error } = await searchQuery.limit(20);
+
+        if (error) {
+          console.error('Error searching products:', error);
+          throw error;
+        }
+
+        return products?.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          category: product.categories?.name || 'Sin categoría',
+          price: parseFloat(product.price || '0'),
+          description: product.description,
+          image: product.image_url,
+          available: product.is_active,
+          isAlcoholic: product.is_alcoholic,
+        })) || [];
       } catch (error) {
         // Fallback to mock search on network error
         console.warn('Search API failed, falling back to mock data:', error);

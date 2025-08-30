@@ -25,7 +25,7 @@ interface POSContextType {
   clearCart: () => void;
   selectTable: (table: Table) => void;
   updateTableStatus: (tableId: string, status: Table['status']) => void;
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => void;
+  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Promise<void>;
   searchProducts: (query: string) => Product[];
   searchCustomers: (query: string) => Customer[];
 }
@@ -380,13 +380,18 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    // Initialize demo data from Supabase
+    // Initialize data from Supabase when auth state changes
     initializeDataFromSupabase();
-  }, []);
+  }, [authState.isAuthenticated, authState.selectedCompany, authState.selectedBranch]);
 
   const initializeDataFromSupabase = async () => {
     try {
-      // Get categories and products from Supabase
+      // Only initialize data if user is authenticated and has selected company/branch
+      if (!authState.isAuthenticated || !authState.selectedCompany) {
+        return;
+      }
+
+      // Get categories and products from Supabase with tenant filtering
       const { data: categories } = await supabase
         .from('categories')
         .select(`
@@ -394,12 +399,13 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           products(*)
         `);
 
-      // Get tables from Supabase  
+      // Get tables from current branch
       const { data: tables } = await supabase
         .from('tables')
-        .select('*');
+        .select('*')
+        .eq('branch_id', authState.selectedBranch?.id);
 
-      // Get customers from Supabase
+      // Get customers from current company
       const { data: customers } = await supabase
         .from('customers')
         .select('*');
@@ -670,13 +676,59 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dispatch({ type: 'UPDATE_TABLE_STATUS', payload: { tableId, status } });
   };
 
-  const addCustomer = (customerData: Omit<Customer, 'id' | 'createdAt'>) => {
-    const customer: Customer = {
-      ...customerData,
-      id: `cust-${Date.now()}`,
-      createdAt: new Date()
-    };
-    dispatch({ type: 'ADD_CUSTOMER', payload: customer });
+  const addCustomer = async (customerData: Omit<Customer, 'id' | 'createdAt'>) => {
+    try {
+      // Add customer to Supabase with company association
+      const { data, error } = await supabase
+        .from('customers')
+        .insert({
+          name: customerData.name,
+          last_name: customerData.lastName,
+          identification: customerData.identification,
+          phone: customerData.phone,
+          city: customerData.city,
+          email: customerData.email,
+          company_id: authState.selectedCompany?.id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding customer:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo agregar el cliente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Add to local state
+      const newCustomer: Customer = {
+        id: data.id,
+        name: data.name,
+        lastName: data.last_name || '',
+        identification: data.identification || '',
+        phone: data.phone || '',
+        city: data.city || '',
+        email: data.email || '',
+        createdAt: new Date(data.created_at)
+      };
+      
+      dispatch({ type: 'ADD_CUSTOMER', payload: newCustomer });
+      
+      toast({
+        title: "Cliente agregado",
+        description: `${customerData.name} ha sido agregado exitosamente.`,
+      });
+    } catch (error) {
+      console.error('Error in addCustomer:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo agregar el cliente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const searchProducts = (query: string): Product[] => {

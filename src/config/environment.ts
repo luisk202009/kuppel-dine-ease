@@ -25,14 +25,14 @@ const getEnvironment = (): Environment => {
       name: 'development',
       apiBaseUrl: apiUrl,
       enableDebugLogs: true,
-      enableMockData: true,
+      enableMockData: false, // Security: Disable mock data even in dev
       sentryDsn,
       features: {
         orderHistory: true,
         realTimeUpdates: false,
         advancedReporting: true,
         multiCompany: true,
-        requireLogin: true,
+        requireLogin: true, // Security: Always require login
       },
     };
   }
@@ -42,14 +42,14 @@ const getEnvironment = (): Environment => {
     name: 'production',
     apiBaseUrl: apiUrl,
     enableDebugLogs: false,
-    enableMockData: false,
+    enableMockData: false, // Security: Never allow mock data in production
     sentryDsn,
     features: {
       orderHistory: true,
       realTimeUpdates: true,
       advancedReporting: true,
       multiCompany: true,
-      requireLogin: true,
+      requireLogin: true, // Security: Always require login in production
     },
   };
 };
