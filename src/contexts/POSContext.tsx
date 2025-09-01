@@ -210,12 +210,37 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Set up Supabase auth listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         
+        // Only process SIGNED_IN and INITIAL_SESSION events fully
+        if (event === 'TOKEN_REFRESHED') {
+          // For token refresh, just update basic state without full reload
+          if (session?.user) {
+            setAuthState(prev => ({ ...prev, isLoading: false }));
+          }
+          return;
+        }
+        
         if (session?.user) {
-          // User is logged in
-          await handleUserSession(session);
+          // User is logged in - defer data loading to avoid deadlock
+          setAuthState(prev => ({ 
+            ...prev, 
+            isLoading: true,
+            user: {
+              id: session.user.id,
+              username: session.user.email || '',
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email || 'Usuario',
+              role: 'cashier' as const,
+              isActive: true
+            }
+          }));
+          
+          // Defer the heavy lifting to avoid blocking the auth callback
+          setTimeout(() => {
+            handleUserSession(session);
+          }, 0);
         } else {
           // User is logged out
           setAuthState({
@@ -235,56 +260,79 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        handleUserSession(session);
+        setAuthState(prev => ({ 
+          ...prev, 
+          isLoading: true,
+          user: {
+            id: session.user.id,
+            username: session.user.email || '',
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email || 'Usuario',
+            role: 'cashier' as const,
+            isActive: true
+          }
+        }));
+        setTimeout(() => handleUserSession(session), 0);
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Failsafe: if loading persists too long, force it to false
+    const failsafeTimer = setTimeout(() => {
+      setAuthState(prev => {
+        if (prev.isLoading) {
+          console.warn('Auth loading timeout - forcing to false');
+          return { ...prev, isLoading: false };
+        }
+        return prev;
+      });
+    }, 10000); // 10 second timeout
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(failsafeTimer);
+    };
   }, []);
 
   // Handle user session and load associated data
   const handleUserSession = async (session: Session) => {
     try {
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-
-      // Get or create user profile
-      let { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      // If profile doesn't exist, it will be created by the trigger
-      if (profileError && profileError.code === 'PGRST116') {
-        // Wait for trigger to create user, then try again
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const { data: newProfile } = await supabase
+      // Get or create user profile - with error handling
+      let profile = null;
+      try {
+        const { data, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single();
         
-        profile = newProfile;
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching user profile:', error);
+        } else {
+          profile = data;
+        }
+      } catch (profileError) {
+        console.error('Profile fetch failed:', profileError);
       }
 
-      if (profile) {
-        // Associate demo user with demo company if not already associated
-        await ensureDemoUserAssociation(session.user.id);
+      // Try to get user companies and branches - but don't block on failure
+      let companies = [];
+      let branches = [];
+      try {
+        const { data: userCompanies } = await supabase
+          .from('user_companies')
+          .select(`
+            company:companies(*),
+            branch:branches(*)
+          `)
+          .eq('user_id', session.user.id);
+
+        companies = userCompanies?.map(uc => uc.company).filter(Boolean) || [];
+        branches = userCompanies?.map(uc => uc.branch).filter(Boolean) || [];
+      } catch (companiesError) {
+        console.error('Error fetching companies/branches:', companiesError);
       }
-
-      // Get user companies and branches
-      const { data: userCompanies, error: companiesError } = await supabase
-        .from('user_companies')
-        .select(`
-          company:companies(*),
-          branch:branches(*)
-        `)
-        .eq('user_id', session.user.id);
-
-      const companies = userCompanies?.map(uc => uc.company).filter(Boolean) || [];
-      const branches = userCompanies?.map(uc => uc.branch).filter(Boolean) || [];
 
       // Check for stored selections
       const stored = getStoredAuth();
@@ -321,7 +369,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
          })),
          selectedCompany: stored.selectedCompany,
          selectedBranch: stored.selectedBranch,
-         isAuthenticated: !needsSelection || (stored.selectedCompany && stored.selectedBranch),
+         isAuthenticated: !needsSelection || (stored.selectedCompany && stored.selectedBranch) || companies.length === 0,
          needsCompanySelection: needsSelection && !(stored.selectedCompany && stored.selectedBranch),
          isLoading: false,
        });
@@ -346,38 +394,17 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     } catch (error) {
       console.error('Error handling user session:', error);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
+      // Always ensure we don't leave loading state stuck
+      setAuthState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        isAuthenticated: !!session?.user // At minimum, mark as authenticated if we have a session
+      }));
     }
   };
 
-  // Ensure demo user is associated with demo company
-  const ensureDemoUserAssociation = async (userId: string) => {
-    try {
-      // Check if association exists
-      const { data: existing } = await supabase
-        .from('user_companies')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (!existing) {
-        // Create association with demo company
-        const { error } = await supabase
-          .from('user_companies')
-          .insert({
-            user_id: userId,
-            company_id: 'c8f8d4e8-4f4e-4f4e-8f4e-4f4e8f4e8f4e',
-            branch_id: 'b8f8d4e8-4f4e-4f4e-8f4e-4f4e8f4e8f4e'
-          });
-
-        if (error) {
-          console.error('Error creating user company association:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Error in ensureDemoUserAssociation:', error);
-    }
-  };
+  // Remove ensureDemoUserAssociation as it was causing RLS issues
+  // Demo associations should be handled at the database level or during signup
 
   useEffect(() => {
     // Initialize data from Supabase when auth state changes

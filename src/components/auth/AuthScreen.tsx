@@ -60,7 +60,7 @@ export const AuthScreen: React.FC = () => {
       if (!success) {
         toast({
           title: "Error de autenticación",
-          description: "Email o contraseña incorrectos",
+          description: "Email o contraseña incorrectos. Intenta de nuevo.",
           variant: "destructive",
         });
       } else {
@@ -70,14 +70,26 @@ export const AuthScreen: React.FC = () => {
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Error al conectar con el servidor",
+        description: "Error al conectar con el servidor. Revisa tu conexión.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    // Clear any stuck loading states and reset form
+    setIsLoading(false);
+    setLoginEmail('');
+    setLoginPassword('');
+    toast({
+      title: "Reiniciando",
+      description: "Puedes intentar iniciar sesión nuevamente",
+    });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -252,12 +264,24 @@ export const AuthScreen: React.FC = () => {
                   {isLoading ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Iniciando sesión...</span>
+                      <span>Verificando credenciales...</span>
                     </div>
                   ) : (
                     'Iniciar Sesión'
                   )}
                 </Button>
+                
+                {/* Retry button if there's an issue */}
+                {!isLoading && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11 mt-2"
+                    onClick={handleRetry}
+                  >
+                    Reintentar
+                  </Button>
+                )}
               </form>
             </TabsContent>
 
