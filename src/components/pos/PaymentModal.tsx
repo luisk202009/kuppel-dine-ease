@@ -163,6 +163,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Resumen del Pedido</h3>
             
+            {!posState.selectedTable && (
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-4">
+                <p className="text-warning font-medium text-sm">
+                  🏪 Sin mesa (Mostrador)
+                </p>
+              </div>
+            )}
+            
             <div className="bg-secondary/20 rounded-lg p-4 max-h-64 overflow-y-auto">
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center py-2">

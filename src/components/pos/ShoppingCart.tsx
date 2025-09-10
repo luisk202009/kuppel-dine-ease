@@ -193,15 +193,14 @@ export const ShoppingCart: React.FC = () => {
           <Button 
             onClick={handleCheckout}
             className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
-            disabled={!posState.selectedTable}
           >
             <CreditCard className="h-4 w-4 mr-2" />
-            {posState.selectedTable ? 'Procesar Pago' : 'Seleccionar Mesa'}
+            {posState.selectedTable ? 'Procesar Pago' : 'Procesar Pago (Mostrador)'}
           </Button>
 
           {!posState.selectedTable && (
             <p className="text-xs text-muted-foreground text-center">
-              Selecciona una mesa para continuar
+              Se facturará sin mesa (Mostrador)
             </p>
           )}
         </div>

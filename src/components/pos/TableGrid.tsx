@@ -1,16 +1,20 @@
-import React from 'react';
-import { Users, Clock, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Clock, CheckCircle2, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Area, Table } from '@/types/pos';
 import { usePOS } from '@/contexts/POSContext';
+import { CreateTableDialog } from './CreateTableDialog';
 
 interface TableGridProps {
   area: Area;
 }
 
 export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
-  const { selectTable, posState } = usePOS();
+  const { selectTable, posState, authState } = usePOS();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const getStatusColor = (status: Table['status']) => {
     switch (status) {
@@ -60,6 +64,14 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
   const handleTableSelect = (table: Table) => {
     selectTable(table);
   };
+
+  const handleTableCreated = () => {
+    setRefreshKey(prev => prev + 1);
+    // Force refresh of the parent component
+    window.location.reload();
+  };
+
+  const isAdmin = authState.user?.role === 'admin';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -116,13 +128,32 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
               <h3 className="text-lg font-medium text-foreground mb-2">
                 No hay mesas en esta área
               </h3>
-              <p className="text-muted-foreground">
-                Contacta al administrador para agregar mesas en {area.name}
+              <p className="text-muted-foreground mb-4">
+                {isAdmin 
+                  ? 'Puedes agregar mesas a esta área' 
+                  : `Contacta al administrador para agregar mesas en ${area.name}`
+                }
               </p>
+              {isAdmin && (
+                <Button 
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  className="bg-gradient-primary hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Mesa
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
       )}
+      
+      <CreateTableDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        area={area.name}
+        onTableCreated={handleTableCreated}
+      />
     </div>
   );
 };
