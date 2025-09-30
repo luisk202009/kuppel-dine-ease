@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
 import { Search, Plus, Edit, Trash2, User, Mail, Phone, MapPin } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { usePOS } from '@/contexts/POSContext';
 import { Customer } from '@/types/pos';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const CustomerManager: React.FC = () => {
-  const { posState, addCustomer, searchCustomers } = usePOS();
+  const { posState, addCustomer, searchCustomers, authState } = usePOS();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     lastName: '',
@@ -22,16 +31,74 @@ export const CustomerManager: React.FC = () => {
     email: ''
   });
 
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: any }) => {
+      const { error } = await supabase
+        .from('customers')
+        .update(data.updates)
+        .eq('id', data.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({
+        title: "Cliente actualizado",
+        description: "Los datos del cliente han sido actualizados exitosamente."
+      });
+      setEditingCustomer(null);
+      // Force page reload to refresh POSContext
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar el cliente",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (customerId: string) => {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast({
+        title: "Cliente eliminado",
+        description: "El cliente ha sido eliminado exitosamente."
+      });
+      setDeleteCustomer(null);
+      // Force page reload to refresh POSContext
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el cliente",
+        variant: "destructive"
+      });
+    }
+  });
+
   const filteredCustomers = searchQuery.trim() 
     ? searchCustomers(searchQuery)
     : posState.customers;
 
-  const handleAddCustomer = () => {
+  const handleAddCustomer = async () => {
     if (!newCustomer.name || !newCustomer.identification) {
       return;
     }
 
-    addCustomer(newCustomer);
+    await addCustomer(newCustomer);
     setNewCustomer({
       name: '',
       lastName: '',
@@ -41,6 +108,49 @@ export const CustomerManager: React.FC = () => {
       email: ''
     });
     setIsAddDialogOpen(false);
+    // Force page reload to refresh POSContext
+    setTimeout(() => window.location.reload(), 500);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setNewCustomer({
+      name: customer.name,
+      lastName: customer.lastName || '',
+      identification: customer.identification || '',
+      phone: customer.phone || '',
+      city: customer.city || '',
+      email: customer.email || ''
+    });
+    setIsAddDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingCustomer || !newCustomer.name || !newCustomer.identification) {
+      return;
+    }
+
+    updateMutation.mutate({
+      id: editingCustomer.id,
+      updates: {
+        name: newCustomer.name,
+        last_name: newCustomer.lastName,
+        identification: newCustomer.identification,
+        phone: newCustomer.phone,
+        city: newCustomer.city,
+        email: newCustomer.email
+      }
+    });
+  };
+
+  const handleDeleteCustomer = (customer: Customer) => {
+    setDeleteCustomer(customer);
+  };
+
+  const confirmDelete = () => {
+    if (deleteCustomer) {
+      deleteMutation.mutate(deleteCustomer.id);
+    }
   };
 
   const handleClearForm = () => {
@@ -73,10 +183,19 @@ export const CustomerManager: React.FC = () => {
           </div>
           
           <div className="flex space-x-1">
-            <Button size="sm" variant="ghost">
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={() => handleEditCustomer(customer)}
+            >
               <Edit className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="text-destructive hover:text-destructive"
+              onClick={() => handleDeleteCustomer(customer)}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -132,7 +251,9 @@ export const CustomerManager: React.FC = () => {
           
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
+              <DialogTitle>
+                {editingCustomer ? 'Editar Cliente' : 'Agregar Nuevo Cliente'}
+              </DialogTitle>
               <DialogDescription>
                 Ingresa la información del cliente. Los campos marcados con * son obligatorios.
               </DialogDescription>
@@ -203,11 +324,11 @@ export const CustomerManager: React.FC = () => {
               
               <div className="flex space-x-2 pt-4">
                 <Button
-                  onClick={handleAddCustomer}
+                  onClick={editingCustomer ? handleSaveEdit : handleAddCustomer}
                   disabled={!newCustomer.name || !newCustomer.identification}
                   className="flex-1"
                 >
-                  Guardar
+                  {editingCustomer ? 'Actualizar' : 'Guardar'}
                 </Button>
                 <Button
                   variant="outline"
@@ -217,7 +338,11 @@ export const CustomerManager: React.FC = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => setIsAddDialogOpen(false)}
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    setEditingCustomer(null);
+                    handleClearForm();
+                  }}
                 >
                   Cancelar
                 </Button>
@@ -266,6 +391,24 @@ export const CustomerManager: React.FC = () => {
           </div>
         )}
       </ScrollArea>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteCustomer} onOpenChange={() => setDeleteCustomer(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El cliente {deleteCustomer?.name} {deleteCustomer?.lastName} será eliminado permanentemente del sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

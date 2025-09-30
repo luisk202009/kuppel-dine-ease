@@ -23,11 +23,12 @@ import { OrderHistory } from './OrderHistory';
 import { SalesReports } from './SalesReports';
 import { ExpenseManager } from './ExpenseManager';
 import { CashManager } from './CashManager';
+import { ProductManager } from './ProductManager';
 
 export const Dashboard: React.FC = () => {
   const { authState, posState, logout, searchProducts } = usePOS();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'product-manager' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -171,6 +172,16 @@ export const Dashboard: React.FC = () => {
                 <Plus className="h-4 w-4" />
                 <span>Productos</span>
               </Button>
+              {authState.user?.role === 'admin' && (
+                <Button
+                  variant={activeView === 'product-manager' ? 'default' : 'ghost'}
+                  onClick={() => setActiveView('product-manager')}
+                  className="flex items-center space-x-2 whitespace-nowrap"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Gestionar Productos</span>
+                </Button>
+              )}
               <Button
                 variant={activeView === 'customers' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('customers')}
@@ -260,6 +271,18 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
                 <ProductCatalog searchQuery={searchQuery} />
+              </div>
+            )}
+
+            {activeView === 'product-manager' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Productos</h2>
+                  <p className="text-muted-foreground">
+                    Crea, edita y administra tu catálogo de productos
+                  </p>
+                </div>
+                <ProductManager />
               </div>
             )}
 

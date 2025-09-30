@@ -412,95 +412,129 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [authState.isAuthenticated, authState.selectedCompany, authState.selectedBranch]);
 
   const initializeDataFromSupabase = async () => {
-    try {
-      // Only initialize data if user is authenticated and has selected company/branch
-      if (!authState.isAuthenticated || !authState.selectedCompany) {
-        return;
-      }
+    // Only initialize data if user is authenticated and has selected company/branch
+    if (!authState.isAuthenticated || !authState.selectedCompany) {
+      console.log('Skipping data initialization - not authenticated or no company selected');
+      return;
+    }
 
+    console.log('Initializing data from Supabase for company:', authState.selectedCompany.name);
+
+    try {
       // Get categories and products from Supabase with tenant filtering
-      const { data: categories } = await supabase
+      const { data: categories, error: categoriesError } = await supabase
         .from('categories')
         .select(`
           *,
           products(*)
         `);
 
+      if (categoriesError) {
+        console.error('Error fetching categories:', categoriesError);
+        toast({
+          title: "Error de conexión",
+          description: "No se pudieron cargar las categorías. Intenta recargar la página.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Get tables from current branch
-      const { data: tables } = await supabase
+      const { data: tables, error: tablesError } = await supabase
         .from('tables')
         .select('*')
         .eq('branch_id', authState.selectedBranch?.id);
 
+      if (tablesError) {
+        console.error('Error fetching tables:', tablesError);
+      }
+
       // Get customers from current company
-      const { data: customers } = await supabase
+      const { data: customers, error: customersError } = await supabase
         .from('customers')
         .select('*');
 
-      if (categories) {
-        // Transform data to match our interfaces
-        const transformedCategories: ProductCategory[] = categories.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          icon: cat.icon,
-          color: cat.color,
-          products: cat.products?.map((prod: any) => ({
-            id: prod.id,
-            name: prod.name,
-            category: cat.name,
-            price: parseFloat(prod.price),
-            description: prod.description,
-            available: prod.is_active,
-            isAlcoholic: prod.is_alcoholic
-          })) || []
-        }));
-
-        // Group tables by area
-        const groupedTables = tables?.reduce((acc: any, table: any) => {
-          if (!acc[table.area]) {
-            acc[table.area] = {
-              id: table.area.toLowerCase().replace(/\s+/g, '-'),
-              name: table.area,
-              tables: []
-            };
-          }
-          acc[table.area].tables.push({
-            id: table.id,
-            name: table.name,
-            area: table.area,
-            capacity: table.capacity,
-            status: table.status,
-            customers: table.customers || 0
-          });
-          return acc;
-        }, {});
-
-        const areas: Area[] = Object.values(groupedTables || {});
-
-        const transformedCustomers: Customer[] = customers?.map((cust: any) => ({
-          id: cust.id,
-          name: cust.name,
-          lastName: cust.last_name || '',
-          identification: cust.identification || '',
-          phone: cust.phone || '',
-          city: cust.city || '',
-          email: cust.email || '',
-          createdAt: new Date(cust.created_at)
-        })) || [];
-
-        dispatch({
-          type: 'INITIALIZE_DATA',
-          payload: {
-            areas,
-            categories: transformedCategories,
-            customers: transformedCustomers
-          }
-        });
+      if (customersError) {
+        console.error('Error fetching customers:', customersError);
       }
+
+      // Transform data to match our interfaces
+      const transformedCategories: ProductCategory[] = categories?.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        icon: cat.icon,
+        color: cat.color,
+        products: cat.products?.map((prod: any) => ({
+          id: prod.id,
+          name: prod.name,
+          category: cat.name,
+          price: parseFloat(prod.price),
+          description: prod.description,
+          image: prod.image_url,
+          available: prod.is_active,
+          isAlcoholic: prod.is_alcoholic
+        })) || []
+      })) || [];
+
+      console.log(`Loaded ${transformedCategories.length} categories with products`);
+
+      // Group tables by area
+      const groupedTables = tables?.reduce((acc: any, table: any) => {
+        const areaName = table.area || 'Sin área';
+        if (!acc[areaName]) {
+          acc[areaName] = {
+            id: areaName.toLowerCase().replace(/\s+/g, '-'),
+            name: areaName,
+            tables: []
+          };
+        }
+        acc[areaName].tables.push({
+          id: table.id,
+          name: table.name,
+          area: areaName,
+          capacity: table.capacity,
+          status: table.status,
+          customers: table.customers || 0
+        });
+        return acc;
+      }, {});
+
+      const areas: Area[] = Object.values(groupedTables || {});
+
+      const transformedCustomers: Customer[] = customers?.map((cust: any) => ({
+        id: cust.id,
+        name: cust.name,
+        lastName: cust.last_name || '',
+        identification: cust.identification || '',
+        phone: cust.phone || '',
+        city: cust.city || '',
+        email: cust.email || '',
+        createdAt: new Date(cust.created_at)
+      })) || [];
+
+      console.log(`Loaded ${areas.length} areas, ${transformedCustomers.length} customers`);
+
+      dispatch({
+        type: 'INITIALIZE_DATA',
+        payload: {
+          areas,
+          categories: transformedCategories,
+          customers: transformedCustomers
+        }
+      });
+
+      toast({
+        title: "Datos cargados",
+        description: `${transformedCategories.length} categorías, ${areas.length} áreas, ${transformedCustomers.length} clientes`,
+      });
+
     } catch (error) {
-      console.error('Error initializing data from Supabase:', error);
-      // Fallback to demo data if Supabase fails
-      initializeDemoData();
+      console.error('Unexpected error initializing data from Supabase:', error);
+      toast({
+        title: "Error inesperado",
+        description: "Ocurrió un error al cargar los datos. Por favor recarga la página.",
+        variant: "destructive"
+      });
     }
   };
 
