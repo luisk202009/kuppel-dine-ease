@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, User, Settings, LogOut, Plus, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
+import { ShoppingBag, User, Settings, LogOut, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,19 +16,18 @@ import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableGrid } from './TableGrid';
-import { ProductCatalog } from './ProductCatalog';
 import { ShoppingCart } from './ShoppingCart';
+import { ProductManager } from './ProductManager';
 import { CustomerManager } from './CustomerManager';
 import { OrderHistory } from './OrderHistory';
 import { SalesReports } from './SalesReports';
 import { ExpenseManager } from './ExpenseManager';
 import { CashManager } from './CashManager';
-import { ProductManager } from './ProductManager';
 
 export const Dashboard: React.FC = () => {
   const { authState, posState, logout, searchProducts } = usePOS();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'product-manager' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -99,12 +98,11 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center space-x-4">
             {/* Search Bar */}
             <div className="relative w-80 md:w-96">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar productos, clientes..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10"
+                className="pl-3"
               />
             </div>
 
@@ -169,19 +167,9 @@ export const Dashboard: React.FC = () => {
                 onClick={() => setActiveView('products')}
                 className="flex items-center space-x-2 whitespace-nowrap"
               >
-                <Plus className="h-4 w-4" />
+                <ShoppingBag className="h-4 w-4" />
                 <span>Productos</span>
               </Button>
-              {authState.user?.role === 'admin' && (
-                <Button
-                  variant={activeView === 'product-manager' ? 'default' : 'ghost'}
-                  onClick={() => setActiveView('product-manager')}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Gestionar Productos</span>
-                </Button>
-              )}
               <Button
                 variant={activeView === 'customers' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('customers')}
@@ -264,24 +252,6 @@ export const Dashboard: React.FC = () => {
 
             {activeView === 'products' && (
               <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Catálogo de Productos</h2>
-                  <p className="text-muted-foreground">
-                    Selecciona productos para agregar al pedido
-                  </p>
-                </div>
-                <ProductCatalog searchQuery={searchQuery} />
-              </div>
-            )}
-
-            {activeView === 'product-manager' && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Productos</h2>
-                  <p className="text-muted-foreground">
-                    Crea, edita y administra tu catálogo de productos
-                  </p>
-                </div>
                 <ProductManager />
               </div>
             )}

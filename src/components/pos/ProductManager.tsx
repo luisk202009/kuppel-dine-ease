@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOS } from '@/contexts/POSContext';
+import { hasPermission } from '@/utils/permissions';
+import { Badge } from '@/components/ui/badge';
 
 interface ProductFormData {
   name: string;
@@ -26,7 +28,8 @@ interface ProductFormData {
 export const ProductManager: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { authState } = usePOS();
+  const { authState, addToCart } = usePOS();
+  const isAdmin = hasPermission(authState.user, 'manage_users');
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -188,6 +191,32 @@ export const ProductManager: React.FC = () => {
     saveMutation.mutate(formData);
   };
 
+  const handleAddToCart = (product: any) => {
+    if (!product.is_active || product.stock <= 0) {
+      toast({
+        title: "Producto no disponible",
+        description: "Este producto no está disponible para agregar al carrito",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      category: product.categories?.name || '',
+      description: product.description,
+      available: product.is_active,
+      isAlcoholic: product.is_alcoholic
+    }, 1);
+
+    toast({
+      title: "Producto agregado",
+      description: `${product.name} agregado al carrito`
+    });
+  };
+
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -196,11 +225,13 @@ export const ProductManager: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gestión de Productos</h2>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Producto
-        </Button>
+        <h2 className="text-2xl font-bold">Productos</h2>
+        {isAdmin && (
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Producto
+          </Button>
+        )}
       </div>
 
       <div className="relative">
@@ -218,45 +249,79 @@ export const ProductManager: React.FC = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((product) => (
-            <Card key={product.id}>
+            <Card key={product.id} className={!product.is_active ? 'opacity-60' : ''}>
               <CardHeader>
-                <CardTitle className="flex justify-between items-start">
-                  <span>{product.name}</span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenDialog(product)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(product.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{product.name}</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">{product.categories?.name}</p>
                   </div>
-                </CardTitle>
+                  {isAdmin && (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenDialog(product)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(product.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
-                <div className="space-y-1 text-sm">
-                  <p><strong>Categoría:</strong> {product.categories?.name}</p>
-                  <p><strong>Precio:</strong> ${product.price.toLocaleString()}</p>
-                  <p><strong>Stock:</strong> {product.stock}</p>
-                  <div className="flex gap-2 mt-2">
-                    {product.is_active ? (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Activo</span>
+                <p className="text-sm text-muted-foreground mb-3">{product.description}</p>
+                
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-2xl font-bold">${product.price.toLocaleString()}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    {product.stock <= 5 && product.stock > 0 ? (
+                      <Badge variant="outline" className="gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Stock bajo: {product.stock}
+                      </Badge>
                     ) : (
-                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Inactivo</span>
-                    )}
-                    {product.is_alcoholic && (
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Alcohólico</span>
+                      <span className="text-muted-foreground">Stock: {product.stock}</span>
                     )}
                   </div>
                 </div>
+
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {product.is_active ? (
+                    <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">Disponible</Badge>
+                  ) : (
+                    <Badge variant="destructive">No disponible</Badge>
+                  )}
+                  {product.is_alcoholic && (
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Alcohólico</Badge>
+                  )}
+                </div>
+
+                {product.is_active && product.stock > 0 && (
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleAddToCart(product)}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Agregar al carrito
+                  </Button>
+                )}
+
+                {(!product.is_active || product.stock <= 0) && (
+                  <Button 
+                    className="w-full" 
+                    disabled
+                  >
+                    No disponible
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
