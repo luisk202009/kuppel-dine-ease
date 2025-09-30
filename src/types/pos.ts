@@ -95,6 +95,7 @@ export interface Area {
   name: string;
   tables: Table[];
   color?: string;
+  display_order?: number;
 }
 
 export interface ProductCategory {

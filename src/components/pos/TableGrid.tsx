@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Users, Clock, CheckCircle2, Plus } from 'lucide-react';
+import { Users, Clock, CheckCircle2, Plus, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Area, Table } from '@/types/pos';
 import { usePOS } from '@/contexts/POSContext';
 import { CreateTableDialog } from './CreateTableDialog';
+import { EditTableDialog } from './EditTableDialog';
+import { DeleteTableDialog } from './DeleteTableDialog';
 
 interface TableGridProps {
   area: Area;
@@ -14,7 +17,11 @@ interface TableGridProps {
 export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
   const { selectTable, posState, authState } = usePOS();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [availableAreas, setAvailableAreas] = useState<{ id: string; name: string }[]>([]);
 
   const getStatusColor = (status: Table['status']) => {
     switch (status) {
@@ -67,8 +74,27 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
 
   const handleTableCreated = () => {
     setRefreshKey(prev => prev + 1);
-    // Force refresh of the parent component
     window.location.reload();
+  };
+
+  const handleTableUpdated = () => {
+    window.location.reload();
+  };
+
+  const handleTableDeleted = () => {
+    window.location.reload();
+  };
+
+  const openEditDialog = (table: Table, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTable(table);
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (table: Table, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTable(table);
+    setIsDeleteDialogOpen(true);
   };
 
   const isAdmin = authState.user?.role === 'admin';
@@ -86,7 +112,32 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-lg">{table.name}</h3>
-              {getStatusIcon(table.status)}
+              <div className="flex items-center gap-2">
+                {getStatusIcon(table.status)}
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => openEditDialog(table, e)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => openDeleteDialog(table, e)}
+                        className="text-destructive"
+                        disabled={table.status === 'occupied' || !!table.currentOrder}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -152,8 +203,28 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
         area={area.name}
+        areaId={area.id}
         onTableCreated={handleTableCreated}
       />
+
+      {selectedTable && (
+        <>
+          <EditTableDialog
+            isOpen={isEditDialogOpen}
+            onClose={() => setIsEditDialogOpen(false)}
+            table={selectedTable}
+            areas={[{ id: area.id, name: area.name }]}
+            onTableUpdated={handleTableUpdated}
+          />
+
+          <DeleteTableDialog
+            isOpen={isDeleteDialogOpen}
+            onClose={() => setIsDeleteDialogOpen(false)}
+            table={selectedTable}
+            onTableDeleted={handleTableDeleted}
+          />
+        </>
+      )}
     </div>
   );
 };

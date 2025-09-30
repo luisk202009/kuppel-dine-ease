@@ -449,6 +449,20 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Error fetching tables:', tablesError);
       }
 
+      // Get areas from current branch with their tables
+      const { data: areasData, error: areasError } = await supabase
+        .from('areas')
+        .select(`
+          *,
+          tables(*)
+        `)
+        .eq('branch_id', authState.selectedBranch?.id)
+        .order('display_order');
+
+      if (areasError) {
+        console.error('Error fetching areas:', areasError);
+      }
+
       // Get customers from current company
       const { data: customers, error: customersError } = await supabase
         .from('customers')
@@ -478,28 +492,22 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       console.log(`Loaded ${transformedCategories.length} categories with products`);
 
-      // Group tables by area
-      const groupedTables = tables?.reduce((acc: any, table: any) => {
-        const areaName = table.area || 'Sin área';
-        if (!acc[areaName]) {
-          acc[areaName] = {
-            id: areaName.toLowerCase().replace(/\s+/g, '-'),
-            name: areaName,
-            tables: []
-          };
-        }
-        acc[areaName].tables.push({
+      // Transform areas with their tables
+      const transformedAreas: Area[] = areasData?.map((area: any) => ({
+        id: area.id,
+        name: area.name,
+        color: area.color,
+        display_order: area.display_order,
+        tables: area.tables?.map((table: any) => ({
           id: table.id,
           name: table.name,
-          area: areaName,
+          area: area.name,
           capacity: table.capacity,
           status: table.status,
-          customers: table.customers || 0
-        });
-        return acc;
-      }, {});
-
-      const areas: Area[] = Object.values(groupedTables || {});
+          customers: table.customers || 0,
+          currentOrder: table.current_order_id
+        })) || []
+      })) || [];
 
       const transformedCustomers: Customer[] = customers?.map((cust: any) => ({
         id: cust.id,
@@ -512,12 +520,12 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createdAt: new Date(cust.created_at)
       })) || [];
 
-      console.log(`Loaded ${areas.length} areas, ${transformedCustomers.length} customers`);
+      console.log(`Loaded ${transformedAreas.length} areas, ${transformedCustomers.length} customers`);
 
       dispatch({
         type: 'INITIALIZE_DATA',
         payload: {
-          areas,
+          areas: transformedAreas,
           categories: transformedCategories,
           customers: transformedCustomers
         }
@@ -525,7 +533,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       toast({
         title: "Datos cargados",
-        description: `${transformedCategories.length} categorías, ${areas.length} áreas, ${transformedCustomers.length} clientes`,
+        description: `${transformedCategories.length} categorías, ${transformedAreas.length} áreas, ${transformedCustomers.length} clientes`,
       });
 
     } catch (error) {

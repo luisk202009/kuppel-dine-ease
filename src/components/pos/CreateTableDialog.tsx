@@ -11,6 +11,7 @@ interface CreateTableDialogProps {
   isOpen: boolean;
   onClose: () => void;
   area: string;
+  areaId?: string;
   onTableCreated: () => void;
 }
 
@@ -18,6 +19,7 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
   isOpen,
   onClose,
   area,
+  areaId,
   onTableCreated
 }) => {
   const { authState } = usePOS();
@@ -52,6 +54,7 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
         .insert({
           name: tableName.trim(),
           area: area,
+          area_id: areaId || null,
           capacity: capacity,
           branch_id: authState.selectedBranch.id,
           status: 'available'

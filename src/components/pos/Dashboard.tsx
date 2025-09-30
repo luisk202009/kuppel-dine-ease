@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, User, Settings, LogOut, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
+import { ShoppingBag, User, Settings, LogOut, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,11 +23,12 @@ import { OrderHistory } from './OrderHistory';
 import { SalesReports } from './SalesReports';
 import { ExpenseManager } from './ExpenseManager';
 import { CashManager } from './CashManager';
+import { AreaManager } from './AreaManager';
 
 export const Dashboard: React.FC = () => {
   const { authState, posState, logout, searchProducts } = usePOS();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'areas'>('tables');
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -162,6 +163,16 @@ export const Dashboard: React.FC = () => {
                 <Receipt className="h-4 w-4" />
                 <span>Mesas</span>
               </Button>
+              {hasPermission(authState.user, 'view_reports') && (
+                <Button
+                  variant={activeView === 'areas' ? 'default' : 'ghost'}
+                  onClick={() => setActiveView('areas')}
+                  className="flex items-center space-x-2 whitespace-nowrap"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>Áreas</span>
+                </Button>
+              )}
               <Button
                 variant={activeView === 'products' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('products')}
@@ -313,6 +324,12 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
                 <CashManager />
+              </div>
+            )}
+
+            {activeView === 'areas' && hasPermission(authState.user, 'view_reports') && (
+              <div>
+                <AreaManager />
               </div>
             )}
           </div>

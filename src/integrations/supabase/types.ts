@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      areas: {
+        Row: {
+          branch_id: string
+          color: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id: string
+          color?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string
+          color?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_areas_branch"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -537,6 +578,7 @@ export type Database = {
       tables: {
         Row: {
           area: string | null
+          area_id: string | null
           branch_id: string
           capacity: number
           created_at: string
@@ -550,6 +592,7 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          area_id?: string | null
           branch_id: string
           capacity?: number
           created_at?: string
@@ -563,6 +606,7 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          area_id?: string | null
           branch_id?: string
           capacity?: number
           created_at?: string
@@ -575,6 +619,13 @@ export type Database = {
           waiter_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_tables_area"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tables_branch_id_fkey"
             columns: ["branch_id"]
