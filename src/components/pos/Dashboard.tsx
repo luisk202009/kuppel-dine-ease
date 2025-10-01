@@ -155,14 +155,6 @@ export const Dashboard: React.FC = () => {
           {/* Navigation Tabs */}
           <div className="bg-card border-b border-border px-6 py-3">
             <div className="flex space-x-4 overflow-x-auto">
-              <Button
-                variant={activeView === 'tables' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('tables')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <Receipt className="h-4 w-4" />
-                <span>Mesas</span>
-              </Button>
               {hasPermission(authState.user, 'view_reports') && (
                 <Button
                   variant={activeView === 'areas' ? 'default' : 'ghost'}
@@ -173,6 +165,14 @@ export const Dashboard: React.FC = () => {
                   <span>Áreas</span>
                 </Button>
               )}
+              <Button
+                variant={activeView === 'tables' ? 'default' : 'ghost'}
+                onClick={() => setActiveView('tables')}
+                className="flex items-center space-x-2 whitespace-nowrap"
+              >
+                <Receipt className="h-4 w-4" />
+                <span>Mesas</span>
+              </Button>
               <Button
                 variant={activeView === 'products' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('products')}

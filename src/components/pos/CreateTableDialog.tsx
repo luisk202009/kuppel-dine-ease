@@ -37,6 +37,15 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
       return;
     }
 
+    if (!areaId) {
+      toast({
+        title: "Error",
+        description: "Debes crear al menos un área antes de agregar mesas",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!authState.selectedBranch) {
       toast({
         title: "Error", 

@@ -198,63 +198,84 @@ export const AreaManager: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Gestión de Áreas</h2>
-          <p className="text-muted-foreground">Administra las áreas y ubicaciones de tu restaurante</p>
+          <p className="text-muted-foreground">
+            Organiza tus mesas por ubicaciones (Jardín, Terraza, Salón Principal, etc.)
+          </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gradient-primary">
-          <Plus className="h-4 w-4 mr-2" />
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
           Nueva Área
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {areas.map((area) => (
-          <Card key={area.id} className="pos-card">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" style={{ color: area.color }} />
-                  <span>{area.name}</span>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditDialog(area)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openDeleteDialog(area)}
-                    disabled={(area.table_count || 0) > 0}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Mesas:</span>
-                  <span className="font-medium">{area.table_count || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Color:</span>
+      {areas.length === 0 ? (
+        <Card className="p-12">
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+            <MapPin className="h-16 w-16 text-muted-foreground" />
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold">No hay áreas configuradas</h3>
+              <p className="text-muted-foreground max-w-md">
+                Comienza creando tu primera área (ej: Jardín, Terraza, Salón Principal). 
+                Después podrás agregar mesas a cada área.
+              </p>
+            </div>
+            <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
+              <Plus className="mr-2 h-5 w-5" />
+              Crear Primera Área
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {areas.map((area) => (
+            <Card key={area.id} className="pos-card">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded border"
-                      style={{ backgroundColor: area.color }}
-                    />
-                    <span className="font-mono text-xs">{area.color}</span>
+                    <MapPin className="h-5 w-5" style={{ color: area.color }} />
+                    <span>{area.name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(area)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openDeleteDialog(area)}
+                      disabled={(area.table_count || 0) > 0}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mesas:</span>
+                    <span className="font-medium">{area.table_count || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Color:</span>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-6 h-6 rounded border"
+                        style={{ backgroundColor: area.color }}
+                      />
+                      <span className="font-mono text-xs">{area.color}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
