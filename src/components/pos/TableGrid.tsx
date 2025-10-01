@@ -171,6 +171,24 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
         </Card>
       ))}
       
+      {/* Botón persistente para agregar mesas (visible para admins) */}
+      {isAdmin && area.tables.length > 0 && (
+        <Card 
+          className="pos-card-interactive border-dashed border-2 hover:border-primary hover:bg-accent/50 cursor-pointer transition-colors"
+          onClick={() => setIsCreateDialogOpen(true)}
+        >
+          <CardContent className="p-4 h-full flex flex-col items-center justify-center min-h-[180px]">
+            <div className="rounded-full bg-primary/10 p-4 mb-3">
+              <Plus className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="font-semibold text-base mb-1">Agregar Mesa</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              Crear nueva mesa en {area.name}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      
       {area.tables.length === 0 && (
         <div className="col-span-full">
           <Card className="pos-card">
