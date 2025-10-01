@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Monitor, Smartphone, Palette, Layout, RotateCw } from 'lucide-react';
+import { Settings, Monitor, Smartphone, Palette, Layout, RotateCw, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
+import { AreaManager } from '@/components/pos/AreaManager';
 
 interface LayoutSettings {
   catalogPosition: 'left' | 'right';
@@ -96,10 +97,11 @@ export const LayoutConfig: React.FC = () => {
         </DialogHeader>
 
         <Tabs defaultValue="layout" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="layout">Diseño</TabsTrigger>
             <TabsTrigger value="display">Pantalla</TabsTrigger>
             <TabsTrigger value="touch">Táctil</TabsTrigger>
+            <TabsTrigger value="admin">Administración</TabsTrigger>
           </TabsList>
 
           <TabsContent value="layout" className="space-y-6">
@@ -275,6 +277,23 @@ export const LayoutConfig: React.FC = () => {
                     <p className="text-xs text-muted-foreground">Toque ampliado</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="admin" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Gestión de Áreas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configura las áreas de tu establecimiento. Las áreas te permiten organizar las mesas por zonas (jardín, terraza, salón principal, etc.).
+                </p>
+                <AreaManager />
               </CardContent>
             </Card>
           </TabsContent>

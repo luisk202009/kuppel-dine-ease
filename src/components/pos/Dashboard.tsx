@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, User, Settings, LogOut, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw, MapPin } from 'lucide-react';
+import { ShoppingBag, User, Settings, LogOut, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,12 +23,11 @@ import { OrderHistory } from './OrderHistory';
 import { SalesReports } from './SalesReports';
 import { ExpenseManager } from './ExpenseManager';
 import { CashManager } from './CashManager';
-import { AreaManager } from './AreaManager';
 
 export const Dashboard: React.FC = () => {
   const { authState, posState, logout, searchProducts } = usePOS();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'areas'>('tables');
+  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -136,11 +135,6 @@ export const Dashboard: React.FC = () => {
               </AlertDialog>
             )}
             
-            <Button variant="outline" size="sm" className="hidden md:flex">
-              <Settings className="h-4 w-4 mr-2" />
-              Config
-            </Button>
-            
             <Button variant="outline" size="sm" onClick={logout}>
               <LogOut className="h-4 w-4 mr-2" />
               Salir
@@ -155,16 +149,6 @@ export const Dashboard: React.FC = () => {
           {/* Navigation Tabs */}
           <div className="bg-card border-b border-border px-6 py-3">
             <div className="flex space-x-4 overflow-x-auto">
-              {hasPermission(authState.user, 'view_reports') && (
-                <Button
-                  variant={activeView === 'areas' ? 'default' : 'ghost'}
-                  onClick={() => setActiveView('areas')}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <MapPin className="h-4 w-4" />
-                  <span>Áreas</span>
-                </Button>
-              )}
               <Button
                 variant={activeView === 'tables' ? 'default' : 'ghost'}
                 onClick={() => setActiveView('tables')}
@@ -324,12 +308,6 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
                 <CashManager />
-              </div>
-            )}
-
-            {activeView === 'areas' && hasPermission(authState.user, 'view_reports') && (
-              <div>
-                <AreaManager />
               </div>
             )}
           </div>
