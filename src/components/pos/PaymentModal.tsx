@@ -105,7 +105,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       };
 
       const result = await createInvoice.mutateAsync(invoiceData);
-      setLastInvoice({ ...invoiceData, id: result.data?.id || `INV-${Date.now()}`, createdAt: new Date() });
+      setLastInvoice({ ...invoiceData, id: result?.id || `INV-${Date.now()}`, createdAt: new Date() });
 
       toast({
         title: "Factura generada exitosamente",

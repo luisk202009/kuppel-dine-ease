@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/apiClient';
-import { mockApi } from '@/lib/mockApi';
-import { shouldUseMockData } from '@/config/environment';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -19,23 +17,26 @@ export const useCreateExpense = () => {
 
   return useMutation({
     mutationFn: async (expenseData: any) => {
-      try {
-        // Use mock data if enabled
-        if (shouldUseMockData()) {
-          return await mockApi.createExpense(expenseData);
-        }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
 
-        // Try real API first
-        const response = await apiClient.createExpense(expenseData);
-        return response;
-      } catch (error) {
-        // Fallback to mock on network error
-        console.warn('Create expense API failed, falling back to mock data:', error);
-        return await mockApi.createExpense(expenseData);
-      }
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert({
+          branch_id: expenseData.branchId,
+          category: expenseData.category,
+          amount: expenseData.amount,
+          description: expenseData.description,
+          user_id: user.id,
+          receipt_url: expenseData.receiptUrl,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['cash'] });
       toast({
@@ -57,25 +58,21 @@ export const useExpenses = () => {
   return useQuery({
     queryKey: ['expenses'],
     queryFn: async (): Promise<Expense[]> => {
-      try {
-        // Use mock data if enabled
-        if (shouldUseMockData()) {
-          const response = await mockApi.getExpenses();
-          return response.data;
-        }
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        // Try real API first
-        const response = await apiClient.getExpenses() as any;
-        if (response.success && response.data) {
-          return response.data;
-        }
-        return [];
-      } catch (error) {
-        // Fallback to mock data on network error
-        console.warn('Expenses API failed, falling back to mock data:', error);
-        const response = await mockApi.getExpenses();
-        return response.data;
-      }
+      if (error) throw error;
+      
+      return (data || []).map(expense => ({
+        id: expense.id,
+        amount: Number(expense.amount),
+        description: expense.description,
+        category: expense.category || 'general',
+        createdAt: expense.created_at,
+        attachments: expense.receipt_url ? [expense.receipt_url] : [],
+      }));
     },
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes

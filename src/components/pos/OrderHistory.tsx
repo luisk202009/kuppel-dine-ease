@@ -35,10 +35,10 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
     if (searchQuery.trim()) {
       filtered = filtered.filter(order =>
         order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.tableId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.items.some(item => 
-          item.product.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        (order.tableId && order.tableId.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (order.items && order.items.some((item: any) => 
+          item.product?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+        ))
       );
     }
 
