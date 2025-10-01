@@ -74,15 +74,14 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
 
   const handleTableCreated = () => {
     setRefreshKey(prev => prev + 1);
-    window.location.reload();
   };
 
   const handleTableUpdated = () => {
-    window.location.reload();
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleTableDeleted = () => {
-    window.location.reload();
+    setRefreshKey(prev => prev + 1);
   };
 
   const openEditDialog = (table: Table, e: React.MouseEvent) => {

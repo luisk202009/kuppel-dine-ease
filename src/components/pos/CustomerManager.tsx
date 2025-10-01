@@ -48,8 +48,7 @@ export const CustomerManager: React.FC = () => {
         description: "Los datos del cliente han sido actualizados exitosamente."
       });
       setEditingCustomer(null);
-      // Force page reload to refresh POSContext
-      window.location.reload();
+      setIsAddDialogOpen(false);
     },
     onError: (error: any) => {
       toast({
@@ -77,8 +76,6 @@ export const CustomerManager: React.FC = () => {
         description: "El cliente ha sido eliminado exitosamente."
       });
       setDeleteCustomer(null);
-      // Force page reload to refresh POSContext
-      window.location.reload();
     },
     onError: (error: any) => {
       toast({
@@ -108,8 +105,7 @@ export const CustomerManager: React.FC = () => {
       email: ''
     });
     setIsAddDialogOpen(false);
-    // Force page reload to refresh POSContext
-    setTimeout(() => window.location.reload(), 500);
+    queryClient.invalidateQueries({ queryKey: ['customers'] });
   };
 
   const handleEditCustomer = (customer: Customer) => {
