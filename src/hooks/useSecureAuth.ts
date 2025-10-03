@@ -22,13 +22,19 @@ export const useSecureAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
-          // Store session securely
-          secureStorage.setToken(session.access_token);
-          secureStorage.setUserData('user_profile', {
-            id: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.name || session.user.email,
-          });
+          // Store session securely (async operations deferred)
+          setTimeout(async () => {
+            try {
+              await secureStorage.setToken(session.access_token);
+              await secureStorage.setUserData('user_profile', {
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.user_metadata?.name || session.user.email,
+              });
+            } catch (error) {
+              console.error('Failed to store session securely');
+            }
+          }, 0);
           
           setAuthState({
             isAuthenticated: true,
@@ -49,14 +55,18 @@ export const useSecureAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        secureStorage.setToken(session.access_token);
-        secureStorage.setUserData('user_profile', {
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.name || session.user.email,
-        });
+        try {
+          await secureStorage.setToken(session.access_token);
+          await secureStorage.setUserData('user_profile', {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.name || session.user.email,
+          });
+        } catch (error) {
+          console.error('Failed to store session securely');
+        }
         
         setAuthState({
           isAuthenticated: true,
@@ -73,11 +83,23 @@ export const useSecureAuth = () => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clear all client-side data first
       secureStorage.clearAll();
       localStorage.removeItem('kuppel_selected_company');
       localStorage.removeItem('kuppel_selected_branch');
-      window.location.reload();
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Update auth state immediately
+      setAuthState({
+        isAuthenticated: false,
+        isLoading: false,
+        user: null,
+      });
+      
+      // Redirect to login without full page reload
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
       toast({

@@ -29,8 +29,8 @@ class ApiClient {
     this.loadToken();
   }
 
-  private loadToken() {
-    const token = this.secureStorage.getToken();
+  private async loadToken() {
+    const token = await this.secureStorage.getToken();
     if (token) {
       this.token = token;
       return;
@@ -40,9 +40,9 @@ class ApiClient {
     this.token = localStorage.getItem('kuppel_token');
   }
 
-  setToken(token: string) {
+  async setToken(token: string) {
     this.token = token;
-    this.secureStorage.setToken(token);
+    await this.secureStorage.setToken(token);
     // Also store in localStorage as fallback
     localStorage.setItem('kuppel_token', token);
   }
@@ -54,8 +54,8 @@ class ApiClient {
   }
   
   // Initialize token from secure storage
-  initializeToken() {
-    this.loadToken();
+  async initializeToken() {
+    await this.loadToken();
   }
 
   private async request<T>(

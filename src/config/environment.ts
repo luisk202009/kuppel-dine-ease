@@ -37,19 +37,19 @@ const getEnvironment = (): Environment => {
     };
   }
 
-  // Production environment
+  // Production environment - strict security settings
   return {
     name: 'production',
     apiBaseUrl: apiUrl,
-    enableDebugLogs: false,
-    enableMockData: false, // Security: Never allow mock data in production
+    enableDebugLogs: false, // Security: NEVER log in production
+    enableMockData: false, // Security: NEVER allow mock data in production
     sentryDsn,
     features: {
       orderHistory: true,
       realTimeUpdates: true,
       advancedReporting: true,
       multiCompany: true,
-      requireLogin: true, // Security: Always require login in production
+      requireLogin: true, // Security: ALWAYS require login in production
     },
   };
 };

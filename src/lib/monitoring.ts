@@ -49,7 +49,9 @@ export const initializeMonitoring = () => {
 
 // Log security events
 export const logSecurityEvent = (event: string, details?: Record<string, any>) => {
-  console.warn(`Security Event: ${event}`, details);
+  if (!import.meta.env.PROD) {
+    console.warn(`Security Event: ${event}`, details);
+  }
   
   if (import.meta.env.PROD) {
     Sentry.addBreadcrumb({
@@ -65,7 +67,9 @@ export const logSecurityEvent = (event: string, details?: Record<string, any>) =
 export const logAuthEvent = (event: 'login_attempt' | 'login_success' | 'login_failure' | 'logout', username?: string) => {
   const sanitizedUsername = username ? username.substring(0, 3) + '***' : 'unknown';
   
-  console.info(`Auth Event: ${event} for user ${sanitizedUsername}`);
+  if (!import.meta.env.PROD) {
+    console.info(`Auth Event: ${event} for user ${sanitizedUsername}`);
+  }
   
   if (import.meta.env.PROD) {
     Sentry.addBreadcrumb({
