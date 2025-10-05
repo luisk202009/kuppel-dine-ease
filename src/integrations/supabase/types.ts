@@ -525,6 +525,13 @@ export type Database = {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -829,6 +836,51 @@ export type Database = {
       }
     }
     Views: {
+      customer_profiles: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          identification: string | null
+          last_name: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: never
+          city?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          identification?: never
+          last_name?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: never
+          city?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          identification?: never
+          last_name?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           created_at: string | null
