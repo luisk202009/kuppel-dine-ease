@@ -893,7 +893,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          email?: never
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
           name?: string | null
@@ -902,7 +902,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          email?: never
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
           name?: string | null
