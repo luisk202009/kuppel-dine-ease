@@ -4,7 +4,7 @@
  */
 
 // Derive a key from a static secret (in production, use environment-specific secrets)
-const deriveKey = async (salt: Uint8Array): Promise<CryptoKey> => {
+const deriveKey = async (salt: BufferSource): Promise<CryptoKey> => {
   const encoder = new TextEncoder();
   const baseKey = await crypto.subtle.importKey(
     'raw',
