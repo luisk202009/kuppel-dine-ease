@@ -8,7 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { POSProvider, usePOS } from "@/contexts/POSContext";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import AuthScreen from "@/components/auth/AuthScreen";
-import { Dashboard } from "@/components/pos/Dashboard";
+import { DashboardWrapper } from "@/components/pos/DashboardWrapper";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
 import { isAuthRequired } from "@/config/environment";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -42,7 +42,7 @@ const POSApp = () => {
     return <AuthScreen />;
   }
 
-  return <Dashboard />;
+  return <DashboardWrapper />;
 };
 
 const App = () => (

@@ -61,7 +61,7 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
     setIsCreating(true);
 
     try {
-      // Crear la compañía
+      // 1. Crear la compañía
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -76,7 +76,18 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
 
       if (companyError) throw companyError;
 
-      // Crear la sucursal principal
+      // 2. Asignar el usuario a la compañía (sin branch_id todavía)
+      const { error: userCompanyError } = await supabase
+        .from('user_companies')
+        .insert({
+          user_id: userId,
+          company_id: company.id,
+          branch_id: null, // Se actualizará después
+        });
+
+      if (userCompanyError) throw userCompanyError;
+
+      // 3. Ahora crear la sucursal principal (RLS pasará porque user_companies ya existe)
       const { data: branch, error: branchError } = await supabase
         .from('branches')
         .insert({
@@ -91,16 +102,14 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
 
       if (branchError) throw branchError;
 
-      // Asignar el usuario a la compañía y sucursal
-      const { error: userCompanyError } = await supabase
+      // 4. Actualizar la asociación user_companies con el branch_id
+      const { error: updateError } = await supabase
         .from('user_companies')
-        .insert({
-          user_id: userId,
-          company_id: company.id,
-          branch_id: branch.id,
-        });
+        .update({ branch_id: branch.id })
+        .eq('user_id', userId)
+        .eq('company_id', company.id);
 
-      if (userCompanyError) throw userCompanyError;
+      if (updateError) throw updateError;
 
       toast({
         title: "¡Empresa creada!",
