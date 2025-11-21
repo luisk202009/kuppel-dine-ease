@@ -978,7 +978,14 @@ export type Database = {
         | "cancelled"
       payment_method: "cash" | "card" | "credit" | "transfer"
       table_status: "available" | "occupied" | "pending" | "reserved"
-      user_role: "admin" | "cashier" | "demo"
+      user_role:
+        | "admin"
+        | "cashier"
+        | "demo"
+        | "platform_admin"
+        | "company_owner"
+        | "staff"
+        | "viewer"
       vote_type: "up" | "down"
     }
     CompositeTypes: {
@@ -1127,7 +1134,15 @@ export const Constants = {
       ],
       payment_method: ["cash", "card", "credit", "transfer"],
       table_status: ["available", "occupied", "pending", "reserved"],
-      user_role: ["admin", "cashier", "demo"],
+      user_role: [
+        "admin",
+        "cashier",
+        "demo",
+        "platform_admin",
+        "company_owner",
+        "staff",
+        "viewer",
+      ],
       vote_type: ["up", "down"],
     },
   },
