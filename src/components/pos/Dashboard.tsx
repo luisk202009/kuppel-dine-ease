@@ -12,6 +12,8 @@ import { VersionInfo } from '@/components/common/VersionInfo';
 import { VotingButton } from '@/components/voting/VotingButton';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled, shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
@@ -37,6 +39,52 @@ export const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
   const [secondaryView, setSecondaryView] = useState<SecondaryView>(null);
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
+  
+  // Notifications setup
+  const { showNotification, requestPermission, isGranted, isSupported } = useNotifications();
+  
+  // Request notification permission on mount
+  useEffect(() => {
+    if (isSupported && !isGranted) {
+      requestPermission();
+    }
+  }, [isSupported, isGranted, requestPermission]);
+  
+  // Realtime updates for orders and tables
+  useRealtimeUpdates({
+    onNewOrder: (order) => {
+      showNotification('Nueva Orden', {
+        body: `Orden ${order.order_number} creada`,
+        tag: 'new-order',
+        requireInteraction: false
+      });
+      
+      toast({
+        title: "Nueva Orden",
+        description: `Orden ${order.order_number} ha sido creada`
+      });
+    },
+    onTableStatusChange: (table, oldStatus) => {
+      const statusLabels: Record<string, string> = {
+        available: 'Disponible',
+        occupied: 'Ocupada',
+        pending: 'Cuenta Pendiente',
+        reserved: 'Reservada'
+      };
+      
+      showNotification('Cambio en Mesa', {
+        body: `${table.name}: ${statusLabels[oldStatus]} → ${statusLabels[table.status]}`,
+        tag: 'table-status',
+        requireInteraction: false
+      });
+      
+      toast({
+        title: "Cambio en Mesa",
+        description: `${table.name} cambió a ${statusLabels[table.status]}`
+      });
+    },
+    enabled: true
+  });
 
   // Update view mode when tablesEnabled changes
   useEffect(() => {
