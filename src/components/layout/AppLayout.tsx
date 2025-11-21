@@ -64,11 +64,11 @@ export const AppLayout: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col space-y-2">
           <div className="flex items-center space-x-4">
-            <Logo width={120} height={40} />
             <Button variant="outline" size="sm" onClick={() => setMenuOpen(true)}>
               <Menu className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Menú</span>
             </Button>
+            <Logo width={120} height={40} />
             {!isAuthRequired() && (
               <Badge variant="secondary" className="hidden md:flex">
                 Modo Demo
