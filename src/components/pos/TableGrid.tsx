@@ -160,11 +160,7 @@ export const TableGrid: React.FC<TableGridProps> = ({ area, onTableClick }) => {
         if (error) throw error;
       }
 
-      toast({
-        title: "Orden actualizado",
-        description: "El orden de las mesas ha sido actualizado exitosamente"
-      });
-
+      // Visual feedback is sufficient, no toast needed
       setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('Error updating table order:', error);
