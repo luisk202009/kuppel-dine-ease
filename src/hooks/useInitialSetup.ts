@@ -31,22 +31,41 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
 
       if (categoriesError) throw categoriesError;
 
+      // Create map of category index to UUID
+      const categoryIndexToId = new Map<string, string>();
+      if (categoriesData) {
+        categoriesData.forEach((cat, index) => {
+          categoryIndexToId.set(index.toString(), cat.id);
+        });
+      }
+
       // 2. Create products if any
       if (setupData.products.length > 0 && categoriesData) {
-        const productsToInsert = setupData.products.map((prod) => ({
-          name: prod.name,
-          price: prod.price,
-          category_id: prod.categoryId,
-          company_id: companyId,
-          stock: 100,
-          is_active: true,
-        }));
+        const productsToInsert = setupData.products
+          .map((prod) => {
+            const categoryId = categoryIndexToId.get(prod.categoryId);
+            if (!categoryId) {
+              console.error(`Category ID not found for product: ${prod.name}`);
+              return null;
+            }
+            return {
+              name: prod.name,
+              price: prod.price,
+              category_id: categoryId,
+              company_id: companyId,
+              stock: 100,
+              is_active: true,
+            };
+          })
+          .filter((p) => p !== null);
 
-        const { error: productsError } = await supabase
-          .from('products')
-          .insert(productsToInsert);
+        if (productsToInsert.length > 0) {
+          const { error: productsError } = await supabase
+            .from('products')
+            .insert(productsToInsert);
 
-        if (productsError) throw productsError;
+          if (productsError) throw productsError;
+        }
       }
 
       // 3. Create areas if using tables
@@ -65,21 +84,40 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
 
         if (areasError) throw areasError;
 
+        // Create map of area index to UUID
+        const areaIndexToId = new Map<string, string>();
+        if (areasData) {
+          areasData.forEach((area, index) => {
+            areaIndexToId.set(index.toString(), area.id);
+          });
+        }
+
         // 4. Create tables if any
         if (setupData.tables.length > 0 && areasData) {
-          const tablesToInsert = setupData.tables.map((table) => ({
-            name: table.name,
-            capacity: table.capacity,
-            area_id: table.areaId,
-            branch_id: branchId,
-            status: 'available' as const,
-          }));
+          const tablesToInsert = setupData.tables
+            .map((table) => {
+              const areaId = areaIndexToId.get(table.areaId);
+              if (!areaId) {
+                console.error(`Area ID not found for table: ${table.name}`);
+                return null;
+              }
+              return {
+                name: table.name,
+                capacity: table.capacity,
+                area_id: areaId,
+                branch_id: branchId,
+                status: 'available' as const,
+              };
+            })
+            .filter((t) => t !== null);
 
-          const { error: tablesError } = await supabase
-            .from('tables')
-            .insert(tablesToInsert);
+          if (tablesToInsert.length > 0) {
+            const { error: tablesError } = await supabase
+              .from('tables')
+              .insert(tablesToInsert);
 
-          if (tablesError) throw tablesError;
+            if (tablesError) throw tablesError;
+          }
         }
       }
 
