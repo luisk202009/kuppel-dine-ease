@@ -3,7 +3,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Index from './pages/Index';
+import NotFound from './pages/NotFound';
+import Settings from './pages/Settings';
+import Customers from './pages/Customers';
+import Orders from './pages/Orders';
+import Reports from './pages/Reports';
+import Expenses from './pages/Expenses';
+import Cash from './pages/Cash';
+import { AppLayout } from './components/layout/AppLayout';
 import { ThemeProvider } from "next-themes";
 import { POSProvider, usePOS } from "@/contexts/POSContext";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -11,8 +20,6 @@ import AuthScreen from "@/components/auth/AuthScreen";
 import { Dashboard } from "@/components/pos/Dashboard";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
 import { isAuthRequired } from "@/config/environment";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -59,7 +66,15 @@ const App = () => (
           <POSProvider>
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<POSApp />} />
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<POSApp />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/expenses" element={<Expenses />} />
+                  <Route path="/cash" element={<Cash />} />
+                </Route>
                 <Route path="/demo" element={<Index />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
