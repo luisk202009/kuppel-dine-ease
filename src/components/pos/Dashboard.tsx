@@ -30,7 +30,7 @@ type ViewMode = 'table-list' | 'table-products' | 'products';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart, refreshAreas } = usePOS();
+  const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart, refreshAreas, dataLoading } = usePOS();
   const { config } = useLayoutConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
@@ -95,10 +95,13 @@ export const Dashboard: React.FC = () => {
     if (!config.tablesEnabled) {
       setViewMode('products');
       setSelectedTableForOrder(null);
-    } else if (viewMode === 'products' && !selectedTableForOrder) {
-      setViewMode('table-list');
+    } else if (config.tablesEnabled && !dataLoading && posState.areas.length > 0) {
+      // Solo establecer table-list si hay áreas cargadas y no estamos en una vista específica
+      if (!selectedTableForOrder && viewMode !== 'table-list') {
+        setViewMode('table-list');
+      }
     }
-  }, [config.tablesEnabled]);
+  }, [config.tablesEnabled, dataLoading, posState.areas.length, selectedTableForOrder]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -172,9 +175,34 @@ export const Dashboard: React.FC = () => {
     setSelectedTableForOrder(null);
   };
 
+  const handlePaymentComplete = () => {
+    // Limpiar mesa seleccionada
+    setSelectedTableForOrder(null);
+    
+    // Determinar vista según el contexto
+    if (config.tablesEnabled) {
+      // Si hay mesas habilitadas, siempre volver a la lista de mesas
+      setViewMode('table-list');
+    } else {
+      // Si no hay mesas, quedarse en productos
+      setViewMode('products');
+    }
+  };
+
   const renderMainContent = () => {
     // Main views
     if (viewMode === 'table-list' && config.tablesEnabled) {
+      if (dataLoading || posState.areas.length === 0) {
+        return (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Cargando mesas...</p>
+            </div>
+          </div>
+        );
+      }
+      
       return (
         <div>
           <div className="mb-6">
@@ -399,7 +427,11 @@ export const Dashboard: React.FC = () => {
 
         {/* Shopping Cart Sidebar */}
         <div id="shopping-cart" className="w-96 bg-card border-l border-border h-full">
-          <ShoppingCart selectedTable={selectedTableForOrder} onBackToTables={handleBackToTables} />
+          <ShoppingCart 
+            selectedTable={selectedTableForOrder} 
+            onBackToTables={handleBackToTables}
+            onPaymentComplete={handlePaymentComplete}
+          />
         </div>
       </div>
       
