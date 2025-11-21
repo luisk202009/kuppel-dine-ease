@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { VotingButton } from '@/components/voting/VotingButton';
-import { NavigationDrawer } from './NavigationDrawer';
+import { MainNav } from './MainNav';
 import { usePOS } from '@/contexts/POSContext';
 import { shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
@@ -17,7 +17,6 @@ export const AppLayout: React.FC = () => {
   const { authState, logout } = usePOS();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const getCurrentDate = () => {
     return new Date().toLocaleDateString('es-CO', {
@@ -64,10 +63,6 @@ export const AppLayout: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col space-y-2">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => setMenuOpen(true)}>
-              <Menu className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Menú</span>
-            </Button>
             <Logo width={120} height={40} />
             {!isAuthRequired() && (
               <Badge variant="secondary" className="hidden md:flex">
@@ -133,13 +128,13 @@ export const AppLayout: React.FC = () => {
         </div>
       </header>
 
+      {/* Main Navigation */}
+      <MainNav />
+
       {/* Main Content */}
       <main className="min-h-[calc(100vh-100px)]">
         <Outlet />
       </main>
-
-      {/* Navigation Drawer */}
-      <NavigationDrawer open={menuOpen} onOpenChange={setMenuOpen} />
     </div>
   );
 };
