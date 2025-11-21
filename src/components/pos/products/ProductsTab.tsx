@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ProductImportModal } from './ProductImportModal';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ export const ProductsTab: React.FC = () => {
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -327,10 +329,16 @@ export const ProductsTab: React.FC = () => {
             {selectedCategoryFilter !== 'all' && ' en esta categoría'}
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Producto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar productos
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Producto
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -603,6 +611,19 @@ export const ProductsTab: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Modal */}
+      <ProductImportModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          toast({
+            title: "Importación completada",
+            description: "Los productos se importaron correctamente"
+          });
+        }}
+      />
     </div>
   );
 };
