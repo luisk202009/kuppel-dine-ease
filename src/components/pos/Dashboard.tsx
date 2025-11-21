@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableGrid } from './TableGrid';
 import { ShoppingCart } from './ShoppingCart';
 import { ProductManager } from './ProductManager';
+import { CategoryProductView } from './CategoryProductView';
 import { Table } from '@/types/pos';
 import { SetupWizard } from '../onboarding/SetupWizard';
 import { DashboardTourPrompt } from '../onboarding/DashboardTourPrompt';
@@ -236,14 +237,18 @@ export const Dashboard: React.FC = () => {
     if (viewMode === 'products') {
       return (
         <div>
-          {!config.tablesEnabled && (
-            <div className="mb-4">
-              <Badge variant="secondary" className="mb-2">
-                Modo sin mesas - Ventas de mostrador
-              </Badge>
-            </div>
+          {!config.tablesEnabled ? (
+            <>
+              <div className="mb-4">
+                <Badge variant="secondary" className="mb-2">
+                  Modo sin mesas - Ventas de mostrador
+                </Badge>
+              </div>
+              <CategoryProductView />
+            </>
+          ) : (
+            <ProductManager />
           )}
-          <ProductManager />
         </div>
       );
     }
