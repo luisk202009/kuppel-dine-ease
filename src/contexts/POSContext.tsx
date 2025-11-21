@@ -420,10 +420,21 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Remove ensureDemoUserAssociation as it was causing RLS issues
   // Demo associations should be handled at the database level or during signup
 
+  // Track if data has been initialized to prevent infinite loops
+  const [dataInitialized, setDataInitialized] = useState(false);
+
   useEffect(() => {
     // Initialize data from Supabase when auth state changes
-    initializeDataFromSupabase();
-  }, [authState.isAuthenticated, authState.selectedCompany, authState.selectedBranch]);
+    // Only run once per authentication session to prevent infinite loops
+    if (authState.isAuthenticated && authState.selectedCompany && !dataInitialized) {
+      console.log('Initializing data (first time only)...');
+      initializeDataFromSupabase();
+      setDataInitialized(true);
+    } else if (!authState.isAuthenticated && dataInitialized) {
+      // Reset flag on logout
+      setDataInitialized(false);
+    }
+  }, [authState.isAuthenticated, authState.selectedCompany, authState.selectedBranch, dataInitialized]);
 
   const initializeDataFromSupabase = async () => {
     // Only initialize data if user is authenticated and has selected company/branch
