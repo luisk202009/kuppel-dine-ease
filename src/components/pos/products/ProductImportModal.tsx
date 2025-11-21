@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +30,11 @@ interface ValidatedProduct {
   data: ImportRow;
   isValid: boolean;
   errors: string[];
+  warnings: string[];
   categoryId?: string;
+  duplicateType?: 'file' | 'database' | null;
+  existingProductId?: string;
+  action?: 'create' | 'update' | 'skip';
 }
 
 interface ProductImportModalProps {
@@ -49,25 +54,28 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
   const [parsedData, setParsedData] = useState<ImportRow[]>([]);
   const [validatedData, setValidatedData] = useState<ValidatedProduct[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [existingProducts, setExistingProducts] = useState<{ id: string; name: string }[]>([]);
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
   const [progress, setProgress] = useState(0);
-  const [importResults, setImportResults] = useState({ success: 0, errors: 0 });
+  const [importResults, setImportResults] = useState({ success: 0, errors: 0, updated: 0, skipped: 0 });
 
   // Reset state when modal closes
   const handleClose = () => {
     setFile(null);
     setParsedData([]);
     setValidatedData([]);
+    setExistingProducts([]);
     setStep('upload');
     setProgress(0);
-    setImportResults({ success: 0, errors: 0 });
+    setImportResults({ success: 0, errors: 0, updated: 0, skipped: 0 });
     onOpenChange(false);
   };
 
-  // Load categories when modal opens
+  // Load categories and existing products when modal opens
   React.useEffect(() => {
     if (open && authState.selectedCompany?.id) {
       loadCategories();
+      loadExistingProducts();
     }
   }, [open, authState.selectedCompany?.id]);
 
@@ -83,6 +91,20 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
       setCategories(data || []);
     } catch (error) {
       console.error('Error loading categories:', error);
+    }
+  };
+
+  const loadExistingProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name')
+        .eq('company_id', authState.selectedCompany?.id);
+      
+      if (error) throw error;
+      setExistingProducts(data || []);
+    } catch (error) {
+      console.error('Error loading existing products:', error);
     }
   };
 
@@ -162,12 +184,46 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
   };
 
   const validateData = (data: ImportRow[]) => {
+    // Detectar duplicados dentro del archivo
+    const nameCount = new Map<string, number>();
+    data.forEach(row => {
+      if (row.nombre) {
+        const normalizedName = row.nombre.toLowerCase().trim();
+        nameCount.set(normalizedName, (nameCount.get(normalizedName) || 0) + 1);
+      }
+    });
+
     const validated: ValidatedProduct[] = data.map((row, index) => {
       const errors: string[] = [];
+      const warnings: string[] = [];
+      let duplicateType: 'file' | 'database' | null = null;
+      let existingProductId: string | undefined;
+      let action: 'create' | 'update' | 'skip' = 'create';
       
       // Validar nombre (requerido)
       if (!row.nombre || row.nombre.trim() === '') {
         errors.push('Nombre es requerido');
+      } else {
+        const normalizedName = row.nombre.toLowerCase().trim();
+        
+        // Verificar duplicado dentro del archivo
+        if (nameCount.get(normalizedName)! > 1) {
+          duplicateType = 'file';
+          warnings.push('Duplicado en el archivo - se importará solo la primera ocurrencia');
+          action = 'skip';
+        }
+        
+        // Verificar duplicado en base de datos
+        const existingProduct = existingProducts.find(
+          p => p.name.toLowerCase().trim() === normalizedName
+        );
+        
+        if (existingProduct && duplicateType !== 'file') {
+          duplicateType = 'database';
+          existingProductId = existingProduct.id;
+          warnings.push(`Producto "${existingProduct.name}" ya existe en el catálogo`);
+          action = 'skip'; // Default a skip, usuario puede cambiar a update
+        }
       }
       
       // Validar categoría (requerido)
@@ -206,12 +262,24 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
         data: row,
         isValid: errors.length === 0,
         errors,
-        categoryId
+        warnings,
+        categoryId,
+        duplicateType,
+        existingProductId,
+        action
       };
     });
     
     setValidatedData(validated);
     setStep('preview');
+  };
+
+  const handleActionChange = (rowIndex: number, newAction: 'create' | 'update' | 'skip') => {
+    setValidatedData(prev => 
+      prev.map((item, idx) => 
+        idx === rowIndex ? { ...item, action: newAction } : item
+      )
+    );
   };
 
   const handleImport = async () => {
@@ -220,43 +288,84 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
     
     let successCount = 0;
     let errorCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
     
-    const validProducts = validatedData.filter(p => p.isValid);
+    // Filtrar productos válidos y no salteados
+    const productsToProcess = validatedData.filter(p => p.isValid && p.action !== 'skip');
     
-    for (let i = 0; i < validProducts.length; i++) {
-      const product = validProducts[i];
+    // Agrupar por acción para evitar duplicados dentro del archivo
+    const processedNames = new Set<string>();
+    const finalProducts = productsToProcess.filter(p => {
+      const normalizedName = p.data.nombre.toLowerCase().trim();
+      if (processedNames.has(normalizedName)) {
+        skippedCount++;
+        return false;
+      }
+      processedNames.add(normalizedName);
+      return true;
+    });
+    
+    for (let i = 0; i < finalProducts.length; i++) {
+      const product = finalProducts[i];
       
       try {
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            name: product.data.nombre.trim(),
-            description: product.data.descripcion?.trim() || null,
-            category_id: product.categoryId!,
-            price: parseFloat(String(product.data.precio)),
-            cost: product.data.costo ? parseFloat(String(product.data.costo)) : null,
-            stock: product.data.stock ? parseInt(String(product.data.stock)) : 0,
-            min_stock: product.data.stock_minimo ? parseInt(String(product.data.stock_minimo)) : 0,
-            is_alcoholic: product.data.es_alcoholico === true || 
-                         product.data.es_alcoholico === 'true' || 
-                         product.data.es_alcoholico === 'sí' ||
-                         product.data.es_alcoholico === 'si' ||
-                         product.data.es_alcoholico === '1',
-            company_id: authState.selectedCompany?.id,
-            is_active: true
-          });
-        
-        if (error) throw error;
-        successCount++;
+        const productData = {
+          name: product.data.nombre.trim(),
+          description: product.data.descripcion?.trim() || null,
+          category_id: product.categoryId!,
+          price: parseFloat(String(product.data.precio)),
+          cost: product.data.costo ? parseFloat(String(product.data.costo)) : null,
+          stock: product.data.stock ? parseInt(String(product.data.stock)) : 0,
+          min_stock: product.data.stock_minimo ? parseInt(String(product.data.stock_minimo)) : 0,
+          is_alcoholic: product.data.es_alcoholico === true || 
+                       product.data.es_alcoholico === 'true' || 
+                       product.data.es_alcoholico === 'sí' ||
+                       product.data.es_alcoholico === 'si' ||
+                       product.data.es_alcoholico === '1'
+        };
+
+        if (product.action === 'update' && product.existingProductId) {
+          // Actualizar producto existente
+          const { error } = await supabase
+            .from('products')
+            .update(productData)
+            .eq('id', product.existingProductId);
+          
+          if (error) throw error;
+          updatedCount++;
+          successCount++;
+        } else if (product.action === 'create') {
+          // Crear nuevo producto
+          const { error } = await supabase
+            .from('products')
+            .insert({
+              ...productData,
+              company_id: authState.selectedCompany?.id,
+              is_active: true
+            });
+          
+          if (error) throw error;
+          successCount++;
+        }
       } catch (error) {
         console.error(`Error importing product ${product.row}:`, error);
         errorCount++;
       }
       
-      setProgress(((i + 1) / validProducts.length) * 100);
+      setProgress(((i + 1) / finalProducts.length) * 100);
     }
     
-    setImportResults({ success: successCount, errors: errorCount });
+    // Contar productos que se saltaron por acción del usuario
+    const userSkipped = validatedData.filter(p => p.isValid && p.action === 'skip').length;
+    skippedCount += userSkipped;
+    
+    setImportResults({ 
+      success: successCount, 
+      errors: errorCount,
+      updated: updatedCount,
+      skipped: skippedCount
+    });
     setStep('complete');
     
     if (successCount > 0) {
@@ -303,6 +412,11 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
   const validCount = validatedData.filter(p => p.isValid).length;
   const invalidCount = validatedData.length - validCount;
+  const duplicatesInFile = validatedData.filter(p => p.duplicateType === 'file').length;
+  const duplicatesInDB = validatedData.filter(p => p.duplicateType === 'database').length;
+  const toCreate = validatedData.filter(p => p.isValid && p.action === 'create').length;
+  const toUpdate = validatedData.filter(p => p.isValid && p.action === 'update').length;
+  const toSkip = validatedData.filter(p => p.isValid && p.action === 'skip').length;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -379,8 +493,8 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
         {step === 'preview' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Badge variant={validCount > 0 ? "default" : "secondary"}>
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   {validCount} válidos
@@ -389,6 +503,48 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   <AlertCircle className="h-3 w-3 mr-1" />
                   {invalidCount} con errores
                 </Badge>
+                {duplicatesInFile > 0 && (
+                  <Badge variant="outline" className="border-orange-500 text-orange-700">
+                    {duplicatesInFile} duplicados en archivo
+                  </Badge>
+                )}
+                {duplicatesInDB > 0 && (
+                  <Badge variant="outline" className="border-blue-500 text-blue-700">
+                    {duplicatesInDB} ya existen en BD
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {(duplicatesInDB > 0 || duplicatesInFile > 0) && (
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Productos duplicados detectados
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Se encontraron productos que ya existen. Puedes elegir qué hacer con cada uno:
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                  <li>• <strong>Crear nuevo</strong>: Crear de todas formas (puede generar duplicados)</li>
+                  <li>• <strong>Actualizar</strong>: Sobrescribir el producto existente con los nuevos datos</li>
+                  <li>• <strong>Saltar</strong>: No importar este producto</li>
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span>Crear: {toCreate}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span>Actualizar: {toUpdate}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                <span>Saltar: {toSkip}</span>
               </div>
             </div>
 
@@ -402,10 +558,11 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
                     <TableHead>Precio</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead className="w-32">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {validatedData.map((product) => (
+                  {validatedData.map((product, idx) => (
                     <TableRow key={product.row} className={!product.isValid ? 'bg-destructive/5' : ''}>
                       <TableCell className="font-medium">{product.row}</TableCell>
                       <TableCell>{product.data.nombre}</TableCell>
@@ -414,10 +571,15 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
                       <TableCell>{product.data.stock || 0}</TableCell>
                       <TableCell>
                         {product.isValid ? (
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            OK
-                          </Badge>
+                          <div className="space-y-1">
+                            <Badge variant="default" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              OK
+                            </Badge>
+                            {product.warnings.map((warning, i) => (
+                              <p key={i} className="text-xs text-orange-600">{warning}</p>
+                            ))}
+                          </div>
                         ) : (
                           <div className="space-y-1">
                             <Badge variant="destructive" className="gap-1">
@@ -428,6 +590,33 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
                               <p key={i} className="text-xs text-destructive">{error}</p>
                             ))}
                           </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {product.isValid && product.duplicateType === 'database' ? (
+                          <Select 
+                            value={product.action} 
+                            onValueChange={(value) => handleActionChange(idx, value as any)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="skip">Saltar</SelectItem>
+                              <SelectItem value="update">Actualizar</SelectItem>
+                              <SelectItem value="create">Crear nuevo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : product.isValid && product.duplicateType === 'file' ? (
+                          <Badge variant="outline" className="text-xs">
+                            Auto-skip
+                          </Badge>
+                        ) : product.isValid ? (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-700 text-xs">
+                            Crear
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -474,10 +663,18 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
               <h3 className="text-2xl font-bold mb-2">Importación completada</h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="p-4 text-center border-primary/20 bg-primary/5">
-                <p className="text-3xl font-bold text-primary">{importResults.success}</p>
-                <p className="text-sm text-muted-foreground">Productos importados</p>
+                <p className="text-3xl font-bold text-primary">{importResults.success - importResults.updated}</p>
+                <p className="text-sm text-muted-foreground">Creados</p>
+              </Card>
+              <Card className="p-4 text-center border-blue-500/20 bg-blue-500/5">
+                <p className="text-3xl font-bold text-blue-700">{importResults.updated}</p>
+                <p className="text-sm text-muted-foreground">Actualizados</p>
+              </Card>
+              <Card className="p-4 text-center border-gray-400/20 bg-gray-400/5">
+                <p className="text-3xl font-bold text-gray-700">{importResults.skipped}</p>
+                <p className="text-sm text-muted-foreground">Saltados</p>
               </Card>
               <Card className="p-4 text-center border-destructive/20 bg-destructive/5">
                 <p className="text-3xl font-bold text-destructive">{importResults.errors}</p>
@@ -512,9 +709,12 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({
               </Button>
               <Button 
                 onClick={handleImport}
-                disabled={validCount === 0}
+                disabled={toCreate + toUpdate === 0}
               >
-                Importar {validCount} producto{validCount !== 1 ? 's' : ''}
+                {toUpdate > 0 
+                  ? `Importar ${toCreate} nuevo${toCreate !== 1 ? 's' : ''} y actualizar ${toUpdate}`
+                  : `Importar ${toCreate} producto${toCreate !== 1 ? 's' : ''}`
+                }
               </Button>
             </>
           )}
