@@ -196,6 +196,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          business_type: Database["public"]["Enums"]["business_type"] | null
           created_at: string
           email: string | null
           id: string
@@ -208,6 +209,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
           email?: string | null
           id?: string
@@ -220,6 +222,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
           email?: string | null
           id?: string
@@ -944,8 +947,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      seed_default_data_for_business_type: {
+        Args: {
+          _branch_id: string
+          _business_type: string
+          _company_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
+      business_type:
+        | "restaurant"
+        | "cafe"
+        | "pizzeria"
+        | "bar"
+        | "retail"
+        | "bakery"
+        | "other"
       log_action: "insert" | "update" | "delete"
       order_status:
         | "pending"
@@ -1085,6 +1104,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      business_type: [
+        "restaurant",
+        "cafe",
+        "pizzeria",
+        "bar",
+        "retail",
+        "bakery",
+        "other",
+      ],
       log_action: ["insert", "update", "delete"],
       order_status: [
         "pending",
