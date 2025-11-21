@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Building2, Users } from 'lucide-react';
+import { Home, Building2, Users, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { AdminCompaniesTab } from './AdminCompaniesTab';
 import { AdminUsersTab } from './AdminUsersTab';
+import { AdminPlansTab } from './AdminPlansTab';
 
 export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'companies' | 'users'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'users' | 'plans'>('companies');
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,8 +42,8 @@ export const AdminLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="container mx-auto p-6">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'companies' | 'users')}>
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'companies' | 'users' | 'plans')}>
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="companies" className="flex items-center space-x-2">
               <Building2 className="h-4 w-4" />
               <span>Empresas</span>
@@ -50,6 +51,10 @@ export const AdminLayout: React.FC = () => {
             <TabsTrigger value="users" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
               <span>Usuarios</span>
+            </TabsTrigger>
+            <TabsTrigger value="plans" className="flex items-center space-x-2">
+              <Package className="h-4 w-4" />
+              <span>Planes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -59,6 +64,10 @@ export const AdminLayout: React.FC = () => {
 
           <TabsContent value="users">
             <AdminUsersTab />
+          </TabsContent>
+
+          <TabsContent value="plans">
+            <AdminPlansTab />
           </TabsContent>
         </Tabs>
       </div>
