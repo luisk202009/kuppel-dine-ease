@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Settings, LogOut, Receipt, RotateCcw, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Settings, LogOut, Receipt, RotateCcw, ArrowLeft, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +8,7 @@ import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { VotingButton } from '@/components/voting/VotingButton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -239,10 +240,22 @@ export const Dashboard: React.FC = () => {
         <div>
           {!config.tablesEnabled ? (
             <>
-              <div className="mb-4">
+              <div className="mb-4 flex items-center gap-2">
                 <Badge variant="secondary" className="mb-2">
                   Modo sin mesas - Ventas de mostrador
                 </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 mb-2">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>En este modo no se usan mesas. Selecciona una categoría y agrega productos directamente al carrito para ventas rápidas de mostrador.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <CategoryProductView />
             </>
