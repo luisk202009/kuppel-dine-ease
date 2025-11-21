@@ -53,6 +53,8 @@ interface CompanyUsageStats {
   categories_count: number;
   users_count: number;
   last_order_at: string | null;
+  days_since_last_order: number | null;
+  activity_status: 'new' | 'active' | 'cooling' | 'at_risk' | 'churned';
 }
 
 interface MonthlySalesData {
@@ -182,6 +184,40 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
     return roles[role] || role;
   };
 
+  const getActivityStatusBadge = (status: 'new' | 'active' | 'cooling' | 'at_risk' | 'churned', daysAgo: number | null) => {
+    let badgeElement;
+    switch (status) {
+      case 'new':
+        badgeElement = <Badge variant="default" className="bg-blue-500">Nuevo</Badge>;
+        break;
+      case 'active':
+        badgeElement = <Badge variant="default" className="bg-green-500">Activo</Badge>;
+        break;
+      case 'cooling':
+        badgeElement = <Badge variant="default" className="bg-yellow-500">En enfriamiento</Badge>;
+        break;
+      case 'at_risk':
+        badgeElement = <Badge variant="destructive">En riesgo</Badge>;
+        break;
+      case 'churned':
+        badgeElement = <Badge variant="secondary">Inactivo</Badge>;
+        break;
+      default:
+        badgeElement = <Badge variant="secondary">{status}</Badge>;
+    }
+
+    return (
+      <div className="flex items-center space-x-2">
+        {badgeElement}
+        {daysAgo !== null && (
+          <span className="text-sm text-muted-foreground">
+            (última venta hace {daysAgo} días)
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const getBusinessTypeLabel = (type: string | null) => {
     if (!type) return 'No especificado';
     const types: Record<string, string> = {
@@ -214,6 +250,15 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
                 <CardTitle className="text-lg">Resumen de Uso</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Estado de actividad */}
+                <div className="mb-4 pb-4 border-b">
+                  <p className="text-sm text-muted-foreground mb-2">Estado de la empresa:</p>
+                  {getActivityStatusBadge(usage.activity_status, usage.days_since_last_order)}
+                  {!usage.last_order_at && usage.total_orders === 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">Sin ventas registradas aún</p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2 text-muted-foreground text-sm">
