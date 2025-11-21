@@ -9,6 +9,16 @@ const mapSupabaseOrderToOrder = (order: any): Order => ({
   id: order.id,
   tableId: order.table_id || '',
   customerId: order.customer_id,
+  customer: order.customers ? {
+    id: order.customers.id,
+    name: order.customers.name,
+    lastName: order.customers.last_name || '',
+    identification: order.customers.identification || '',
+    phone: order.customers.phone || '',
+    city: order.customers.city || '',
+    email: order.customers.email || '',
+    createdAt: new Date(order.customers.created_at),
+  } : undefined,
   items: (order.order_items || []).map((item: any) => ({
     id: item.id,
     productId: item.product_id,

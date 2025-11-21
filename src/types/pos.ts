@@ -55,6 +55,7 @@ export interface Order {
   id: string;
   tableId: string;
   customerId?: string;
+  customer?: Customer;
   items: OrderItem[];
   subtotal: number;
   taxes: number;

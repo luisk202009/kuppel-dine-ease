@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Printer, Download } from 'lucide-react';
-import { CartItem } from '@/types/pos';
+import { CartItem, Customer } from '@/types/pos';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { usePOS } from '@/contexts/POSContext';
 
@@ -16,6 +16,7 @@ interface PrintableReceiptProps {
   total: number;
   paymentMethod: 'cash' | 'card';
   change: number;
+  customer?: Customer | null;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export const PrintableReceipt: React.FC<PrintableReceiptProps> = ({
   total,
   paymentMethod,
   change,
+  customer,
   onClose
 }) => {
   const { posState, authState } = usePOS();
@@ -79,6 +81,25 @@ export const PrintableReceipt: React.FC<PrintableReceiptProps> = ({
               </div>
             )}
           </div>
+
+          {/* Customer Details */}
+          {customer && (
+            <>
+              <Separator className="my-4 print:my-2" />
+              <div className="space-y-2 mb-4 print:mb-2">
+                <h4 className="font-semibold text-sm">Cliente</h4>
+                <div className="text-sm">
+                  <p className="font-medium">{customer.name} {customer.lastName}</p>
+                  {customer.identification && (
+                    <p className="text-muted-foreground">ID: {customer.identification}</p>
+                  )}
+                  {customer.phone && (
+                    <p className="text-muted-foreground">Tel: {customer.phone}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator className="my-4 print:my-2" />
 
