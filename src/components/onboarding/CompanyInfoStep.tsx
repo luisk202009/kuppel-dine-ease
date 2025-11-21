@@ -61,7 +61,7 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
     setIsCreating(true);
 
     try {
-      // 1. Crear la compañía
+      // 1. Crear la compañía (con owner_id = usuario actual)
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -70,6 +70,7 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
           phone: formData.phone || null,
           address: formData.address || null,
           is_active: true,
+          owner_id: userId, // ✅ Asignar ownership al usuario actual
         })
         .select()
         .single();
