@@ -14,6 +14,28 @@ export interface SetupData {
 export const useInitialSetup = (companyId: string, branchId: string, userId: string) => {
   const [isCompleting, setIsCompleting] = useState(false);
 
+  // Validar que los IDs sean UUIDs válidos
+  const validateIds = () => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!companyId || !uuidRegex.test(companyId)) {
+      console.error('Invalid company ID:', companyId);
+      return false;
+    }
+    
+    if (!branchId || !uuidRegex.test(branchId)) {
+      console.error('Invalid branch ID:', branchId);
+      return false;
+    }
+    
+    if (!userId || !uuidRegex.test(userId)) {
+      console.error('Invalid user ID:', userId);
+      return false;
+    }
+    
+    return true;
+  };
+
   const cleanupPartialSetup = async () => {
     try {
       console.log('Starting cleanup of partial setup...');
@@ -84,6 +106,16 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
   const completeSetup = async (setupData: SetupData) => {
     setIsCompleting(true);
     try {
+      // Validar IDs antes de comenzar
+      if (!validateIds()) {
+        toast({
+          title: 'Error de configuración',
+          description: 'No se encontró información válida de tu empresa. Por favor, reinicia el asistente.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       // Validate all setup data before saving
       console.log('Validating setup data...');
       const validation = validateSetupData(setupData);
@@ -248,6 +280,11 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
 
   const skipSetup = async () => {
     try {
+      if (!validateIds()) {
+        console.error('Cannot skip setup: invalid IDs');
+        return false;
+      }
+
       const { error } = await supabase
         .from('users')
         .update({ setup_completed: true })

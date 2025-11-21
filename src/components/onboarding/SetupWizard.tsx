@@ -24,6 +24,8 @@ export const SetupWizard: React.FC = () => {
     tables: [],
   });
 
+  // Solo inicializar useInitialSetup si tenemos IDs válidos
+  const hasValidIds = companyId && branchId && authState.user?.id;
   const { completeSetup, skipSetup, isCompleting } = useInitialSetup(
     companyId,
     branchId,
@@ -35,11 +37,16 @@ export const SetupWizard: React.FC = () => {
   };
 
   const handleCompanyInfoComplete = (newCompanyId: string, newBranchId: string, companyName: string) => {
+    // Validar que los IDs sean UUIDs válidos antes de continuar
+    if (!newCompanyId || !newBranchId) {
+      console.error('Company or branch ID is missing');
+      return;
+    }
+
+    console.log('Company and branch created successfully:', { companyId: newCompanyId, branchId: newBranchId });
+    
     setCompanyId(newCompanyId);
     setBranchId(newBranchId);
-    // Update local storage for persistence
-    localStorage.setItem('selectedCompany', JSON.stringify({ id: newCompanyId, name: companyName }));
-    localStorage.setItem('selectedBranch', JSON.stringify({ id: newBranchId, name: 'Sucursal Principal' }));
     setCurrentStep('categories');
   };
 
@@ -64,6 +71,12 @@ export const SetupWizard: React.FC = () => {
   };
 
   const handleFinish = async () => {
+    // Validar que tenemos IDs antes de completar el setup
+    if (!companyId || !branchId) {
+      console.error('Cannot complete setup: missing company or branch ID');
+      return;
+    }
+
     const success = await completeSetup(setupData);
     if (success) {
       window.location.reload();
