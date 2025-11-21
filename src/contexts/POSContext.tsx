@@ -559,10 +559,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       });
 
-      toast({
-        title: "Datos cargados",
-        description: `${transformedCategories.length} categorías, ${transformedAreas.length} áreas, ${transformedCustomers.length} clientes`,
-      });
+      // Data loaded silently - visual feedback is sufficient
 
     } catch (error) {
       console.error('Unexpected error initializing data from Supabase:', error);
