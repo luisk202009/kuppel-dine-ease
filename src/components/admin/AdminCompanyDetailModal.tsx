@@ -62,6 +62,15 @@ interface MonthlySalesData {
   total_sales_month: number;
 }
 
+interface ProductSalesData {
+  product_id: string;
+  product_name: string;
+  total_quantity_sold: number;
+  total_sales_amount: number;
+  total_quantity_last_30d: number;
+  total_sales_last_30d: number;
+}
+
 interface AdminCompanyDetailModalProps {
   company: Company | null;
   branches: Branch[];
@@ -83,12 +92,15 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
 }) => {
   const [monthlySales, setMonthlySales] = useState<MonthlySalesData[]>([]);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
+  const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const { toast } = useToast();
 
-  // Cargar datos mensuales cuando se abre el modal
+  // Cargar datos mensuales y productos cuando se abre el modal
   useEffect(() => {
     if (open && company) {
       fetchMonthlySales();
+      fetchTopProducts();
     }
   }, [open, company]);
 
@@ -121,6 +133,31 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   };
 
   // Calcular % de crecimiento
+  const fetchTopProducts = async () => {
+    if (!company) return;
+
+    try {
+      setIsLoadingProducts(true);
+      const { data, error } = await supabase
+        .from('company_product_sales_stats')
+        .select('*')
+        .eq('company_id', company.id);
+
+      if (error) throw error;
+
+      setTopProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching top products:', error);
+      toast({
+        title: 'Error al cargar productos',
+        description: 'No se pudo cargar el ranking de productos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
   const calculateGrowth = (current: number, previous: number) => {
     if (previous === 0) {
       if (current === 0) return { value: 0, isPositive: false, isNew: false };
@@ -410,6 +447,82 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
                       <Badge variant="secondary">{getRoleLabel(user.role)}</Badge>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Productos por Cantidad */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Top Productos por Cantidad (Últimos 30 Días)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingProducts ? (
+                <p className="text-muted-foreground text-sm">Cargando top productos...</p>
+              ) : topProducts.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Todavía no hay ventas registradas para esta empresa.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium">Producto</th>
+                        <th className="text-right py-2 font-medium">Cantidad (30d)</th>
+                        <th className="text-right py-2 font-medium">Total Histórico</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topProducts
+                        .sort((a, b) => b.total_quantity_last_30d - a.total_quantity_last_30d)
+                        .slice(0, 10)
+                        .map((product) => (
+                          <tr key={product.product_id} className="border-b">
+                            <td className="py-2">{product.product_name}</td>
+                            <td className="text-right py-2 font-medium">{product.total_quantity_last_30d}</td>
+                            <td className="text-right py-2 text-muted-foreground">{product.total_quantity_sold}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Productos por Facturación */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Top Productos por Facturación (Últimos 30 Días)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingProducts ? (
+                <p className="text-muted-foreground text-sm">Cargando top productos...</p>
+              ) : topProducts.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Todavía no hay ventas registradas para esta empresa.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium">Producto</th>
+                        <th className="text-right py-2 font-medium">Ventas (30d)</th>
+                        <th className="text-right py-2 font-medium">Total Histórico</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topProducts
+                        .sort((a, b) => b.total_sales_last_30d - a.total_sales_last_30d)
+                        .slice(0, 10)
+                        .map((product) => (
+                          <tr key={product.product_id} className="border-b">
+                            <td className="py-2">{product.product_name}</td>
+                            <td className="text-right py-2 font-medium">{formatCurrency(product.total_sales_last_30d)}</td>
+                            <td className="text-right py-2 text-muted-foreground">{formatCurrency(product.total_sales_amount)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
