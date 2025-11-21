@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AdminCompanyDetailModal } from './AdminCompanyDetailModal';
+import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface Company {
   id: string;
@@ -39,6 +41,22 @@ interface CompanyUser {
   role: string;
 }
 
+interface CompanyUsageStats {
+  company_id: string;
+  company_name: string;
+  business_type: string | null;
+  company_is_active: boolean;
+  company_created_at: string;
+  total_orders: number;
+  total_sales_amount: number;
+  total_orders_last_30d: number;
+  total_sales_last_30d: number;
+  products_count: number;
+  categories_count: number;
+  users_count: number;
+  last_order_at: string | null;
+}
+
 export const AdminCompaniesTab: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
@@ -50,6 +68,9 @@ export const AdminCompaniesTab: React.FC = () => {
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [usageStats, setUsageStats] = useState<Map<string, CompanyUsageStats>>(new Map());
+  const [selectedCompanyUsage, setSelectedCompanyUsage] = useState<CompanyUsageStats | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCompanies();
@@ -76,6 +97,7 @@ export const AdminCompaniesTab: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
+      // Fetch companies
       const { data, error: fetchError } = await supabase
         .from('companies')
         .select('*')
@@ -85,6 +107,28 @@ export const AdminCompaniesTab: React.FC = () => {
 
       setCompanies(data || []);
       setFilteredCompanies(data || []);
+
+      // Fetch usage stats
+      try {
+        const { data: statsData, error: statsError } = await supabase
+          .from('company_usage_stats')
+          .select('*');
+
+        if (statsError) throw statsError;
+
+        const statsMap = new Map<string, CompanyUsageStats>();
+        statsData?.forEach((stat) => {
+          statsMap.set(stat.company_id, stat);
+        });
+        setUsageStats(statsMap);
+      } catch (statsErr) {
+        console.error('Error fetching usage stats:', statsErr);
+        toast({
+          title: 'Error al cargar métricas',
+          description: 'No se pudieron cargar las métricas de uso. Intenta de nuevo más tarde.',
+          variant: 'destructive',
+        });
+      }
     } catch (err) {
       console.error('Error fetching companies:', err);
       setError('No se pudieron cargar las empresas. Intenta de nuevo más tarde.');
@@ -108,6 +152,7 @@ export const AdminCompaniesTab: React.FC = () => {
 
   const fetchCompanyDetail = async (company: Company) => {
     setSelectedCompany(company);
+    setSelectedCompanyUsage(usageStats.get(company.id) || null);
     setIsModalOpen(true);
     setIsLoadingDetail(true);
 
@@ -156,6 +201,7 @@ export const AdminCompaniesTab: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedCompany(null);
+    setSelectedCompanyUsage(null);
     setCompanyBranches([]);
     setCompanyUsers([]);
   };
@@ -222,47 +268,58 @@ export const AdminCompaniesTab: React.FC = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Tipo de Negocio</TableHead>
-                  <TableHead>NIT/ID</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Ventas 30d</TableHead>
+                  <TableHead>Órdenes 30d</TableHead>
+                  <TableHead>Productos</TableHead>
+                  <TableHead>Usuarios</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Fecha de Creación</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCompanies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       {searchQuery ? 'No se encontraron empresas con ese criterio' : 'No hay empresas registradas'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCompanies.map((company) => (
-                    <TableRow key={company.id}>
-                      <TableCell className="font-medium">{company.name}</TableCell>
-                      <TableCell>{getBusinessTypeLabel(company.business_type)}</TableCell>
-                      <TableCell className="text-muted-foreground">{company.tax_id || '-'}</TableCell>
-                      <TableCell className="text-muted-foreground">{company.email || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant={company.is_active ? 'default' : 'secondary'}>
-                          {company.is_active ? 'Activa' : 'Inactiva'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(company.created_at), 'PP', { locale: es })}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => fetchCompanyDetail(company)}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          Ver Detalle
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredCompanies.map((company) => {
+                    const stats = usageStats.get(company.id);
+                    return (
+                      <TableRow key={company.id}>
+                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell>{getBusinessTypeLabel(company.business_type)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {stats ? formatCurrency(stats.total_sales_last_30d) : '–'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {stats?.total_orders_last_30d ?? '–'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {stats?.products_count ?? '–'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {stats?.users_count ?? '–'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={company.is_active ? 'default' : 'secondary'}>
+                            {company.is_active ? 'Activa' : 'Inactiva'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => fetchCompanyDetail(company)}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Ver Detalle
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -275,6 +332,7 @@ export const AdminCompaniesTab: React.FC = () => {
         company={selectedCompany}
         branches={companyBranches}
         users={companyUsers}
+        usage={selectedCompanyUsage}
         open={isModalOpen}
         onClose={handleCloseModal}
         isLoading={isLoadingDetail}
