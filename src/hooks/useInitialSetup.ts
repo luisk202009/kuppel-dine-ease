@@ -13,9 +13,55 @@ export interface SetupData {
 export const useInitialSetup = (companyId: string, branchId: string, userId: string) => {
   const [isCompleting, setIsCompleting] = useState(false);
 
+  const cleanupPartialSetup = async () => {
+    try {
+      // Delete tables first (foreign key dependency)
+      await supabase
+        .from('tables')
+        .delete()
+        .eq('branch_id', branchId);
+
+      // Delete areas
+      await supabase
+        .from('areas')
+        .delete()
+        .eq('branch_id', branchId);
+
+      // Delete products
+      await supabase
+        .from('products')
+        .delete()
+        .eq('company_id', companyId);
+
+      // Delete categories
+      await supabase
+        .from('categories')
+        .delete()
+        .eq('company_id', companyId);
+
+      console.log('Partial setup cleaned successfully');
+    } catch (error) {
+      console.error('Error cleaning partial setup:', error);
+      // No lanzamos error aquí, intentamos continuar
+    }
+  };
+
   const completeSetup = async (setupData: SetupData) => {
     setIsCompleting(true);
     try {
+      // Verificar si hay datos parciales de un intento anterior
+      const { data: existingCategories } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('company_id', companyId)
+        .limit(1);
+
+      // Si hay categorías existentes y el setup no está completo, limpiar
+      if (existingCategories && existingCategories.length > 0) {
+        console.log('Cleaning up partial setup from previous attempt...');
+        await cleanupPartialSetup();
+      }
+
       // 1. Create categories
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
