@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ShoppingCart, AlertTriangle, Package } from 'lucide-react';
+import { Search, ShoppingCart, AlertTriangle, Package, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOS } from '@/contexts/POSContext';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 export const CategoryProductView: React.FC = () => {
   const { toast } = useToast();
   const { authState, addToCart } = usePOS();
+  const navigate = useNavigate();
   
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,12 +103,12 @@ export const CategoryProductView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Package className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No hay categorías configuradas</h3>
+        <h3 className="text-lg font-semibold mb-2">Aún no tienes categorías configuradas.</h3>
         <p className="text-muted-foreground mb-4">
           Configura categorías y productos para comenzar a vender
         </p>
-        <Button variant="outline" onClick={() => window.location.href = '/settings'}>
-          Ir a Configuración
+        <Button onClick={() => navigate('/settings')}>
+          Ir a Configuración de productos
         </Button>
       </div>
     );
@@ -115,7 +118,10 @@ export const CategoryProductView: React.FC = () => {
     <div className="space-y-6">
       {/* Categories Section */}
       <div>
-        <h2 className="text-xl font-semibold mb-3">Categorías</h2>
+        <h2 className="text-xl font-semibold mb-1">Categorías</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Elige una categoría para ver sus productos.
+        </p>
         <div className="flex flex-wrap gap-2">
           {categories.map((category) => (
             <Button
