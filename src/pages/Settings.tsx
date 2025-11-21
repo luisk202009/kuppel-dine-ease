@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Layout, Monitor, Smartphone, MapPin, Grid3x3 } from 'lucide-react';
+import { Settings as SettingsIcon, Layout, Monitor, Smartphone, MapPin, Grid3x3, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { LayoutSettings } from '@/components/settings/LayoutSettings';
 import { DisplaySettings } from '@/components/settings/DisplaySettings';
 import { TouchSettings } from '@/components/settings/TouchSettings';
@@ -12,6 +14,23 @@ import { TableManager } from '@/components/pos/TableManager';
 export const Settings: React.FC = () => {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/" className="flex items-center gap-1">
+                <Home className="h-3 w-3" />
+                Inicio
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Ajustes</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
           <SettingsIcon className="h-8 w-8" />
