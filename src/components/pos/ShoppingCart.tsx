@@ -12,9 +12,10 @@ import { CartItem, Table } from '@/types/pos';
 interface ShoppingCartProps {
   selectedTable?: Table | null;
   onBackToTables?: () => void;
+  onPaymentComplete?: () => void;
 }
 
-export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBackToTables }) => {
+export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBackToTables, onPaymentComplete }) => {
   const { posState, updateCartItem, removeFromCart, clearCart, savePendingOrder, clearPendingOrder } = usePOS();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
@@ -56,7 +57,12 @@ export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBac
       clearPendingOrder(selectedTable.id);
     }
     clearCart();
-    if (onBackToTables) {
+    
+    // Llamar al handler de pago completo del Dashboard si existe
+    if (onPaymentComplete) {
+      onPaymentComplete();
+    } else if (onBackToTables) {
+      // Fallback por compatibilidad
       onBackToTables();
     }
     console.log('Order completed successfully');

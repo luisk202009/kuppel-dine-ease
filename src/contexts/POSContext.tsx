@@ -18,6 +18,7 @@ interface POSContextType {
     needsInitialSetup: boolean;
     tourCompleted: boolean;
   };
+  dataLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   selectCompanyAndBranch: (company: Company, branch: Branch) => void;
@@ -423,6 +424,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Track if data has been initialized to prevent infinite loops
   const [dataInitialized, setDataInitialized] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
     // Initialize data from Supabase when auth state changes
@@ -445,6 +447,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     console.log('Initializing data from Supabase for company:', authState.selectedCompany.name);
+    setDataLoading(true);
 
     try {
       // Get categories and products from Supabase with tenant filtering
@@ -568,6 +571,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: "Ocurrió un error al cargar los datos. Por favor recarga la página.",
         variant: "destructive"
       });
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -993,6 +998,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <POSContext.Provider value={{
       posState: state,
       authState: authState,
+      dataLoading,
       login,
       logout,
       selectCompanyAndBranch,
