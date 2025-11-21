@@ -217,6 +217,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          billing_period: string | null
           business_type: Database["public"]["Enums"]["business_type"] | null
           created_at: string
           email: string | null
@@ -225,11 +226,15 @@ export type Database = {
           name: string
           owner_id: string | null
           phone: string | null
+          plan_id: string | null
+          subscription_status: string | null
           tax_id: string | null
+          trial_end_at: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          billing_period?: string | null
           business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
           email?: string | null
@@ -238,11 +243,15 @@ export type Database = {
           name: string
           owner_id?: string | null
           phone?: string | null
+          plan_id?: string | null
+          subscription_status?: string | null
           tax_id?: string | null
+          trial_end_at?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          billing_period?: string | null
           business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
           email?: string | null
@@ -251,10 +260,102 @@ export type Database = {
           name?: string
           owner_id?: string | null
           phone?: string | null
+          plan_id?: string | null
+          subscription_status?: string | null
           tax_id?: string | null
+          trial_end_at?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_subscriptions: {
+        Row: {
+          billing_period: string
+          cancel_at: string | null
+          company_id: string
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          notes: string | null
+          plan_id: string
+          status: string
+          trial_end_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_period: string
+          cancel_at?: string | null
+          company_id: string
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          notes?: string | null
+          plan_id: string
+          status: string
+          trial_end_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_period?: string
+          cancel_at?: string | null
+          company_id?: string
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          notes?: string | null
+          plan_id?: string
+          status?: string
+          trial_end_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_monthly_sales_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_product_sales_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_usage_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -591,6 +692,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plans: {
+        Row: {
+          billing_interval_default: string
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          limits: Json | null
+          name: string
+          price_monthly: number | null
+          price_yearly: number | null
+          updated_at: string
+        }
+        Insert: {
+          billing_interval_default?: string
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          limits?: Json | null
+          name: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          updated_at?: string
+        }
+        Update: {
+          billing_interval_default?: string
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          limits?: Json | null
+          name?: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
