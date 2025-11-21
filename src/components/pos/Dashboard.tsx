@@ -21,6 +21,8 @@ import { ShoppingCart } from './ShoppingCart';
 import { ProductManager } from './ProductManager';
 import { Table } from '@/types/pos';
 import { SetupWizard } from '../onboarding/SetupWizard';
+import { DashboardTourPrompt } from '../onboarding/DashboardTourPrompt';
+import { useDashboardTour } from '@/hooks/useDashboardTour';
 
 type ViewMode = 'table-list' | 'table-products' | 'products';
 
@@ -31,11 +33,29 @@ export const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
+  const [showTourPrompt, setShowTourPrompt] = useState(false);
 
   // Show setup wizard if needed
   if (authState.needsInitialSetup) {
     return <SetupWizard />;
   }
+
+  // Check if tour should be shown after setup
+  useEffect(() => {
+    if (!authState.needsInitialSetup && !authState.tourCompleted && !showTourPrompt) {
+      // Small delay to let dashboard render
+      const timer = setTimeout(() => {
+        setShowTourPrompt(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [authState.needsInitialSetup, authState.tourCompleted]);
+
+  // Dashboard tour
+  const { startTour, skipTour, isTourActive } = useDashboardTour(
+    authState.user?.id,
+    false // Don't auto-start, we'll control it with prompt
+  );
   
   // Notifications setup
   const { showNotification, requestPermission, isGranted, isSupported } = useNotifications();
@@ -238,8 +258,22 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Tour Prompt */}
+      {showTourPrompt && (
+        <DashboardTourPrompt
+          onStart={() => {
+            setShowTourPrompt(false);
+            startTour();
+          }}
+          onSkip={async () => {
+            setShowTourPrompt(false);
+            await skipTour();
+          }}
+        />
+      )}
+
       {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-4">
+      <header id="dashboard-header" className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col space-y-2">
             <div className="flex items-center space-x-4">
@@ -262,7 +296,7 @@ export const Dashboard: React.FC = () => {
 
           <div className="flex items-center space-x-4">
             {/* Search Bar */}
-            <div className="relative w-80 md:w-96">
+            <div id="search-bar" className="relative w-80 md:w-96">
               <Input
                 placeholder="Buscar productos, clientes..."
                 value={searchQuery}
@@ -273,8 +307,10 @@ export const Dashboard: React.FC = () => {
 
             {/* Actions */}
             <VotingButton />
-            <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
+            <div id="theme-toggle">
+              <ThemeToggle />
+            </div>
+            <Button id="settings-button" variant="outline" size="sm" onClick={() => navigate('/settings')}>
               <Settings className="h-4 w-4 mr-2" />
               Configuración
             </Button>
@@ -316,7 +352,7 @@ export const Dashboard: React.FC = () => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Navigation Tabs */}
-          <div className="bg-card border-b border-border px-6 py-3">
+          <div id="main-navigation" className="bg-card border-b border-border px-6 py-3">
             <div className="flex items-center space-x-4">
               {config.tablesEnabled && (
                 <Button
@@ -353,7 +389,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Shopping Cart Sidebar */}
-        <div className="w-96 bg-card border-l border-border h-full">
+        <div id="shopping-cart" className="w-96 bg-card border-l border-border h-full">
           <ShoppingCart selectedTable={selectedTableForOrder} onBackToTables={handleBackToTables} />
         </div>
       </div>

@@ -132,6 +132,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   needsInitialSetup?: boolean;
+  tourCompleted?: boolean;
 }
 
 export interface POSState {

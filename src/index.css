@@ -234,3 +234,58 @@
     @apply bg-muted-foreground/60;
   }
 }
+
+/* Driver.js Tour Customization */
+.dashboard-tour-popover {
+  @apply rounded-lg shadow-2xl border-2 border-primary/20;
+}
+
+.driver-popover {
+  @apply bg-background text-foreground;
+  max-width: 400px;
+}
+
+.driver-popover-title {
+  @apply text-xl font-bold mb-2;
+}
+
+.driver-popover-description {
+  @apply text-sm text-muted-foreground leading-relaxed;
+}
+
+.driver-popover-footer {
+  @apply mt-4 flex justify-between items-center gap-2;
+}
+
+.driver-popover-progress-text {
+  @apply text-xs text-muted-foreground;
+}
+
+.driver-popover-navigation-btns {
+  @apply flex gap-2;
+}
+
+.driver-popover-btn {
+  @apply px-4 py-2 rounded-md font-medium transition-colors;
+}
+
+.driver-popover-next-btn {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.driver-popover-prev-btn {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+.driver-popover-close-btn {
+  @apply text-muted-foreground hover:text-foreground;
+}
+
+/* Override driver.js default styles */
+.driver-active-element {
+  @apply rounded-lg;
+}
+
+.driver-popover-arrow {
+  @apply hidden;
+}
