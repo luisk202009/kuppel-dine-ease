@@ -523,15 +523,17 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: area.name,
         color: area.color,
         display_order: area.display_order,
-        tables: area.tables?.map((table: any) => ({
-          id: table.id,
-          name: table.name,
-          area: area.name,
-          capacity: table.capacity,
-          status: table.status,
-          customers: table.customers || 0,
-          currentOrder: table.current_order_id
-        })) || []
+        tables: (area.tables || [])
+          .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
+          .map((table: any) => ({
+            id: table.id,
+            name: table.name,
+            area: area.name,
+            capacity: table.capacity,
+            status: table.status,
+            customers: table.customers || 0,
+            currentOrder: table.current_order_id
+          }))
       })) || [];
 
       const transformedCustomers: Customer[] = customers?.map((cust: any) => ({

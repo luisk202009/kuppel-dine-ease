@@ -72,9 +72,9 @@ export const TablesStep: React.FC<TablesStepProps> = ({ branchId, onNext, onBack
           // Cargar mesas para cada área
           const { data: tablesData, error: tablesError } = await supabase
             .from('tables')
-            .select('id, name, capacity, area_id')
+            .select('id, name, capacity, area_id, display_order')
             .eq('branch_id', branchId)
-            .order('name');
+            .order('display_order');
 
           if (tablesError) throw tablesError;
 
