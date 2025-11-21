@@ -94,6 +94,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "branches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_usage_stats"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       cash_registers: {
@@ -738,6 +745,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_usage_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "user_companies_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -851,6 +865,24 @@ export type Database = {
       }
     }
     Views: {
+      company_usage_stats: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"] | null
+          categories_count: number | null
+          company_created_at: string | null
+          company_id: string | null
+          company_is_active: boolean | null
+          company_name: string | null
+          last_order_at: string | null
+          products_count: number | null
+          total_orders: number | null
+          total_orders_last_30d: number | null
+          total_sales_amount: number | null
+          total_sales_last_30d: number | null
+          users_count: number | null
+        }
+        Relationships: []
+      }
       customer_profiles: {
         Row: {
           address: string | null
