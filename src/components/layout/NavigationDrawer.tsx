@@ -2,13 +2,13 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Settings, Users, History, BarChart3, CreditCard, DollarSign } from 'lucide-react';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { usePOS } from '@/contexts/POSContext';
 import { hasPermission } from '@/utils/permissions';
@@ -113,27 +113,30 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ open, onOpen
     const Icon = item.icon;
 
     return (
-      <Button
+      <Card
         key={item.path}
-        variant="ghost"
         className={cn(
-          "w-full justify-start h-auto py-4 px-4 text-left hover:bg-accent/50 transition-colors",
-          active && "bg-accent border-l-4 border-primary font-medium"
+          "cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg",
+          active && "border-primary border-2 bg-accent"
         )}
         onClick={() => handleNavigate(item.path)}
       >
-        <div className="flex items-start space-x-4 w-full">
-          <Icon className={cn("h-5 w-5 mt-0.5 flex-shrink-0", active && "text-primary")} />
-          <div className="flex-1 min-w-0">
-            <div className={cn("font-medium text-base", active && "text-primary")}>
-              {item.title}
-            </div>
-            <div className="text-sm text-muted-foreground mt-0.5">
-              {item.description}
-            </div>
-          </div>
-        </div>
-      </Button>
+        <CardContent className="flex flex-col items-center text-center p-6 space-y-3">
+          <Icon className={cn(
+            "h-12 w-12",
+            active ? "text-primary" : "text-muted-foreground"
+          )} />
+          <h3 className={cn(
+            "text-xl font-bold",
+            active && "text-primary"
+          )}>
+            {item.title}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {item.description}
+          </p>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -151,49 +154,39 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ open, onOpen
     if (visibleItems.length === 0) return null;
 
     return (
-      <div className="space-y-1">
-        <div className="px-4 py-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+      <div className="space-y-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground">
             {title}
-          </h3>
+          </h2>
+          <Separator className="mt-2" />
         </div>
-        {items.map(renderNavItem)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map(renderNavItem)}
+        </div>
       </div>
     );
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-2xl">Menú Principal</SheetTitle>
-          <SheetDescription>
-            Navegue por las diferentes secciones del sistema
-          </SheetDescription>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl w-full h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-3xl text-center">
+            Menú Principal
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            Selecciona una sección para continuar
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="mt-6 space-y-4">
-          {renderSection('Principal', principalItems)}
-          
-          <Separator />
-          
-          {renderSection('Gestión', gestionItems)}
-          
-          <Separator />
-          
-          {renderSection('Finanzas', finanzasItems)}
-          
-          {analisisItems.some(item => 
-            (!item.permission || hasPermission(authState.user, item.permission as any)) &&
-            (!item.featureFlag || isFeatureEnabled(item.featureFlag as any))
-          ) && (
-            <>
-              <Separator />
-              {renderSection('Análisis', analisisItems)}
-            </>
-          )}
+        <div className="mt-8 space-y-8 pb-8">
+          {renderSection('PRINCIPAL', principalItems)}
+          {renderSection('GESTIÓN', gestionItems)}
+          {renderSection('FINANZAS', finanzasItems)}
+          {renderSection('ANÁLISIS', analisisItems)}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };
