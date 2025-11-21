@@ -93,12 +93,18 @@ export const SetupWizard: React.FC = () => {
    * - Solo necesitamos marcar setup_completed = true para el usuario
    */
   const handleFinish = async () => {
+    console.log('🎯 CompletionStep: Iniciando handleFinish (nueva versión sin validación)');
+    
     if (!authState.user?.id) {
       console.error('Cannot complete setup: missing user ID');
       return;
     }
 
+    setIsCompleting(true);
+
     try {
+      console.log('📝 Actualizando setup_completed para user:', authState.user.id);
+      
       const { error } = await supabase
         .from('users')
         .update({ setup_completed: true })
@@ -106,15 +112,19 @@ export const SetupWizard: React.FC = () => {
 
       if (error) throw error;
 
+      console.log('✅ Setup marcado como completado exitosamente');
+      
       // Recargar para que el sistema detecte que el setup está completado
       window.location.reload();
     } catch (error) {
-      console.error('Error marking setup as completed:', error);
+      console.error('❌ Error marcando setup como completado:', error);
       toast({
         title: 'Error',
         description: 'No pudimos completar la configuración. Intenta nuevamente.',
         variant: 'destructive',
       });
+    } finally {
+      setIsCompleting(false);
     }
   };
 
