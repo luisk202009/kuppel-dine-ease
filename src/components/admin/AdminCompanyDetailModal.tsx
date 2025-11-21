@@ -2,9 +2,10 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, MapPin, Users } from 'lucide-react';
+import { Building2, MapPin, Users, TrendingUp, ShoppingCart, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/utils';
 
 interface Branch {
   id: string;
@@ -33,10 +34,27 @@ interface Company {
   created_at: string;
 }
 
+interface CompanyUsageStats {
+  company_id: string;
+  company_name: string;
+  business_type: string | null;
+  company_is_active: boolean;
+  company_created_at: string;
+  total_orders: number;
+  total_sales_amount: number;
+  total_orders_last_30d: number;
+  total_sales_last_30d: number;
+  products_count: number;
+  categories_count: number;
+  users_count: number;
+  last_order_at: string | null;
+}
+
 interface AdminCompanyDetailModalProps {
   company: Company | null;
   branches: Branch[];
   users: User[];
+  usage: CompanyUsageStats | null;
   open: boolean;
   onClose: () => void;
   isLoading?: boolean;
@@ -46,6 +64,7 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   company,
   branches,
   users,
+  usage,
   open,
   onClose,
   isLoading = false,
@@ -90,6 +109,59 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Usage Summary */}
+          {usage && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Resumen de Uso</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Órdenes Totales</span>
+                    </div>
+                    <p className="text-2xl font-bold">{usage.total_orders}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Ventas Totales</span>
+                    </div>
+                    <p className="text-2xl font-bold">{formatCurrency(usage.total_sales_amount)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Órdenes (30 días)</span>
+                    </div>
+                    <p className="text-2xl font-bold">{usage.total_orders_last_30d}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Ventas (30 días)</span>
+                    </div>
+                    <p className="text-2xl font-bold">{formatCurrency(usage.total_sales_last_30d)}</p>
+                  </div>
+                </div>
+                {usage.last_order_at && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      Última venta: {format(new Date(usage.last_order_at), 'PPp', { locale: es })}
+                    </p>
+                  </div>
+                )}
+                {!usage.last_order_at && usage.total_orders === 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">Sin ventas registradas</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Company Info */}
           <Card>
             <CardHeader>
