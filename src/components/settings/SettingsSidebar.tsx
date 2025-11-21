@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Users, Receipt, BarChart3, CreditCard, DollarSign } from 'lucide-react';
+import { Settings, Users, Receipt, BarChart3, CreditCard, DollarSign, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled } from '@/config/environment';
@@ -25,6 +25,11 @@ const sidebarItems: SidebarItem[] = [
     id: 'settings',
     label: 'Ajustes',
     icon: Settings,
+  },
+  {
+    id: 'products',
+    label: 'Productos',
+    icon: Package,
   },
   {
     id: 'customers',

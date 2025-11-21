@@ -11,13 +11,18 @@ import { OrderHistory } from '@/components/pos/OrderHistory';
 import { SalesReports } from '@/components/pos/SalesReports';
 import { ExpenseManager } from '@/components/pos/ExpenseManager';
 import { CashManager } from '@/components/pos/CashManager';
+import { ProductsManager } from '@/components/pos/ProductsManager';
 
-export type SettingsSection = 'settings' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash';
+export type SettingsSection = 'settings' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = usePOS();
-  const [activeSection, setActiveSection] = useState<SettingsSection>('settings');
+  
+  // Check URL params for initial section
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialSection = (searchParams.get('section') as SettingsSection) || 'settings';
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
 
   const handleBackToPOS = () => {
     navigate('/');
@@ -37,6 +42,9 @@ export const Settings: React.FC = () => {
             <SettingsPanel />
           </div>
         );
+      
+      case 'products':
+        return <ProductsManager />;
       
       case 'customers':
         return (
