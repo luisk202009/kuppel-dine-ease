@@ -12,6 +12,7 @@ import { DashboardWrapper } from "@/components/pos/DashboardWrapper";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
 import { isAuthRequired } from "@/config/environment";
 import { SettingsPage } from "./pages/SettingsPage";
+import { Admin } from "./pages/Admin";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -62,6 +63,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<POSApp />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route path="/demo" element={<Index />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
