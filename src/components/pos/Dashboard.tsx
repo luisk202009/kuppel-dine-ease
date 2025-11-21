@@ -11,7 +11,6 @@ import { VotingButton } from '@/components/voting/VotingButton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
-import { useNotifications } from '@/hooks/useNotifications';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
 import { shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
@@ -54,63 +53,18 @@ export const Dashboard: React.FC = () => {
     false // Don't auto-start, we'll control it with prompt
   );
   
-  // Notifications setup
-  const { showNotification, requestPermission, isGranted, isSupported } = useNotifications();
-  
-  // Request notification permission on mount
-  useEffect(() => {
-    if (isSupported && !isGranted) {
-      requestPermission();
-    }
-  }, [isSupported, isGranted, requestPermission]);
-  
   // Realtime updates for orders and tables
   useRealtimeUpdates({
     onNewOrder: (order) => {
-      showNotification('Nueva Orden', {
-        body: `Orden ${order.order_number} creada`,
-        tag: 'new-order',
-        requireInteraction: false
-      });
-      
-      toast({
-        title: "Nueva Orden",
-        description: `Orden ${order.order_number} ha sido creada`
-      });
+      console.log('New order detected via Realtime:', order);
+      // Visual feedback is sufficient, no notification needed
     },
     onTableStatusChange: (table, oldStatus) => {
-      const statusLabels: Record<string, string> = {
-        available: 'Disponible',
-        occupied: 'Ocupada',
-        pending: 'Cuenta Pendiente',
-        reserved: 'Reservada'
-      };
-      
-      showNotification('Cambio en Mesa', {
-        body: `${table.name}: ${statusLabels[oldStatus]} → ${statusLabels[table.status]}`,
-        tag: 'table-status',
-        requireInteraction: false
-      });
-      
-      toast({
-        title: "Cambio en Mesa",
-        description: `${table.name} cambió a ${statusLabels[table.status]}`
-      });
+      console.log('Table status changed via Realtime:', table, oldStatus);
+      // Visual feedback is sufficient, no notification needed
     },
     onTableCreated: async (table) => {
       console.log('New table detected via Realtime:', table);
-      
-      showNotification('Nueva Mesa', {
-        body: `Mesa "${table.name}" agregada`,
-        tag: 'new-table',
-        requireInteraction: false
-      });
-      
-      toast({
-        title: "Nueva Mesa Agregada",
-        description: `Mesa "${table.name}" ha sido creada`
-      });
-
       // Refrescar áreas para mostrar la nueva mesa
       await refreshAreas();
     },
