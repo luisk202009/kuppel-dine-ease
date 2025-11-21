@@ -51,11 +51,16 @@ interface CompanyUsageStats {
   total_sales_amount: number;
   total_orders_last_30d: number;
   total_sales_last_30d: number;
+  total_orders_prev_30d: number;
+  total_sales_prev_30d: number;
   products_count: number;
   categories_count: number;
   users_count: number;
   last_order_at: string | null;
 }
+
+type SortOption = 'name' | 'sales_30d' | 'products' | 'last_order';
+type FilterOption = 'all' | 'with_sales' | 'no_sales';
 
 export const AdminCompaniesTab: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -70,27 +75,65 @@ export const AdminCompaniesTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [usageStats, setUsageStats] = useState<Map<string, CompanyUsageStats>>(new Map());
   const [selectedCompanyUsage, setSelectedCompanyUsage] = useState<CompanyUsageStats | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>('name');
+  const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCompanies();
   }, []);
 
+  // Aplicar filtros y ordenación
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredCompanies(companies);
-    } else {
+    let filtered = [...companies];
+
+    // 1. Aplicar búsqueda por texto
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      setFilteredCompanies(
-        companies.filter(
-          (company) =>
-            company.name.toLowerCase().includes(query) ||
-            company.email?.toLowerCase().includes(query) ||
-            company.tax_id?.toLowerCase().includes(query)
-        )
+      filtered = filtered.filter(
+        (company) =>
+          company.name.toLowerCase().includes(query) ||
+          company.email?.toLowerCase().includes(query) ||
+          company.tax_id?.toLowerCase().includes(query)
       );
     }
-  }, [searchQuery, companies]);
+
+    // 2. Aplicar filtro de ventas
+    if (filterOption === 'with_sales') {
+      filtered = filtered.filter((company) => {
+        const stats = usageStats.get(company.id);
+        return stats && stats.total_orders_last_30d > 0;
+      });
+    } else if (filterOption === 'no_sales') {
+      filtered = filtered.filter((company) => {
+        const stats = usageStats.get(company.id);
+        return !stats || stats.total_orders === 0;
+      });
+    }
+
+    // 3. Aplicar ordenación
+    filtered.sort((a, b) => {
+      const statsA = usageStats.get(a.id);
+      const statsB = usageStats.get(b.id);
+
+      switch (sortOption) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'sales_30d':
+          return (statsB?.total_sales_last_30d || 0) - (statsA?.total_sales_last_30d || 0);
+        case 'products':
+          return (statsB?.products_count || 0) - (statsA?.products_count || 0);
+        case 'last_order':
+          const dateA = statsA?.last_order_at ? new Date(statsA.last_order_at).getTime() : 0;
+          const dateB = statsB?.last_order_at ? new Date(statsB.last_order_at).getTime() : 0;
+          return dateB - dateA;
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredCompanies(filtered);
+  }, [searchQuery, companies, usageStats, sortOption, filterOption]);
 
   const fetchCompanies = async () => {
     try {
@@ -219,6 +262,18 @@ export const AdminCompaniesTab: React.FC = () => {
     return roles[role] || role;
   };
 
+  // Calcular % de crecimiento de ventas
+  const calculateGrowthPercentage = (current: number, previous: number): { value: number; label: string; isNew: boolean } => {
+    if (previous === 0) {
+      if (current === 0) {
+        return { value: 0, label: '–', isNew: false };
+      }
+      return { value: 100, label: 'Nuevo', isNew: true };
+    }
+    const growth = ((current - previous) / previous) * 100;
+    return { value: growth, label: `${growth > 0 ? '+' : ''}${growth.toFixed(1)}%`, isNew: false };
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -250,15 +305,43 @@ export const AdminCompaniesTab: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Search */}
-          <div className="mb-4 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre, email o NIT..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          {/* Filtros y búsqueda */}
+          <div className="mb-4 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Búsqueda */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, email o NIT..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Filtro */}
+              <select
+                value={filterOption}
+                onChange={(e) => setFilterOption(e.target.value as FilterOption)}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="all">Todas las empresas</option>
+                <option value="with_sales">Con ventas últimos 30 días</option>
+                <option value="no_sales">Sin ventas aún</option>
+              </select>
+
+              {/* Ordenación */}
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="name">Ordenar por nombre (A-Z)</option>
+                <option value="sales_30d">Ordenar por ventas 30 días</option>
+                <option value="products">Ordenar por productos</option>
+                <option value="last_order">Ordenar por actividad reciente</option>
+              </select>
+            </div>
           </div>
 
           {/* Table */}
@@ -270,6 +353,7 @@ export const AdminCompaniesTab: React.FC = () => {
                   <TableHead>Tipo de Negocio</TableHead>
                   <TableHead>Ventas 30d</TableHead>
                   <TableHead>Órdenes 30d</TableHead>
+                  <TableHead>Crec. 30d</TableHead>
                   <TableHead>Productos</TableHead>
                   <TableHead>Usuarios</TableHead>
                   <TableHead>Estado</TableHead>
@@ -279,13 +363,17 @@ export const AdminCompaniesTab: React.FC = () => {
               <TableBody>
                 {filteredCompanies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground">
                       {searchQuery ? 'No se encontraron empresas con ese criterio' : 'No hay empresas registradas'}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredCompanies.map((company) => {
                     const stats = usageStats.get(company.id);
+                    const growth = stats 
+                      ? calculateGrowthPercentage(stats.total_sales_last_30d, stats.total_sales_prev_30d)
+                      : null;
+                    
                     return (
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">{company.name}</TableCell>
@@ -295,6 +383,17 @@ export const AdminCompaniesTab: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {stats?.total_orders_last_30d ?? '–'}
+                        </TableCell>
+                        <TableCell>
+                          {growth && (
+                            <Badge 
+                              variant={growth.isNew ? 'default' : growth.value > 0 ? 'default' : growth.value < 0 ? 'destructive' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {growth.label}
+                            </Badge>
+                          )}
+                          {!growth && '–'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {stats?.products_count ?? '–'}
