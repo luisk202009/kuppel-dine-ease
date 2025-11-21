@@ -138,15 +138,20 @@ export const AdminUsersTab: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const { error: updateError } = await supabase
+      const { data, error: updateError } = await supabase
         .from('users')
         .update({
           role: editFormData.role,
           is_active: editFormData.is_active,
         })
-        .eq('id', editingUser.id);
+        .eq('id', editingUser.id)
+        .select();
 
       if (updateError) throw updateError;
+
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo actualizar el usuario. Verifica los permisos.');
+      }
 
       toast({
         title: 'Usuario actualizado',
@@ -156,11 +161,11 @@ export const AdminUsersTab: React.FC = () => {
       // Refresh users list
       await fetchUsers();
       setEditingUser(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating user:', err);
       toast({
         title: 'Error',
-        description: 'No se pudieron guardar los cambios. Intenta de nuevo.',
+        description: err.message || 'No se pudieron guardar los cambios del usuario. Inténtalo de nuevo.',
         variant: 'destructive',
       });
     } finally {
