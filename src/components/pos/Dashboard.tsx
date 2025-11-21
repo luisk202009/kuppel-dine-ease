@@ -1,43 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, User, Settings, LogOut, Users, Receipt, History, BarChart3, DollarSign, CreditCard, RotateCcw, MoreVertical, ArrowLeft, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShoppingBag, Settings, LogOut, Receipt, RotateCcw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
-import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { VotingButton } from '@/components/voting/VotingButton';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
-import { hasPermission } from '@/utils/permissions';
-import { isFeatureEnabled, shouldUseMockData, isAuthRequired } from '@/config/environment';
+import { shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableGrid } from './TableGrid';
 import { ShoppingCart } from './ShoppingCart';
 import { ProductManager } from './ProductManager';
-import { CustomerManager } from './CustomerManager';
-import { OrderHistory } from './OrderHistory';
-import { SalesReports } from './SalesReports';
-import { ExpenseManager } from './ExpenseManager';
-import { CashManager } from './CashManager';
 import { Table } from '@/types/pos';
 
 type ViewMode = 'table-list' | 'table-products' | 'products';
-type SecondaryView = 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | null;
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart } = usePOS();
   const { config } = useLayoutConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
-  const [secondaryView, setSecondaryView] = useState<SecondaryView>(null);
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
   
   // Notifications setup
@@ -161,100 +152,14 @@ export const Dashboard: React.FC = () => {
     }
     
     setViewMode('table-products');
-    setSecondaryView(null);
   };
 
   const handleBackToTables = () => {
     setViewMode('table-list');
     setSelectedTableForOrder(null);
-    setSecondaryView(null);
-  };
-
-  const handleSecondaryViewChange = (view: SecondaryView) => {
-    setSecondaryView(view);
-    if (view) {
-      // Reset to default main view when opening secondary
-      if (config.tablesEnabled) {
-        setViewMode('table-list');
-        setSelectedTableForOrder(null);
-      } else {
-        setViewMode('products');
-      }
-    }
   };
 
   const renderMainContent = () => {
-    // Show secondary views first if active
-    if (secondaryView === 'customers') {
-      return (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Clientes</h2>
-            <p className="text-muted-foreground">
-              Administra la información de tus clientes
-            </p>
-          </div>
-          <CustomerManager />
-        </div>
-      );
-    }
-
-    if (secondaryView === 'orders' && isFeatureEnabled('orderHistory')) {
-      return (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Historial de Órdenes</h2>
-            <p className="text-muted-foreground">
-              Consulta y gestiona todas las órdenes procesadas
-            </p>
-          </div>
-          <OrderHistory />
-        </div>
-      );
-    }
-
-    if (secondaryView === 'reports' && hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting')) {
-      return (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
-            <p className="text-muted-foreground">
-              Analiza el rendimiento y estadísticas del negocio
-            </p>
-          </div>
-          <SalesReports />
-        </div>
-      );
-    }
-
-    if (secondaryView === 'expenses' && hasPermission(authState.user, 'view_expenses')) {
-      return (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Gastos</h2>
-            <p className="text-muted-foreground">
-              Registra y administra los gastos del negocio
-            </p>
-          </div>
-          <ExpenseManager />
-        </div>
-      );
-    }
-
-    if (secondaryView === 'cash' && hasPermission(authState.user, 'view_cash')) {
-      return (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Caja</h2>
-            <p className="text-muted-foreground">
-              Controla la apertura, cierre y movimientos de caja
-            </p>
-          </div>
-          <CashManager />
-        </div>
-      );
-    }
-
     // Main views
     if (viewMode === 'table-list' && config.tablesEnabled) {
       return (
@@ -363,7 +268,10 @@ export const Dashboard: React.FC = () => {
             {/* Actions */}
             <VotingButton />
             <ThemeToggle />
-            <LayoutConfig />
+            <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
+              <Settings className="h-4 w-4 mr-2" />
+              Configuración
+            </Button>
             
             {shouldUseMockData() && (
               <AlertDialog>
@@ -406,11 +314,10 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center space-x-4">
               {config.tablesEnabled && (
                 <Button
-                  variant={viewMode === 'table-list' && !secondaryView ? 'default' : 'ghost'}
+                  variant={viewMode === 'table-list' ? 'default' : 'ghost'}
                   onClick={() => {
                     setViewMode('table-list');
                     setSelectedTableForOrder(null);
-                    setSecondaryView(null);
                   }}
                   className="flex items-center space-x-2"
                 >
@@ -420,64 +327,16 @@ export const Dashboard: React.FC = () => {
               )}
               
               <Button
-                variant={viewMode === 'products' && !secondaryView ? 'default' : 'ghost'}
+                variant={viewMode === 'products' ? 'default' : 'ghost'}
                 onClick={() => {
                   setViewMode('products');
                   setSelectedTableForOrder(null);
-                  setSecondaryView(null);
                 }}
                 className="flex items-center space-x-2"
               >
                 <ShoppingBag className="h-4 w-4" />
                 <span>Productos</span>
               </Button>
-
-              {/* More Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <MoreVertical className="h-4 w-4" />
-                    <span>Más</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuItem onClick={() => handleSecondaryViewChange('customers')}>
-                    <Users className="h-4 w-4 mr-2" />
-                    Clientes
-                  </DropdownMenuItem>
-                  
-                  {isFeatureEnabled('orderHistory') && (
-                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('orders')}>
-                      <History className="h-4 w-4 mr-2" />
-                      Órdenes
-                    </DropdownMenuItem>
-                  )}
-                  
-                  {hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleSecondaryViewChange('reports')}>
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Reportes
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  
-                  {hasPermission(authState.user, 'view_expenses') && (
-                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('expenses')}>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Gastos
-                    </DropdownMenuItem>
-                  )}
-                  
-                  {hasPermission(authState.user, 'view_cash') && (
-                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('cash')}>
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Caja
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 

@@ -11,6 +11,7 @@ import AuthScreen from "@/components/auth/AuthScreen";
 import { Dashboard } from "@/components/pos/Dashboard";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
 import { isAuthRequired } from "@/config/environment";
+import { SettingsPage } from "./pages/SettingsPage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -60,6 +61,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<POSApp />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/demo" element={<Index />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
