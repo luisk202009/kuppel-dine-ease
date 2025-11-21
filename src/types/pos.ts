@@ -117,6 +117,14 @@ export interface POSSettings {
   defaultTipPercentage: number;
 }
 
+export interface PendingOrder {
+  id: string;
+  tableId: string;
+  items: CartItem[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // App State Types
 export interface AuthState {
   user: User | null;

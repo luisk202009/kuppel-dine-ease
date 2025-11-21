@@ -12,9 +12,10 @@ import { DeleteTableDialog } from './DeleteTableDialog';
 
 interface TableGridProps {
   area: Area;
+  onTableClick?: (table: Table) => void;
 }
 
-export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
+export const TableGrid: React.FC<TableGridProps> = ({ area, onTableClick }) => {
   const { selectTable, posState, authState } = usePOS();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -70,6 +71,9 @@ export const TableGrid: React.FC<TableGridProps> = ({ area }) => {
 
   const handleTableSelect = (table: Table) => {
     selectTable(table);
+    if (onTableClick) {
+      onTableClick(table);
+    }
   };
 
   const handleTableCreated = () => {

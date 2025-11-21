@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Minus, Plus, Trash2, ShoppingBag, CreditCard } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, CreditCard, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,10 +7,15 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePOS } from '@/contexts/POSContext';
 import { PaymentModal } from './PaymentModal';
-import { CartItem } from '@/types/pos';
+import { CartItem, Table } from '@/types/pos';
 
-export const ShoppingCart: React.FC = () => {
-  const { posState, updateCartItem, removeFromCart, clearCart } = usePOS();
+interface ShoppingCartProps {
+  selectedTable?: Table | null;
+  onBackToTables?: () => void;
+}
+
+export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBackToTables }) => {
+  const { posState, updateCartItem, removeFromCart, clearCart, savePendingOrder, clearPendingOrder } = usePOS();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const calculations = useMemo(() => {
@@ -47,9 +52,24 @@ export const ShoppingCart: React.FC = () => {
   };
 
   const handlePaymentComplete = () => {
+    if (selectedTable) {
+      clearPendingOrder(selectedTable.id);
+    }
     clearCart();
-    // TODO: Save order to database/storage
+    if (onBackToTables) {
+      onBackToTables();
+    }
     console.log('Order completed successfully');
+  };
+
+  const handleSavePendingOrder = async () => {
+    if (!selectedTable) return;
+    
+    await savePendingOrder(selectedTable.id, cartItems);
+    clearCart();
+    if (onBackToTables) {
+      onBackToTables();
+    }
   };
 
   // Convert cart items to CartItem format for PaymentModal
@@ -91,6 +111,11 @@ export const ShoppingCart: React.FC = () => {
           <div className="text-sm text-muted-foreground">
             Mesa: {posState.selectedTable.name}
           </div>
+        )}
+        {selectedTable && (
+          <Badge variant="outline" className="text-xs">
+            Mesa: {selectedTable.name}
+          </Badge>
         )}
       </CardHeader>
 
@@ -195,10 +220,22 @@ export const ShoppingCart: React.FC = () => {
             className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
           >
             <CreditCard className="h-4 w-4 mr-2" />
-            {posState.selectedTable ? 'Procesar Pago' : 'Procesar Pago (Mostrador)'}
+            {selectedTable ? 'Procesar Pago' : 'Procesar Pago (Mostrador)'}
           </Button>
 
-          {!posState.selectedTable && (
+          {/* Save Pending Order Button - Only show when table is selected */}
+          {selectedTable && (
+            <Button 
+              onClick={handleSavePendingOrder}
+              variant="outline"
+              className="w-full"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Dejar Cuenta Abierta
+            </Button>
+          )}
+
+          {!selectedTable && !posState.selectedTable && (
             <p className="text-xs text-muted-foreground text-center">
               Se facturará sin mesa (Mostrador)
             </p>

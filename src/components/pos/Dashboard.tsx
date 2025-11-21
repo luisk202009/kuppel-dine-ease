@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { ShoppingBag, User, Settings, LogOut, Users, Receipt, Moon, Sun, History, BarChart3, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingBag, User, Settings, LogOut, Users, Receipt, History, BarChart3, DollarSign, CreditCard, RotateCcw, MoreVertical, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LayoutConfig } from '@/components/common/LayoutConfig';
 import { VersionInfo } from '@/components/common/VersionInfo';
-import { VotingWidget } from '@/components/voting/VotingWidget';
+import { VotingButton } from '@/components/voting/VotingButton';
 import { usePOS } from '@/contexts/POSContext';
+import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled, shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
@@ -23,11 +25,28 @@ import { OrderHistory } from './OrderHistory';
 import { SalesReports } from './SalesReports';
 import { ExpenseManager } from './ExpenseManager';
 import { CashManager } from './CashManager';
+import { Table } from '@/types/pos';
+
+type ViewMode = 'table-list' | 'table-products' | 'products';
+type SecondaryView = 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | null;
 
 export const Dashboard: React.FC = () => {
-  const { authState, posState, logout, searchProducts } = usePOS();
+  const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart } = usePOS();
+  const { config } = useLayoutConfig();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<'tables' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash'>('tables');
+  const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
+  const [secondaryView, setSecondaryView] = useState<SecondaryView>(null);
+  const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
+
+  // Update view mode when tablesEnabled changes
+  useEffect(() => {
+    if (!config.tablesEnabled) {
+      setViewMode('products');
+      setSelectedTableForOrder(null);
+    } else if (viewMode === 'products' && !selectedTableForOrder) {
+      setViewMode('table-list');
+    }
+  }, [config.tablesEnabled]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -49,13 +68,13 @@ export const Dashboard: React.FC = () => {
   const handleResetDemoData = () => {
     if (!shouldUseMockData()) return;
     
-    // Clear all mock data from localStorage
     const keysToRemove = [
       'kuppel_mock_products',
       'kuppel_mock_invoices', 
       'kuppel_mock_expenses',
       'kuppel_mock_cash_session',
-      'kuppel_mock_customers'
+      'kuppel_mock_customers',
+      'kuppel_pending_orders'
     ];
     
     keysToRemove.forEach(key => localStorage.removeItem(key));
@@ -65,10 +84,197 @@ export const Dashboard: React.FC = () => {
       description: "Los datos han sido restablecidos a los valores iniciales. Recarga la página para ver los cambios.",
     });
     
-    // Reload the page after a short delay
     setTimeout(() => {
       window.location.reload();
     }, 2000);
+  };
+
+  const handleTableClick = (table: Table) => {
+    setSelectedTableForOrder(table);
+    
+    // Check if table has pending order
+    if (table.status === 'pending') {
+      const pendingOrder = loadPendingOrder(table.id);
+      if (pendingOrder) {
+        // Load items into cart
+        pendingOrder.items.forEach(item => {
+          const product = posState.categories
+            .flatMap(cat => cat.products)
+            .find(p => p.id === item.id);
+          if (product) {
+            addToCart(product, item.quantity);
+          }
+        });
+        toast({
+          title: "Cuenta abierta cargada",
+          description: `Se cargaron los items de la mesa ${table.name}`,
+        });
+      }
+    }
+    
+    setViewMode('table-products');
+    setSecondaryView(null);
+  };
+
+  const handleBackToTables = () => {
+    setViewMode('table-list');
+    setSelectedTableForOrder(null);
+    setSecondaryView(null);
+  };
+
+  const handleSecondaryViewChange = (view: SecondaryView) => {
+    setSecondaryView(view);
+    if (view) {
+      // Reset to default main view when opening secondary
+      if (config.tablesEnabled) {
+        setViewMode('table-list');
+        setSelectedTableForOrder(null);
+      } else {
+        setViewMode('products');
+      }
+    }
+  };
+
+  const renderMainContent = () => {
+    // Show secondary views first if active
+    if (secondaryView === 'customers') {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Clientes</h2>
+            <p className="text-muted-foreground">
+              Administra la información de tus clientes
+            </p>
+          </div>
+          <CustomerManager />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'orders' && isFeatureEnabled('orderHistory')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Historial de Órdenes</h2>
+            <p className="text-muted-foreground">
+              Consulta y gestiona todas las órdenes procesadas
+            </p>
+          </div>
+          <OrderHistory />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'reports' && hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
+            <p className="text-muted-foreground">
+              Analiza el rendimiento y estadísticas del negocio
+            </p>
+          </div>
+          <SalesReports />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'expenses' && hasPermission(authState.user, 'view_expenses')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Gastos</h2>
+            <p className="text-muted-foreground">
+              Registra y administra los gastos del negocio
+            </p>
+          </div>
+          <ExpenseManager />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'cash' && hasPermission(authState.user, 'view_cash')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Caja</h2>
+            <p className="text-muted-foreground">
+              Controla la apertura, cierre y movimientos de caja
+            </p>
+          </div>
+          <CashManager />
+        </div>
+      );
+    }
+
+    // Main views
+    if (viewMode === 'table-list' && config.tablesEnabled) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Mesas</h2>
+            <p className="text-muted-foreground">
+              Selecciona una mesa para iniciar o continuar un pedido
+            </p>
+          </div>
+          
+          <Tabs defaultValue={posState.areas[0]?.id || 'plantas'} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              {posState.areas.map((area) => (
+                <TabsTrigger key={area.id} value={area.id} className="capitalize">
+                  {area.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {posState.areas.map((area) => (
+              <TabsContent key={area.id} value={area.id}>
+                <TableGrid area={area} onTableClick={handleTableClick} />
+              </TabsContent>
+            ))}
+          </Tabs>
+        </div>
+      );
+    }
+
+    if (viewMode === 'table-products' && selectedTableForOrder) {
+      return (
+        <div>
+          <div className="mb-6 flex items-center gap-4">
+            <Button variant="outline" onClick={handleBackToTables}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver a Mesas
+            </Button>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-1">
+                Mesa: {selectedTableForOrder.name}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {selectedTableForOrder.area} • Capacidad: {selectedTableForOrder.capacity} personas
+              </p>
+            </div>
+          </div>
+          <ProductManager />
+        </div>
+      );
+    }
+
+    if (viewMode === 'products') {
+      return (
+        <div>
+          {!config.tablesEnabled && (
+            <div className="mb-4">
+              <Badge variant="secondary" className="mb-2">
+                Modo sin mesas - Ventas de mostrador
+              </Badge>
+            </div>
+          )}
+          <ProductManager />
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -107,6 +313,7 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Actions */}
+            <VotingButton />
             <ThemeToggle />
             <LayoutConfig />
             
@@ -148,181 +355,93 @@ export const Dashboard: React.FC = () => {
         <div className="flex-1 flex flex-col">
           {/* Navigation Tabs */}
           <div className="bg-card border-b border-border px-6 py-3">
-            <div className="flex space-x-4 overflow-x-auto">
+            <div className="flex items-center space-x-4">
+              {config.tablesEnabled && (
+                <Button
+                  variant={viewMode === 'table-list' && !secondaryView ? 'default' : 'ghost'}
+                  onClick={() => {
+                    setViewMode('table-list');
+                    setSelectedTableForOrder(null);
+                    setSecondaryView(null);
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <Receipt className="h-4 w-4" />
+                  <span>Mesas</span>
+                </Button>
+              )}
+              
               <Button
-                variant={activeView === 'tables' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('tables')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <Receipt className="h-4 w-4" />
-                <span>Mesas</span>
-              </Button>
-              <Button
-                variant={activeView === 'products' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('products')}
-                className="flex items-center space-x-2 whitespace-nowrap"
+                variant={viewMode === 'products' && !secondaryView ? 'default' : 'ghost'}
+                onClick={() => {
+                  setViewMode('products');
+                  setSelectedTableForOrder(null);
+                  setSecondaryView(null);
+                }}
+                className="flex items-center space-x-2"
               >
                 <ShoppingBag className="h-4 w-4" />
                 <span>Productos</span>
               </Button>
-              <Button
-                variant={activeView === 'customers' ? 'default' : 'ghost'}
-                onClick={() => setActiveView('customers')}
-                className="flex items-center space-x-2 whitespace-nowrap"
-              >
-                <Users className="h-4 w-4" />
-                <span>Clientes</span>
-              </Button>
-              {isFeatureEnabled('orderHistory') && (
-                <Button
-                  variant={activeView === 'orders' ? 'default' : 'ghost'}
-                  onClick={() => setActiveView('orders')}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <History className="h-4 w-4" />
-                  <span>Órdenes</span>
-                </Button>
-              )}
-              {hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
-                <Button
-                  variant={activeView === 'reports' ? 'default' : 'ghost'}
-                  onClick={() => setActiveView('reports')}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Reportes</span>
-                </Button>
-              )}
-              {hasPermission(authState.user, 'view_expenses') && (
-                <Button
-                  variant={activeView === 'expenses' ? 'default' : 'ghost'}
-                  onClick={() => setActiveView('expenses')}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  <span>Gastos</span>
-                </Button>
-              )}
-              {hasPermission(authState.user, 'view_cash') && (
-                <Button
-                  variant={activeView === 'cash' ? 'default' : 'ghost'}
-                  onClick={() => setActiveView('cash')}
-                  className="flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <DollarSign className="h-4 w-4" />
-                  <span>Caja</span>
-                </Button>
-              )}
+
+              {/* More Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <MoreVertical className="h-4 w-4" />
+                    <span>Más</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem onClick={() => handleSecondaryViewChange('customers')}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Clientes
+                  </DropdownMenuItem>
+                  
+                  {isFeatureEnabled('orderHistory') && (
+                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('orders')}>
+                      <History className="h-4 w-4 mr-2" />
+                      Órdenes
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleSecondaryViewChange('reports')}>
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Reportes
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  {hasPermission(authState.user, 'view_expenses') && (
+                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('expenses')}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Gastos
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {hasPermission(authState.user, 'view_cash') && (
+                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('cash')}>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Caja
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
           {/* Content Area */}
           <div className="flex-1 p-6 overflow-auto">
-            {activeView === 'tables' && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Mesas</h2>
-                  <p className="text-muted-foreground">
-                    Selecciona una mesa para iniciar o continuar un pedido
-                  </p>
-                </div>
-                
-                <Tabs defaultValue={posState.areas[0]?.id || 'plantas'} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-6">
-                    {posState.areas.map((area) => (
-                      <TabsTrigger key={area.id} value={area.id} className="capitalize">
-                        {area.name}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  
-                  {posState.areas.map((area) => (
-                    <TabsContent key={area.id} value={area.id}>
-                      <TableGrid area={area} />
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              </div>
-            )}
-
-            {activeView === 'products' && (
-              <div>
-                <ProductManager />
-              </div>
-            )}
-
-            {activeView === 'customers' && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Clientes</h2>
-                  <p className="text-muted-foreground">
-                    Administra la información de tus clientes
-                  </p>
-                </div>
-                <CustomerManager />
-              </div>
-            )}
-
-            {activeView === 'orders' && isFeatureEnabled('orderHistory') && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Historial de Órdenes</h2>
-                  <p className="text-muted-foreground">
-                    Consulta y gestiona todas las órdenes procesadas
-                  </p>
-                </div>
-                <OrderHistory />
-              </div>
-            )}
-
-            {activeView === 'reports' && hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
-                  <p className="text-muted-foreground">
-                    Analiza el rendimiento y estadísticas del negocio
-                  </p>
-                </div>
-                <SalesReports />
-              </div>
-            )}
-
-            {activeView === 'expenses' && hasPermission(authState.user, 'view_expenses') && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Gastos</h2>
-                  <p className="text-muted-foreground">
-                    Registra y administra los gastos del negocio
-                  </p>
-                </div>
-                <ExpenseManager />
-              </div>
-            )}
-
-            {activeView === 'cash' && hasPermission(authState.user, 'view_cash') && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Caja</h2>
-                  <p className="text-muted-foreground">
-                    Controla la apertura, cierre y movimientos de caja
-                  </p>
-                </div>
-                <CashManager />
-              </div>
-            )}
+            {renderMainContent()}
           </div>
         </div>
 
         {/* Shopping Cart Sidebar */}
-        <div className="w-96 bg-card border-l border-border flex flex-col">
-          <div className="flex-1">
-            <ShoppingCart />
-          </div>
-          
-          {/* Voting Widget */}
-          <div className="border-t border-border p-4">
-            <VotingWidget />
-          </div>
+        <div className="w-96 bg-card border-l border-border h-full">
+          <ShoppingCart selectedTable={selectedTableForOrder} onBackToTables={handleBackToTables} />
         </div>
       </div>
       
