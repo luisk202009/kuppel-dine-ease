@@ -950,6 +950,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_user_role: {
+        Args: { _role: Database["public"]["Enums"]["user_role"] }
+        Returns: boolean
+      }
+      is_company_owner: { Args: never; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       seed_default_data_for_business_type: {
         Args: {
           _branch_id: string
