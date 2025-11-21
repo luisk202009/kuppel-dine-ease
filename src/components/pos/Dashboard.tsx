@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Settings, LogOut, Receipt, RotateCcw, ArrowLeft, HelpCircle } from 'lucide-react';
+import { ShoppingBag, Settings, LogOut, Receipt, RotateCcw, ArrowLeft, HelpCircle, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,6 +36,24 @@ export const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
   const [showTourPrompt, setShowTourPrompt] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!authState.user?.id) return;
+
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', authState.user.id)
+        .single();
+
+      setIsAdmin(data?.role === 'admin');
+    };
+
+    checkAdminStatus();
+  }, [authState.user?.id]);
 
   // Check if tour should be shown after setup
   useEffect(() => {
@@ -294,6 +313,12 @@ export const Dashboard: React.FC = () => {
             <div id="theme-toggle">
               <ThemeToggle />
             </div>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/admin')}>
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
+            )}
             <Button id="settings-button" variant="outline" size="sm" onClick={() => navigate('/settings')}>
               <Settings className="h-4 w-4 mr-2" />
               Configuración
