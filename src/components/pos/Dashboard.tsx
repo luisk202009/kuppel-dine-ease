@@ -1,44 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, ArrowLeft, RotateCcw } from 'lucide-react';
+import { ShoppingBag, User, Settings, LogOut, Users, Receipt, History, BarChart3, DollarSign, CreditCard, RotateCcw, MoreVertical, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { LayoutConfig } from '@/components/common/LayoutConfig';
+import { VersionInfo } from '@/components/common/VersionInfo';
 import { VotingButton } from '@/components/voting/VotingButton';
-import { AppSidebar } from '@/components/navigation/AppSidebar';
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
-import { shouldUseMockData, isAuthRequired } from '@/config/environment';
+import { hasPermission } from '@/utils/permissions';
+import { isFeatureEnabled, shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableGrid } from './TableGrid';
 import { ShoppingCart } from './ShoppingCart';
 import { ProductManager } from './ProductManager';
+import { CustomerManager } from './CustomerManager';
+import { OrderHistory } from './OrderHistory';
+import { SalesReports } from './SalesReports';
+import { ExpenseManager } from './ExpenseManager';
+import { CashManager } from './CashManager';
 import { Table } from '@/types/pos';
 
-// Import page views
-import Settings from '@/pages/Settings';
-import Customers from '@/pages/Customers';
-import Orders from '@/pages/Orders';
-import Reports from '@/pages/Reports';
-import Expenses from '@/pages/Expenses';
-import Cash from '@/pages/Cash';
-
 type ViewMode = 'table-list' | 'table-products' | 'products';
-type MainView = 'dashboard' | 'settings' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash';
+type SecondaryView = 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | null;
 
 export const Dashboard: React.FC = () => {
-  const { authState, posState, searchProducts, loadPendingOrder, addToCart } = usePOS();
+  const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart } = usePOS();
   const { config } = useLayoutConfig();
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<MainView>('dashboard');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
+  const [secondaryView, setSecondaryView] = useState<SecondaryView>(null);
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
   
   // Notifications setup
@@ -162,43 +161,101 @@ export const Dashboard: React.FC = () => {
     }
     
     setViewMode('table-products');
+    setSecondaryView(null);
   };
 
   const handleBackToTables = () => {
     setViewMode('table-list');
     setSelectedTableForOrder(null);
+    setSecondaryView(null);
   };
 
-  const handleViewChange = (view: string) => {
-    setCurrentView(view as MainView);
-    // Reset dashboard state when changing views
-    if (view !== 'dashboard') {
-      setViewMode(config.tablesEnabled ? 'table-list' : 'products');
-      setSelectedTableForOrder(null);
+  const handleSecondaryViewChange = (view: SecondaryView) => {
+    setSecondaryView(view);
+    if (view) {
+      // Reset to default main view when opening secondary
+      if (config.tablesEnabled) {
+        setViewMode('table-list');
+        setSelectedTableForOrder(null);
+      } else {
+        setViewMode('products');
+      }
     }
   };
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'settings':
-        return <Settings />;
-      case 'customers':
-        return <Customers />;
-      case 'orders':
-        return <Orders />;
-      case 'reports':
-        return <Reports />;
-      case 'expenses':
-        return <Expenses />;
-      case 'cash':
-        return <Cash />;
-      case 'dashboard':
-      default:
-        return renderDashboardContent();
+  const renderMainContent = () => {
+    // Show secondary views first if active
+    if (secondaryView === 'customers') {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Clientes</h2>
+            <p className="text-muted-foreground">
+              Administra la información de tus clientes
+            </p>
+          </div>
+          <CustomerManager />
+        </div>
+      );
     }
-  };
 
-  const renderDashboardContent = () => {
+    if (secondaryView === 'orders' && isFeatureEnabled('orderHistory')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Historial de Órdenes</h2>
+            <p className="text-muted-foreground">
+              Consulta y gestiona todas las órdenes procesadas
+            </p>
+          </div>
+          <OrderHistory />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'reports' && hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
+            <p className="text-muted-foreground">
+              Analiza el rendimiento y estadísticas del negocio
+            </p>
+          </div>
+          <SalesReports />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'expenses' && hasPermission(authState.user, 'view_expenses')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Gastos</h2>
+            <p className="text-muted-foreground">
+              Registra y administra los gastos del negocio
+            </p>
+          </div>
+          <ExpenseManager />
+        </div>
+      );
+    }
+
+    if (secondaryView === 'cash' && hasPermission(authState.user, 'view_cash')) {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestión de Caja</h2>
+            <p className="text-muted-foreground">
+              Controla la apertura, cierre y movimientos de caja
+            </p>
+          </div>
+          <CashManager />
+        </div>
+      );
+    }
+
+    // Main views
     if (viewMode === 'table-list' && config.tablesEnabled) {
       return (
         <div>
@@ -269,125 +326,177 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar currentView={currentView} onViewChange={handleViewChange} />
-        
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-card border-b border-border px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger />
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center space-x-4">
-                    <Logo width={120} height={40} />
-                    {!isAuthRequired() && (
-                      <Badge variant="secondary" className="hidden md:flex">
-                        Modo Demo
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="hidden md:block">
-                    <Breadcrumbs currentView={currentView} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Search Bar */}
-                <div className="relative w-80 md:w-96">
-                  <Input
-                    placeholder="Buscar productos, clientes..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-3"
-                  />
-                </div>
-
-                {/* Actions */}
-                <VotingButton />
-                <ThemeToggle />
-                
-                {shouldUseMockData() && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="hidden md:flex">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset Demo
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Restablecer datos demo?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta acción eliminará todos los datos de demostración (facturas, gastos, sesiones de caja) y los restablecerá a los valores iniciales. Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleResetDemoData}>
-                          Restablecer
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
-            </div>
-          </header>
-
-          <div className="flex flex-1 h-[calc(100vh-80px)]">
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col">
-              {/* Navigation Tabs - Only show for dashboard view */}
-              {currentView === 'dashboard' && (
-                <div className="bg-card border-b border-border px-6 py-3">
-                  <div className="flex items-center space-x-4">
-                    {config.tablesEnabled && (
-                      <Button
-                        variant={viewMode === 'table-list' ? 'default' : 'ghost'}
-                        onClick={() => {
-                          setViewMode('table-list');
-                          setSelectedTableForOrder(null);
-                        }}
-                        className="flex items-center space-x-2"
-                      >
-                        <ShoppingBag className="h-4 w-4" />
-                        <span>Mesas</span>
-                      </Button>
-                    )}
-                    
-                    <Button
-                      variant={viewMode === 'products' ? 'default' : 'ghost'}
-                      onClick={() => {
-                        setViewMode('products');
-                        setSelectedTableForOrder(null);
-                      }}
-                      className="flex items-center space-x-2"
-                    >
-                      <ShoppingBag className="h-4 w-4" />
-                      <span>Productos</span>
-                    </Button>
-                  </div>
-                </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-4">
+              <Logo width={120} height={40} />
+              {!isAuthRequired() && (
+                <Badge variant="secondary" className="hidden md:flex">
+                  Modo Demo
+                </Badge>
               )}
+            </div>
+            <div className="hidden md:block">
+              <h1 className="text-sm font-semibold text-foreground">
+                ¡Hola, {authState.user?.name}!
+              </h1>
+              <p className="text-xs text-muted-foreground capitalize">
+                {getCurrentDate()}
+              </p>
+            </div>
+          </div>
 
-              {/* Content Area */}
-              <div className="flex-1 p-6 overflow-auto">
-                {renderCurrentView()}
-              </div>
+          <div className="flex items-center space-x-4">
+            {/* Search Bar */}
+            <div className="relative w-80 md:w-96">
+              <Input
+                placeholder="Buscar productos, clientes..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-3"
+              />
             </div>
 
-            {/* Shopping Cart - Only show for dashboard view */}
-            {currentView === 'dashboard' && (
-              <aside className="w-96 border-l border-border bg-card overflow-auto">
-                <ShoppingCart selectedTable={selectedTableForOrder} />
-              </aside>
+            {/* Actions */}
+            <VotingButton />
+            <ThemeToggle />
+            <LayoutConfig />
+            
+            {shouldUseMockData() && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="hidden md:flex">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Demo
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Restablecer datos demo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción eliminará todos los datos de demostración (facturas, gastos, sesiones de caja) y los restablecerá a los valores iniciales. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetDemoData}>
+                      Restablecer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
+            
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Salir
+            </Button>
           </div>
         </div>
+      </header>
+
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Navigation Tabs */}
+          <div className="bg-card border-b border-border px-6 py-3">
+            <div className="flex items-center space-x-4">
+              {config.tablesEnabled && (
+                <Button
+                  variant={viewMode === 'table-list' && !secondaryView ? 'default' : 'ghost'}
+                  onClick={() => {
+                    setViewMode('table-list');
+                    setSelectedTableForOrder(null);
+                    setSecondaryView(null);
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <Receipt className="h-4 w-4" />
+                  <span>Mesas</span>
+                </Button>
+              )}
+              
+              <Button
+                variant={viewMode === 'products' && !secondaryView ? 'default' : 'ghost'}
+                onClick={() => {
+                  setViewMode('products');
+                  setSelectedTableForOrder(null);
+                  setSecondaryView(null);
+                }}
+                className="flex items-center space-x-2"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                <span>Productos</span>
+              </Button>
+
+              {/* More Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <MoreVertical className="h-4 w-4" />
+                    <span>Más</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem onClick={() => handleSecondaryViewChange('customers')}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Clientes
+                  </DropdownMenuItem>
+                  
+                  {isFeatureEnabled('orderHistory') && (
+                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('orders')}>
+                      <History className="h-4 w-4 mr-2" />
+                      Órdenes
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {hasPermission(authState.user, 'view_reports') && isFeatureEnabled('advancedReporting') && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleSecondaryViewChange('reports')}>
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Reportes
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  {hasPermission(authState.user, 'view_expenses') && (
+                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('expenses')}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Gastos
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {hasPermission(authState.user, 'view_cash') && (
+                    <DropdownMenuItem onClick={() => handleSecondaryViewChange('cash')}>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Caja
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 p-6 overflow-auto">
+            {renderMainContent()}
+          </div>
+        </div>
+
+        {/* Shopping Cart Sidebar */}
+        <div className="w-96 bg-card border-l border-border h-full">
+          <ShoppingCart selectedTable={selectedTableForOrder} onBackToTables={handleBackToTables} />
+        </div>
       </div>
-    </SidebarProvider>
+      
+      {/* Version Info */}
+      <VersionInfo />
+    </div>
   );
 };
+
+export default Dashboard;
