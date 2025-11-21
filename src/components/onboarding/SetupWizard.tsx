@@ -9,6 +9,8 @@ import { CompletionStep } from './CompletionStep';
 import { CompanyInfoStep } from './CompanyInfoStep';
 import { useInitialSetup, SetupData } from '@/hooks/useInitialSetup';
 import { usePOS } from '@/contexts/POSContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 type Step = 'welcome' | 'company-info' | 'business-type' | 'categories' | 'products' | 'tables' | 'completion';
 
@@ -27,12 +29,13 @@ export const SetupWizard: React.FC = () => {
     tables: [],
   });
 
-  // Solo inicializar useInitialSetup si tenemos IDs válidos
-  const { seedData, completeSetup, skipSetup, isCompleting, isSeeding } = useInitialSetup(
+  // Solo necesitamos seedData y skipSetup del hook
+  const { seedData, skipSetup, isSeeding } = useInitialSetup(
     companyId || '',
     branchId || '',
     authState.user?.id || ''
   );
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const handleStart = () => {
     setCurrentStep('company-info');
@@ -81,16 +84,37 @@ export const SetupWizard: React.FC = () => {
     setCurrentStep('completion');
   };
 
+  /**
+   * handleFinish - Marca el setup como completado y navega al dashboard
+   * 
+   * IMPORTANTE: No valida ni inserta datos aquí porque:
+   * - Los datos ya fueron insertados por seedData() en el paso de business-type
+   * - Los pasos intermedios solo cargan y muestran los datos existentes
+   * - Solo necesitamos marcar setup_completed = true para el usuario
+   */
   const handleFinish = async () => {
-    // ✅ Validar que tenemos IDs válidos antes de completar el setup
-    if (!companyId || !branchId) {
-      console.error('Cannot complete setup: missing company or branch ID');
+    if (!authState.user?.id) {
+      console.error('Cannot complete setup: missing user ID');
       return;
     }
 
-    const success = await completeSetup(setupData);
-    if (success) {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ setup_completed: true })
+        .eq('id', authState.user.id);
+
+      if (error) throw error;
+
+      // Recargar para que el sistema detecte que el setup está completado
       window.location.reload();
+    } catch (error) {
+      console.error('Error marking setup as completed:', error);
+      toast({
+        title: 'Error',
+        description: 'No pudimos completar la configuración. Intenta nuevamente.',
+        variant: 'destructive',
+      });
     }
   };
 
