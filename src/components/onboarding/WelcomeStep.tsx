@@ -25,12 +25,22 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onStart, onSkip }) => 
             <h1 className="text-4xl font-bold">¡Bienvenido a tu POS!</h1>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl">
-            Para empezar a usar tu sistema, vamos a configurar tu negocio en 3 simples pasos
+            Para empezar a usar tu sistema, vamos a configurar tu negocio en 4 simples pasos
           </p>
         </div>
 
         {/* Steps Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+          <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Información de Empresa</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Datos básicos de tu negocio
+            </p>
+          </div>
+
           <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle2 className="h-5 w-5 text-primary" />

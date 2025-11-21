@@ -5,14 +5,17 @@ import { CategoriesStep } from './CategoriesStep';
 import { ProductsStep } from './ProductsStep';
 import { TablesStep } from './TablesStep';
 import { CompletionStep } from './CompletionStep';
+import { CompanyInfoStep } from './CompanyInfoStep';
 import { useInitialSetup, SetupData } from '@/hooks/useInitialSetup';
 import { usePOS } from '@/contexts/POSContext';
 
-type Step = 'welcome' | 'categories' | 'products' | 'tables' | 'completion';
+type Step = 'welcome' | 'company-info' | 'categories' | 'products' | 'tables' | 'completion';
 
 export const SetupWizard: React.FC = () => {
   const { authState } = usePOS();
   const [currentStep, setCurrentStep] = useState<Step>('welcome');
+  const [companyId, setCompanyId] = useState(authState.selectedCompany?.id || '');
+  const [branchId, setBranchId] = useState(authState.selectedBranch?.id || '');
   const [setupData, setSetupData] = useState<SetupData>({
     categories: [],
     products: [],
@@ -22,12 +25,21 @@ export const SetupWizard: React.FC = () => {
   });
 
   const { completeSetup, skipSetup, isCompleting } = useInitialSetup(
-    authState.selectedCompany?.id || '',
-    authState.selectedBranch?.id || '',
+    companyId,
+    branchId,
     authState.user?.id || ''
   );
 
   const handleStart = () => {
+    setCurrentStep('company-info');
+  };
+
+  const handleCompanyInfoComplete = (newCompanyId: string, newBranchId: string, companyName: string) => {
+    setCompanyId(newCompanyId);
+    setBranchId(newBranchId);
+    // Update local storage for persistence
+    localStorage.setItem('selectedCompany', JSON.stringify({ id: newCompanyId, name: companyName }));
+    localStorage.setItem('selectedBranch', JSON.stringify({ id: newBranchId, name: 'Sucursal Principal' }));
     setCurrentStep('categories');
   };
 
@@ -59,7 +71,7 @@ export const SetupWizard: React.FC = () => {
   };
 
   const getStepNumber = () => {
-    const steps = { welcome: 0, categories: 1, products: 2, tables: 3, completion: 4 };
+    const steps = { welcome: 0, 'company-info': 0, categories: 1, products: 2, tables: 3, completion: 4 };
     return steps[currentStep];
   };
 
@@ -67,7 +79,7 @@ export const SetupWizard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         {/* Progress Bar */}
-        {currentStep !== 'welcome' && currentStep !== 'completion' && (
+        {currentStep !== 'welcome' && currentStep !== 'company-info' && currentStep !== 'completion' && (
           <div className="px-8 pt-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">
@@ -89,6 +101,13 @@ export const SetupWizard: React.FC = () => {
         {/* Step Content */}
         {currentStep === 'welcome' && (
           <WelcomeStep onStart={handleStart} onSkip={handleSkip} />
+        )}
+
+        {currentStep === 'company-info' && (
+          <CompanyInfoStep
+            onNext={handleCompanyInfoComplete}
+            userId={authState.user?.id || ''}
+          />
         )}
 
         {currentStep === 'categories' && (
