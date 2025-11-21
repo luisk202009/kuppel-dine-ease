@@ -201,6 +201,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          owner_id: string | null
           phone: string | null
           tax_id: string | null
           updated_at: string
@@ -212,6 +213,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          owner_id?: string | null
           phone?: string | null
           tax_id?: string | null
           updated_at?: string
@@ -223,6 +225,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          owner_id?: string | null
           phone?: string | null
           tax_id?: string | null
           updated_at?: string
