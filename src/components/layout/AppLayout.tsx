@@ -1,13 +1,13 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { LogOut, RotateCcw } from 'lucide-react';
+import { LogOut, RotateCcw, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { VotingButton } from '@/components/voting/VotingButton';
-import { MainNav } from './MainNav';
+import { NavigationDrawer } from './NavigationDrawer';
 import { usePOS } from '@/contexts/POSContext';
 import { shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ export const AppLayout: React.FC = () => {
   const { authState, logout } = usePOS();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const getCurrentDate = () => {
     return new Date().toLocaleDateString('es-CO', {
@@ -92,6 +93,10 @@ export const AppLayout: React.FC = () => {
             </div>
 
             {/* Actions */}
+            <Button variant="outline" size="sm" onClick={() => setMenuOpen(true)}>
+              <Menu className="h-4 w-4 mr-2" />
+              <span className="hidden md:inline">Menú</span>
+            </Button>
             <VotingButton />
             <ThemeToggle />
             
@@ -128,13 +133,13 @@ export const AppLayout: React.FC = () => {
         </div>
       </header>
 
-      {/* Navigation */}
-      <MainNav />
-
       {/* Main Content */}
-      <main className="min-h-[calc(100vh-140px)]">
+      <main className="min-h-[calc(100vh-100px)]">
         <Outlet />
       </main>
+
+      {/* Navigation Drawer */}
+      <NavigationDrawer open={menuOpen} onOpenChange={setMenuOpen} />
     </div>
   );
 };
