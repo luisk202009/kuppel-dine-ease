@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import { EditCompanySubscriptionModal } from './EditCompanySubscriptionModal';
 
 interface Branch {
   id: string;
@@ -35,6 +37,16 @@ interface Company {
   business_type: string | null;
   is_active: boolean;
   created_at: string;
+  plan_id: string | null;
+  subscription_status: string | null;
+  billing_period: string | null;
+  trial_end_at: string | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  code: string;
 }
 
 interface CompanyUsageStats {
@@ -96,6 +108,9 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   const [isLoadingChart, setIsLoadingChart] = useState(false);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
+  const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = useState(false);
   const { toast } = useToast();
 
   // Cargar datos mensuales y productos cuando se abre el modal
@@ -103,8 +118,33 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
     if (open && company) {
       fetchMonthlySales();
       fetchTopProducts();
+      fetchPlan();
     }
   }, [open, company]);
+
+  const fetchPlan = async () => {
+    if (!company || !company.plan_id) {
+      setPlan(null);
+      return;
+    }
+
+    try {
+      setIsLoadingPlan(true);
+      const { data, error } = await supabase
+        .from('plans')
+        .select('id, name, code')
+        .eq('id', company.plan_id)
+        .single();
+
+      if (error) throw error;
+      setPlan(data);
+    } catch (error) {
+      console.error('Error fetching plan:', error);
+      setPlan(null);
+    } finally {
+      setIsLoadingPlan(false);
+    }
+  };
 
   const fetchMonthlySales = async () => {
     if (!company) return;
@@ -243,6 +283,92 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Plan & Suscripción */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="h-5 w-5" />
+                  <span>Plan y Suscripción</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditSubscriptionOpen(true)}
+                >
+                  Cambiar plan / estado
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingPlan ? (
+                <p className="text-muted-foreground text-sm">Cargando plan...</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Plan actual</p>
+                    {plan ? (
+                      <div>
+                        <p className="font-medium">{plan.name}</p>
+                        <p className="text-xs text-muted-foreground">({plan.code})</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sin plan asignado</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Estado de suscripción</p>
+                    {company.subscription_status ? (
+                      <Badge 
+                        variant={
+                          company.subscription_status === 'active' ? 'default' :
+                          company.subscription_status === 'trialing' ? 'secondary' :
+                          company.subscription_status === 'past_due' ? 'destructive' :
+                          'secondary'
+                        }
+                        className={
+                          company.subscription_status === 'trialing' ? 'bg-purple-500' :
+                          company.subscription_status === 'paused' ? 'bg-yellow-500' :
+                          company.subscription_status === 'canceled' ? 'bg-red-500' :
+                          ''
+                        }
+                      >
+                        {company.subscription_status === 'trialing' ? 'En prueba' :
+                         company.subscription_status === 'active' ? 'Activa' :
+                         company.subscription_status === 'past_due' ? 'Pago pendiente' :
+                         company.subscription_status === 'paused' ? 'Pausada' :
+                         company.subscription_status === 'canceled' ? 'Cancelada' :
+                         company.subscription_status}
+                      </Badge>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">—</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Periodo de facturación</p>
+                    {company.billing_period ? (
+                      <p className="font-medium">
+                        {company.billing_period === 'monthly' ? 'Mensual' : 'Anual'}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">—</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Fin de prueba</p>
+                    {company.trial_end_at ? (
+                      <p className="font-medium text-sm">
+                        {format(new Date(company.trial_end_at), 'PP', { locale: es })}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">—</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Usage Summary con comparación de períodos */}
           {usage && (
             <Card>
@@ -573,6 +699,20 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
             </CardContent>
           </Card>
         </div>
+
+        {/* Modal de edición de suscripción */}
+        <EditCompanySubscriptionModal
+          company={company}
+          plan={plan}
+          open={isEditSubscriptionOpen}
+          onClose={(refreshNeeded) => {
+            setIsEditSubscriptionOpen(false);
+            if (refreshNeeded) {
+              fetchPlan();
+              onClose(); // Cerrar el modal principal para refrescar la lista
+            }
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

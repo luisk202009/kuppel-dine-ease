@@ -24,6 +24,16 @@ interface Company {
   is_active: boolean;
   created_at: string;
   owner_id: string | null;
+  plan_id: string | null;
+  subscription_status: string | null;
+  billing_period: string | null;
+  trial_end_at: string | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  code: string;
 }
 
 interface Branch {
@@ -81,6 +91,7 @@ export const AdminCompaniesTab: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('name');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const [activityFilter, setActivityFilter] = useState<ActivityFilterOption>('all');
+  const [plans, setPlans] = useState<Map<string, Plan>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -176,6 +187,23 @@ export const AdminCompaniesTab: React.FC = () => {
 
       setCompanies(data || []);
       setFilteredCompanies(data || []);
+
+      // Fetch plans
+      try {
+        const { data: plansData, error: plansError } = await supabase
+          .from('plans')
+          .select('id, name, code');
+
+        if (plansError) throw plansError;
+
+        const plansMap = new Map<string, Plan>();
+        plansData?.forEach((plan) => {
+          plansMap.set(plan.id, plan);
+        });
+        setPlans(plansMap);
+      } catch (plansErr) {
+        console.error('Error fetching plans:', plansErr);
+      }
 
       // Fetch usage stats
       try {
@@ -428,6 +456,8 @@ export const AdminCompaniesTab: React.FC = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Tipo de Negocio</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Suscripción</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Ventas 30d</TableHead>
                   <TableHead>Órdenes 30d</TableHead>
@@ -440,7 +470,7 @@ export const AdminCompaniesTab: React.FC = () => {
               <TableBody>
                 {filteredCompanies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center text-muted-foreground">
                       {searchQuery ? 'No se encontraron empresas con ese criterio' : 'No hay empresas registradas'}
                     </TableCell>
                   </TableRow>
@@ -450,11 +480,56 @@ export const AdminCompaniesTab: React.FC = () => {
                     const growth = stats 
                       ? calculateGrowthPercentage(stats.total_sales_last_30d, stats.total_sales_prev_30d)
                       : null;
+                    const plan = company.plan_id ? plans.get(company.plan_id) : null;
                     
                     return (
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">{company.name}</TableCell>
                         <TableCell>{getBusinessTypeLabel(company.business_type)}</TableCell>
+                        <TableCell>
+                          {plan ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">{plan.name}</span>
+                              <span className="text-xs text-muted-foreground">{plan.code}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Sin plan</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {company.subscription_status ? (
+                            <div className="flex flex-col space-y-1">
+                              <Badge 
+                                variant={
+                                  company.subscription_status === 'active' ? 'default' :
+                                  company.subscription_status === 'trialing' ? 'secondary' :
+                                  company.subscription_status === 'past_due' ? 'destructive' :
+                                  'secondary'
+                                }
+                                className={
+                                  company.subscription_status === 'trialing' ? 'bg-purple-500' :
+                                  company.subscription_status === 'paused' ? 'bg-yellow-500' :
+                                  company.subscription_status === 'canceled' ? 'bg-red-500' :
+                                  ''
+                                }
+                              >
+                                {company.subscription_status === 'trialing' ? 'En prueba' :
+                                 company.subscription_status === 'active' ? 'Activa' :
+                                 company.subscription_status === 'past_due' ? 'Pago pendiente' :
+                                 company.subscription_status === 'paused' ? 'Pausada' :
+                                 company.subscription_status === 'canceled' ? 'Cancelada' :
+                                 company.subscription_status}
+                              </Badge>
+                              {company.billing_period && (
+                                <span className="text-xs text-muted-foreground">
+                                  {company.billing_period === 'monthly' ? 'Mensual' : 'Anual'}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {stats ? getActivityStatusBadge(stats.activity_status, stats.days_since_last_order) : '–'}
                         </TableCell>
