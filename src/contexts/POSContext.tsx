@@ -34,6 +34,7 @@ interface POSContextType {
   loadPendingOrder: (tableId: string) => PendingOrder | null;
   clearPendingOrder: (tableId: string) => void;
   getPendingOrdersCount: () => number;
+  refreshAreas: () => Promise<void>;
 }
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
@@ -573,6 +574,64 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshAreas = async () => {
+    if (!authState.isAuthenticated || !authState.selectedBranch) {
+      return;
+    }
+
+    console.log('Refreshing areas and tables...');
+
+    try {
+      // Get areas from current branch with their tables
+      const { data: areasData, error: areasError } = await supabase
+        .from('areas')
+        .select(`
+          *,
+          tables(*)
+        `)
+        .eq('branch_id', authState.selectedBranch.id)
+        .order('display_order');
+
+      if (areasError) {
+        console.error('Error fetching areas:', areasError);
+        return;
+      }
+
+      // Transform areas with their tables
+      const transformedAreas: Area[] = areasData?.map((area: any) => ({
+        id: area.id,
+        name: area.name,
+        color: area.color,
+        display_order: area.display_order,
+        tables: (area.tables || [])
+          .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
+          .map((table: any) => ({
+            id: table.id,
+            name: table.name,
+            area: area.name,
+            capacity: table.capacity,
+            status: table.status,
+            customers: table.customers || 0,
+            currentOrder: table.current_order_id
+          }))
+      })) || [];
+
+      // Update only areas, keep categories and customers
+      dispatch({
+        type: 'INITIALIZE_DATA',
+        payload: {
+          areas: transformedAreas,
+          categories: state.categories,
+          customers: state.customers
+        }
+      });
+
+      console.log(`Refreshed ${transformedAreas.length} areas`);
+    } catch (error) {
+      console.error('Error refreshing areas:', error);
+    }
+  };
+
   const initializeDemoData = () => {
     const demoAreas: Area[] = [
       {
@@ -952,7 +1011,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       savePendingOrder,
       loadPendingOrder,
       clearPendingOrder,
-      getPendingOrdersCount
+      getPendingOrdersCount,
+      refreshAreas
     }}>
       {children}
     </POSContext.Provider>

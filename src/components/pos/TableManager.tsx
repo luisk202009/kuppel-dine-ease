@@ -15,7 +15,7 @@ interface Area {
 }
 
 export const TableManager: React.FC = () => {
-  const { authState } = usePOS();
+  const { authState, refreshAreas } = usePOS();
   const [areas, setAreas] = useState<Area[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
@@ -74,8 +74,9 @@ export const TableManager: React.FC = () => {
     setIsCreateDialogOpen(true);
   };
 
-  const handleTableCreated = () => {
+  const handleTableCreated = async () => {
     loadAreas();
+    await refreshAreas();
   };
 
   if (!isLoading && areas.length === 0) {

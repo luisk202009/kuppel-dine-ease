@@ -30,7 +30,7 @@ type ViewMode = 'table-list' | 'table-products' | 'products';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart } = usePOS();
+  const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart, refreshAreas } = usePOS();
   const { config } = useLayoutConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
@@ -96,6 +96,23 @@ export const Dashboard: React.FC = () => {
         title: "Cambio en Mesa",
         description: `${table.name} cambió a ${statusLabels[table.status]}`
       });
+    },
+    onTableCreated: async (table) => {
+      console.log('New table detected via Realtime:', table);
+      
+      showNotification('Nueva Mesa', {
+        body: `Mesa "${table.name}" agregada`,
+        tag: 'new-table',
+        requireInteraction: false
+      });
+      
+      toast({
+        title: "Nueva Mesa Agregada",
+        description: `Mesa "${table.name}" ha sido creada`
+      });
+
+      // Refrescar áreas para mostrar la nueva mesa
+      await refreshAreas();
     },
     enabled: true
   });
