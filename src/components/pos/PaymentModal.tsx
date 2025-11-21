@@ -12,6 +12,7 @@ import { useCreateInvoice } from '@/hooks/useInvoices';
 import { usePOSContext } from '@/contexts/POSContext';
 import { formatCurrency } from '@/lib/utils';
 import { PrintableReceipt } from './PrintableReceipt';
+import { CustomerSelector } from './CustomerSelector';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   total,
   onPaymentComplete
 }) => {
-  const { posState, authState } = usePOSContext();
+  const { posState, authState, addCustomer } = usePOSContext();
   const createInvoice = useCreateInvoice();
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const [amountReceived, setAmountReceived] = useState<string>(total.toString());
@@ -42,6 +43,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [customTip, setCustomTip] = useState<string>('');
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastInvoice, setLastInvoice] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
 
   const { enableTips, defaultTipPercentage } = posState.settings;
   const finalTotal = total + tipAmount;
@@ -87,6 +89,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     
     try {
       const invoiceData = {
+        customerId: selectedCustomer?.id,
         tableId: posState.selectedTable?.id,
         branchId: authState.selectedBranch?.id || '',
         items: posState.cart.map(item => ({
@@ -162,6 +165,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Order Summary */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Resumen del Pedido</h3>
+            
+            {/* Customer Selector */}
+            <CustomerSelector
+              customers={posState.customers}
+              selectedCustomer={selectedCustomer}
+              onSelect={setSelectedCustomer}
+              onAddCustomer={addCustomer}
+            />
             
             {!posState.selectedTable && (
               <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-4">
@@ -385,6 +396,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           total={finalTotal}
           paymentMethod={paymentMethod}
           change={change}
+          customer={selectedCustomer}
           onClose={handleCloseReceipt}
         />
       )}

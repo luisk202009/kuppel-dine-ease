@@ -23,6 +23,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus>('all');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
+  const [customerFilter, setCustomerFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const { data: orders = [], isLoading, error, refetch } = useInvoices();
@@ -36,6 +37,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
       filtered = filtered.filter(order =>
         order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (order.tableId && order.tableId.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (order.customer && `${order.customer.name} ${order.customer.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (order.items && order.items.some((item: any) => 
           item.product?.name?.toLowerCase().includes(searchQuery.toLowerCase())
         ))
@@ -45,6 +47,13 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Apply customer filter
+    if (customerFilter !== 'all') {
+      filtered = filtered.filter(order => 
+        customerFilter === 'with-customer' ? order.customer : !order.customer
+      );
     }
 
     // Apply time filter
@@ -68,7 +77,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
     }
 
     return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [orders, searchQuery, statusFilter, timeFilter]);
+  }, [orders, searchQuery, statusFilter, timeFilter, customerFilter]);
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
@@ -101,6 +110,11 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
           <div>
             <h3 className="font-semibold text-base">Orden #{order.id.slice(-6)}</h3>
             <p className="text-sm text-muted-foreground">Mesa {order.tableId}</p>
+            {order.customer && (
+              <p className="text-sm font-medium text-primary mt-1">
+                👤 {order.customer.name} {order.customer.lastName}
+              </p>
+            )}
           </div>
           <Badge className={getStatusColor(order.status)}>
             {getStatusText(order.status)}
@@ -140,6 +154,21 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {order.customer && (
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+              <h4 className="font-medium mb-2">Cliente</h4>
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">{order.customer.name} {order.customer.lastName}</p>
+                {order.customer.identification && (
+                  <p className="text-muted-foreground">ID: {order.customer.identification}</p>
+                )}
+                {order.customer.phone && (
+                  <p className="text-muted-foreground">Tel: {order.customer.phone}</p>
+                )}
+              </div>
+            </div>
+          )}
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium">Mesa</p>
@@ -246,7 +275,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -281,6 +310,17 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ className }) => {
                 <SelectItem value="week">Esta semana</SelectItem>
                 <SelectItem value="month">Este mes</SelectItem>
                 <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={customerFilter} onValueChange={setCustomerFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="with-customer">Con cliente</SelectItem>
+                <SelectItem value="no-customer">Sin cliente</SelectItem>
               </SelectContent>
             </Select>
 
