@@ -10,6 +10,7 @@ import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { AreaManager } from '@/components/pos/AreaManager';
+import { TableManager } from '@/components/pos/TableManager';
 
 interface LayoutSettings {
   catalogPosition: 'left' | 'right';
@@ -303,7 +304,18 @@ export const SettingsPanel: React.FC = () => {
                   onCheckedChange={(checked) => handleSettingChange('tablesEnabled', checked)}
                 />
               </div>
-              {!layoutSettings.tablesEnabled && (
+
+              {layoutSettings.tablesEnabled ? (
+                <div className="space-y-4 pt-4 border-t">
+                  <div>
+                    <h4 className="font-medium mb-2">Gestionar Mesas</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Agrega mesas a tus áreas existentes. Las mesas se mostrarán en el POS para gestionar pedidos.
+                    </p>
+                  </div>
+                  <TableManager />
+                </div>
+              ) : (
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">
                     Con el sistema de mesas desactivado, todas las ventas se registrarán como ventas de mostrador.
