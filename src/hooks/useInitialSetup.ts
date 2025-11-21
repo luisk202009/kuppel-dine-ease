@@ -13,6 +13,7 @@ export interface SetupData {
 
 export const useInitialSetup = (companyId: string, branchId: string, userId: string) => {
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   // Validar que los IDs sean UUIDs válidos
   const validateIds = () => {
@@ -34,6 +35,73 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
     }
     
     return true;
+  };
+
+  /**
+   * Genera datos seed según tipo de negocio usando la función RPC
+   */
+  const seedData = async (businessType: string) => {
+    if (!validateIds()) {
+      toast({
+        title: 'Error de configuración',
+        description: 'IDs de empresa o sucursal inválidos. Por favor, reinicia el proceso.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    setIsSeeding(true);
+
+    try {
+      // Actualizar business_type en la company
+      const { error: updateError } = await supabase
+        .from('companies')
+        .update({ business_type: businessType as any })
+        .eq('id', companyId);
+
+      if (updateError) {
+        console.error('Error updating business_type:', updateError);
+        throw new Error(`No se pudo actualizar el tipo de negocio: ${updateError.message}`);
+      }
+
+      // Llamar a la función RPC para generar el seed
+      const { data: rawResult, error: seedError } = await supabase
+        .rpc('seed_default_data_for_business_type', {
+          _company_id: companyId,
+          _branch_id: branchId,
+          _business_type: businessType as any,
+        });
+
+      if (seedError) {
+        console.error('Error seeding data:', seedError);
+        throw new Error(`Error al generar datos iniciales: ${seedError.message}`);
+      }
+
+      // Cast del resultado JSON
+      const seedResult = rawResult as any;
+      console.log('Seed result:', seedResult);
+
+      if (!seedResult?.success) {
+        throw new Error(seedResult?.error || 'Error desconocido al generar datos');
+      }
+
+      toast({
+        title: '¡Datos preparados!',
+        description: `Hemos creado ${seedResult.categories_count || 0} categorías, ${seedResult.products_count || 0} productos y ${seedResult.tables_count || 0} mesas para ti.`,
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error in seedData:', error);
+      toast({
+        title: 'Error al preparar datos',
+        description: error.message || 'No se pudieron generar los datos iniciales',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
   const cleanupPartialSetup = async () => {
@@ -300,8 +368,10 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
   };
 
   return {
+    seedData,
     completeSetup,
     skipSetup,
     isCompleting,
+    isSeeding,
   };
 };

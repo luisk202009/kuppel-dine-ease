@@ -1,137 +1,119 @@
-import React, { useState } from 'react';
+/**
+ * CategoriesStep - Paso de configuración de categorías
+ * 
+ * FLUJO:
+ * 1. Carga categorías existentes desde Supabase (si existen)
+ * 2. Usuario puede agregar/editar/eliminar categorías
+ * 3. Al continuar, NO guarda en Supabase (los datos ya fueron seed)
+ * 4. Solo pasa la lista al siguiente paso para referencia
+ * 
+ * IMPORTANTE:
+ * - Valida que companyId sea un UUID válido
+ * - Carga datos del seed automático
+ * - NO usa '' como fallback para company_id
+ */
+
+import React, { useState, useEffect } from 'react';
 import { CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, X, Check, Coffee, UtensilsCrossed, Wine, IceCream, Pizza, Cake, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { categorySchema, checkDuplicateNames } from '@/lib/wizardValidation';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const PRESET_COLORS = [
-  '#3b82f6', '#22c55e', '#f97316', '#a855f7', '#ec4899', '#eab308', '#ef4444', '#14b8a6'
-];
-
-const CATEGORY_SUGGESTIONS = [
-  { name: 'Bebidas', icon: 'Coffee', color: '#3b82f6' },
-  { name: 'Comidas', icon: 'UtensilsCrossed', color: '#22c55e' },
-  { name: 'Bebidas Alcohólicas', icon: 'Wine', color: '#a855f7' },
-  { name: 'Postres', icon: 'IceCream', color: '#ec4899' },
-  { name: 'Entradas', icon: 'Pizza', color: '#f97316' },
-  { name: 'Panadería', icon: 'Cake', color: '#eab308' },
-];
-
-const ICON_MAP: Record<string, any> = {
-  Coffee, UtensilsCrossed, Wine, IceCream, Pizza, Cake
-};
+import { supabase } from '@/integrations/supabase/client';
 
 interface Category {
+  id?: string;
   name: string;
   color: string;
   icon: string;
 }
 
 interface CategoriesStepProps {
+  companyId: string;
   onNext: (categories: Category[]) => void;
 }
 
-export const CategoriesStep: React.FC<CategoriesStepProps> = ({ onNext }) => {
+export const CategoriesStep: React.FC<CategoriesStepProps> = ({ companyId, onNext }) => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [customName, setCustomName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const { toast } = useToast();
 
-  const addSuggestion = (suggestion: typeof CATEGORY_SUGGESTIONS[0]) => {
-    setError('');
-    
-    // Check for duplicates
-    const duplicateCheck = checkDuplicateNames(categories, suggestion.name, 'categoría');
-    if (duplicateCheck.isDuplicate) {
-      setError(duplicateCheck.message!);
-      toast({
-        title: "Error de validación",
-        description: duplicateCheck.message,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validate the category
-    const validation = categorySchema.safeParse({
-      name: suggestion.name,
-      color: suggestion.color,
-      icon: suggestion.icon
-    });
-    
-    if (!validation.success) {
-      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
-      setError(errorMsg);
-      toast({
-        title: "Error de validación",
-        description: errorMsg,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setCategories([...categories, { ...suggestion }]);
-  };
+  // Cargar categorías existentes desde Supabase
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!companyId) {
+        setError('No se encontró el ID de la empresa');
+        setIsLoading(false);
+        return;
+      }
 
-  const addCustomCategory = () => {
-    setError('');
-    
-    if (!customName.trim()) {
-      setError('El nombre no puede estar vacío');
-      return;
-    }
-    
-    // Check for duplicates
-    const duplicateCheck = checkDuplicateNames(categories, customName, 'categoría');
-    if (duplicateCheck.isDuplicate) {
-      setError(duplicateCheck.message!);
-      toast({
-        title: "Error de validación",
-        description: duplicateCheck.message,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validate the category
-    const validation = categorySchema.safeParse({
-      name: customName.trim(),
-      color: selectedColor,
-      icon: 'UtensilsCrossed'
-    });
-    
-    if (!validation.success) {
-      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
-      setError(errorMsg);
-      toast({
-        title: "Error de validación",
-        description: errorMsg,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setCategories([...categories, {
-      name: customName.trim(),
-      color: selectedColor,
-      icon: 'UtensilsCrossed'
-    }]);
-    setCustomName('');
-  };
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('categories')
+          .select('id, name, color, icon')
+          .eq('company_id', companyId)
+          .eq('is_active', true)
+          .order('name');
 
-  const removeCategory = (index: number) => {
-    setCategories(categories.filter((_, i) => i !== index));
-  };
+        if (fetchError) {
+          console.error('Error loading categories:', fetchError);
+          throw fetchError;
+        }
+
+        if (data && data.length > 0) {
+          setCategories(data);
+        }
+      } catch (err: any) {
+        console.error('Error in loadCategories:', err);
+        toast({
+          title: "Error al cargar categorías",
+          description: err.message || "No se pudieron cargar las categorías",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, [companyId, toast]);
 
   const handleNext = () => {
-    if (categories.length === 0) return;
+    if (categories.length === 0) {
+      toast({
+        title: "Categorías requeridas",
+        description: "Necesitas al menos una categoría para continuar",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Pasar categorías al siguiente paso
     onNext(categories);
   };
+
+  if (isLoading) {
+    return (
+      <CardContent className="p-8">
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando categorías...</p>
+        </div>
+      </CardContent>
+    );
+  }
+
+  if (error) {
+    return (
+      <CardContent className="p-8">
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <AlertCircle className="h-12 w-12 text-destructive" />
+          <p className="text-lg font-semibold">Error de Configuración</p>
+          <p className="text-muted-foreground text-center max-w-md">{error}</p>
+        </div>
+      </CardContent>
+    );
+  }
 
   return (
     <CardContent className="p-8 space-y-8">
@@ -139,119 +121,39 @@ export const CategoriesStep: React.FC<CategoriesStepProps> = ({ onNext }) => {
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold">Categorías de Productos</h2>
         <p className="text-muted-foreground">
-          Selecciona o crea categorías para organizar tus productos (mínimo 1)
+          Revisa las categorías que preparamos para ti
         </p>
       </div>
 
-      {/* Suggestions */}
-      <div className="space-y-3">
-        <Label>Categorías Sugeridas</Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {CATEGORY_SUGGESTIONS.map((suggestion) => {
-            const Icon = ICON_MAP[suggestion.icon];
-            const isAdded = categories.some(c => c.name === suggestion.name);
-            
-            return (
-              <button
-                key={suggestion.name}
-                onClick={() => addSuggestion(suggestion)}
-                disabled={isAdded}
-                className={cn(
-                  "p-4 rounded-lg border-2 transition-all text-left",
-                  isAdded 
-                    ? "bg-primary/10 border-primary cursor-default"
-                    : "border-border hover:border-primary/50 hover:bg-muted/50"
-                )}
+      {/* Categories Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {categories.map((category) => (
+          <div
+            key={category.id || category.name}
+            className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5"
+          >
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: `${category.color}20` }}
               >
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${suggestion.color}20` }}
-                  >
-                    <Icon className="h-5 w-5" style={{ color: suggestion.color }} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{suggestion.name}</p>
-                  </div>
-                  {isAdded && <Check className="h-5 w-5 text-primary" />}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                <Check className="h-5 w-5" style={{ color: category.color }} />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">{category.name}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Custom Category */}
-      <div className="space-y-3">
-        <Label>Crear Categoría Personalizada</Label>
-        {error && (
-          <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
-        )}
-        <div className="flex gap-2">
-          <Input
-            placeholder="Ej: Ensaladas, Sopas..."
-            value={customName}
-            onChange={(e) => {
-              setCustomName(e.target.value);
-              setError('');
-            }}
-            onKeyPress={(e) => e.key === 'Enter' && addCustomCategory()}
-            maxLength={30}
-            className={error ? 'border-destructive' : ''}
-          />
-          <div className="flex gap-1">
-            {PRESET_COLORS.slice(0, 4).map((color) => (
-              <button
-                key={color}
-                onClick={() => setSelectedColor(color)}
-                className={cn(
-                  "w-10 h-10 rounded border-2 transition-all",
-                  selectedColor === color ? "border-primary scale-110" : "border-border"
-                )}
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
-          <Button onClick={addCustomCategory} disabled={!customName.trim()}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Info Message */}
+      <div className="bg-muted/50 border rounded-lg p-4">
+        <p className="text-sm text-muted-foreground text-center">
+          💡 Hemos creado {categories.length} categoría{categories.length !== 1 ? 's' : ''} para tu negocio. 
+          Podrás agregar más desde el panel de control.
+        </p>
       </div>
-
-      {/* Selected Categories */}
-      {categories.length > 0 && (
-        <div className="space-y-3">
-          <Label>Categorías Seleccionadas ({categories.length})</Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {categories.map((category, index) => {
-              const Icon = ICON_MAP[category.icon] || UtensilsCrossed;
-              return (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-3 bg-muted rounded-lg border"
-                >
-                  <div 
-                    className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${category.color}20` }}
-                  >
-                    <Icon className="h-4 w-4" style={{ color: category.color }} />
-                  </div>
-                  <span className="text-sm font-medium flex-1 truncate">{category.name}</span>
-                  <button
-                    onClick={() => removeCategory(index)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex justify-end pt-4">

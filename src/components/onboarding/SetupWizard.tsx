@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { WelcomeStep } from './WelcomeStep';
+import { BusinessTypeStep } from './BusinessTypeStep';
 import { CategoriesStep } from './CategoriesStep';
 import { ProductsStep } from './ProductsStep';
 import { TablesStep } from './TablesStep';
@@ -9,13 +10,15 @@ import { CompanyInfoStep } from './CompanyInfoStep';
 import { useInitialSetup, SetupData } from '@/hooks/useInitialSetup';
 import { usePOS } from '@/contexts/POSContext';
 
-type Step = 'welcome' | 'company-info' | 'categories' | 'products' | 'tables' | 'completion';
+type Step = 'welcome' | 'company-info' | 'business-type' | 'categories' | 'products' | 'tables' | 'completion';
 
 export const SetupWizard: React.FC = () => {
   const { authState } = usePOS();
   const [currentStep, setCurrentStep] = useState<Step>('welcome');
-  const [companyId, setCompanyId] = useState(authState.selectedCompany?.id || '');
-  const [branchId, setBranchId] = useState(authState.selectedBranch?.id || '');
+  // ✅ NO usar '' como fallback - si no hay ID, es undefined
+  const [companyId, setCompanyId] = useState(authState.selectedCompany?.id);
+  const [branchId, setBranchId] = useState(authState.selectedBranch?.id);
+  const [companyName, setCompanyName] = useState('');
   const [setupData, setSetupData] = useState<SetupData>({
     categories: [],
     products: [],
@@ -25,10 +28,9 @@ export const SetupWizard: React.FC = () => {
   });
 
   // Solo inicializar useInitialSetup si tenemos IDs válidos
-  const hasValidIds = companyId && branchId && authState.user?.id;
-  const { completeSetup, skipSetup, isCompleting } = useInitialSetup(
-    companyId,
-    branchId,
+  const { seedData, completeSetup, skipSetup, isCompleting, isSeeding } = useInitialSetup(
+    companyId || '',
+    branchId || '',
     authState.user?.id || ''
   );
 
@@ -36,7 +38,7 @@ export const SetupWizard: React.FC = () => {
     setCurrentStep('company-info');
   };
 
-  const handleCompanyInfoComplete = (newCompanyId: string, newBranchId: string, companyName: string) => {
+  const handleCompanyInfoComplete = (newCompanyId: string, newBranchId: string, name: string) => {
     // Validar que los IDs sean UUIDs válidos antes de continuar
     if (!newCompanyId || !newBranchId) {
       console.error('Company or branch ID is missing');
@@ -47,7 +49,16 @@ export const SetupWizard: React.FC = () => {
     
     setCompanyId(newCompanyId);
     setBranchId(newBranchId);
-    setCurrentStep('categories');
+    setCompanyName(name);
+    setCurrentStep('business-type');
+  };
+
+  const handleBusinessTypeComplete = async (businessType: string) => {
+    // Generar seed según tipo de negocio
+    const success = await seedData(businessType);
+    if (success) {
+      setCurrentStep('categories');
+    }
   };
 
   const handleSkip = async () => {
@@ -71,7 +82,7 @@ export const SetupWizard: React.FC = () => {
   };
 
   const handleFinish = async () => {
-    // Validar que tenemos IDs antes de completar el setup
+    // ✅ Validar que tenemos IDs válidos antes de completar el setup
     if (!companyId || !branchId) {
       console.error('Cannot complete setup: missing company or branch ID');
       return;
@@ -84,7 +95,15 @@ export const SetupWizard: React.FC = () => {
   };
 
   const getStepNumber = () => {
-    const steps = { welcome: 0, 'company-info': 0, categories: 1, products: 2, tables: 3, completion: 4 };
+    const steps = { 
+      welcome: 0, 
+      'company-info': 0, 
+      'business-type': 0,
+      categories: 1, 
+      products: 2, 
+      tables: 3, 
+      completion: 4 
+    };
     return steps[currentStep];
   };
 
@@ -92,7 +111,7 @@ export const SetupWizard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         {/* Progress Bar */}
-        {currentStep !== 'welcome' && currentStep !== 'company-info' && currentStep !== 'completion' && (
+        {currentStep !== 'welcome' && currentStep !== 'company-info' && currentStep !== 'business-type' && currentStep !== 'completion' && (
           <div className="px-8 pt-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">
@@ -123,20 +142,32 @@ export const SetupWizard: React.FC = () => {
           />
         )}
 
-        {currentStep === 'categories' && (
-          <CategoriesStep onNext={handleCategoriesComplete} />
+        {currentStep === 'business-type' && (
+          <BusinessTypeStep
+            onNext={handleBusinessTypeComplete}
+            companyName={companyName}
+          />
         )}
 
-        {currentStep === 'products' && (
+        {currentStep === 'categories' && companyId && branchId && (
+          <CategoriesStep 
+            companyId={companyId}
+            onNext={handleCategoriesComplete} 
+          />
+        )}
+
+        {currentStep === 'products' && companyId && (
           <ProductsStep
+            companyId={companyId}
             categories={setupData.categories}
             onNext={handleProductsComplete}
             onBack={() => setCurrentStep('categories')}
           />
         )}
 
-        {currentStep === 'tables' && (
+        {currentStep === 'tables' && branchId && (
           <TablesStep
+            branchId={branchId}
             onNext={handleTablesComplete}
             onBack={() => setCurrentStep('products')}
           />
