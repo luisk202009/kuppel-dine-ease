@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Users, Clock, CheckCircle2, Plus, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Users, Clock, CheckCircle2, Plus, Pencil, Trash2, MoreVertical, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Area, Table } from '@/types/pos';
 import { usePOS } from '@/contexts/POSContext';
+import { supabase } from '@/integrations/supabase/client';
 import { CreateTableDialog } from './CreateTableDialog';
 import { EditTableDialog } from './EditTableDialog';
 import { DeleteTableDialog } from './DeleteTableDialog';
+import { toast } from '@/hooks/use-toast';
 
 interface TableGridProps {
   area: Area;
@@ -23,6 +25,8 @@ export const TableGrid: React.FC<TableGridProps> = ({ area, onTableClick }) => {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [availableAreas, setAvailableAreas] = useState<{ id: string; name: string }[]>([]);
+  const [draggedTableId, setDraggedTableId] = useState<string | null>(null);
+  const [dragOverTableId, setDragOverTableId] = useState<string | null>(null);
 
   const getStatusColor = (status: Table['status']) => {
     switch (status) {
@@ -102,19 +106,110 @@ export const TableGrid: React.FC<TableGridProps> = ({ area, onTableClick }) => {
 
   const isAdmin = authState.user?.role === 'admin';
 
+  const handleDragStart = (e: React.DragEvent, tableId: string) => {
+    e.stopPropagation();
+    setDraggedTableId(tableId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', tableId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, tableId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTableId(tableId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTableId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetTableId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedTableId || draggedTableId === targetTableId) {
+      setDraggedTableId(null);
+      setDragOverTableId(null);
+      return;
+    }
+
+    const tables = [...area.tables];
+    const draggedIndex = tables.findIndex(t => t.id === draggedTableId);
+    const targetIndex = tables.findIndex(t => t.id === targetTableId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Reorder array
+    const [draggedTable] = tables.splice(draggedIndex, 1);
+    tables.splice(targetIndex, 0, draggedTable);
+
+    // Update display_order in database
+    try {
+      const updates = tables.map((table, index) => ({
+        id: table.id,
+        display_order: index
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('tables')
+          .update({ display_order: update.display_order })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Orden actualizado",
+        description: "El orden de las mesas ha sido actualizado exitosamente"
+      });
+
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error updating table order:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el orden de las mesas",
+        variant: "destructive"
+      });
+    }
+
+    setDraggedTableId(null);
+    setDragOverTableId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTableId(null);
+    setDragOverTableId(null);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {area.tables.map((table) => (
         <Card
           key={table.id}
-          className={`pos-card-interactive ${getStatusColor(table.status)} ${
+          draggable={isAdmin}
+          onDragStart={(e) => isAdmin && handleDragStart(e, table.id)}
+          onDragOver={(e) => isAdmin && handleDragOver(e, table.id)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => isAdmin && handleDrop(e, table.id)}
+          onDragEnd={handleDragEnd}
+          className={`pos-card-interactive transition-all ${getStatusColor(table.status)} ${
             posState.selectedTable?.id === table.id ? 'ring-2 ring-primary' : ''
-          }`}
+          } ${draggedTableId === table.id ? 'opacity-50 scale-95' : ''} ${
+            dragOverTableId === table.id ? 'ring-2 ring-primary/50 scale-105' : ''
+          } ${isAdmin ? 'cursor-move' : ''}`}
           onClick={() => handleTableSelect(table)}
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-lg">{table.name}</h3>
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                )}
+                <h3 className="font-semibold text-lg">{table.name}</h3>
+              </div>
               <div className="flex items-center gap-2">
                 {getStatusIcon(table.status)}
                 {isAdmin && (

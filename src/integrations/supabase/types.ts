@@ -632,6 +632,7 @@ export type Database = {
           created_at: string
           current_order_id: string | null
           customers: number | null
+          display_order: number | null
           id: string
           name: string
           status: Database["public"]["Enums"]["table_status"]
@@ -646,6 +647,7 @@ export type Database = {
           created_at?: string
           current_order_id?: string | null
           customers?: number | null
+          display_order?: number | null
           id?: string
           name: string
           status?: Database["public"]["Enums"]["table_status"]
@@ -660,6 +662,7 @@ export type Database = {
           created_at?: string
           current_order_id?: string | null
           customers?: number | null
+          display_order?: number | null
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["table_status"]

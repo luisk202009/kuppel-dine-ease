@@ -58,6 +58,20 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
     setIsCreating(true);
 
     try {
+      // Get the max display_order for this area to assign next order
+      const { data: existingTables, error: countError } = await supabase
+        .from('tables')
+        .select('display_order')
+        .eq('area_id', areaId)
+        .order('display_order', { ascending: false })
+        .limit(1);
+
+      if (countError) throw countError;
+
+      const nextOrder = existingTables && existingTables.length > 0 
+        ? (existingTables[0].display_order || 0) + 1 
+        : 0;
+
       const { data, error } = await supabase
         .from('tables')
         .insert({
@@ -66,7 +80,8 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
           area_id: areaId || null,
           capacity: capacity,
           branch_id: authState.selectedBranch.id,
-          status: 'available'
+          status: 'available',
+          display_order: nextOrder
         })
         .select()
         .single();
