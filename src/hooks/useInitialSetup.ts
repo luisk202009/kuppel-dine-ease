@@ -15,30 +15,64 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
 
   const cleanupPartialSetup = async () => {
     try {
-      // Delete tables first (foreign key dependency)
-      await supabase
+      console.log('Starting cleanup of partial setup...');
+      
+      // 1. Delete order_items first (references products and orders)
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('branch_id', branchId);
+
+      if (orders && orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        const { error: orderItemsError } = await supabase
+          .from('order_items')
+          .delete()
+          .in('order_id', orderIds);
+        
+        if (orderItemsError) console.error('Error deleting order_items:', orderItemsError);
+      }
+      
+      // 2. Delete orders (references tables, customers, users)
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('branch_id', branchId);
+      
+      if (ordersError) console.error('Error deleting orders:', ordersError);
+      
+      // 3. Delete tables (references areas)
+      const { error: tablesError } = await supabase
         .from('tables')
         .delete()
         .eq('branch_id', branchId);
-
-      // Delete areas
-      await supabase
+      
+      if (tablesError) console.error('Error deleting tables:', tablesError);
+      
+      // 4. Delete areas
+      const { error: areasError } = await supabase
         .from('areas')
         .delete()
         .eq('branch_id', branchId);
-
-      // Delete products
-      await supabase
+      
+      if (areasError) console.error('Error deleting areas:', areasError);
+      
+      // 5. Delete products (now safe, order_items are gone)
+      const { error: productsError } = await supabase
         .from('products')
         .delete()
         .eq('company_id', companyId);
-
-      // Delete categories
-      await supabase
+      
+      if (productsError) console.error('Error deleting products:', productsError);
+      
+      // 6. Delete categories
+      const { error: categoriesError } = await supabase
         .from('categories')
         .delete()
         .eq('company_id', companyId);
-
+      
+      if (categoriesError) console.error('Error deleting categories:', categoriesError);
+      
       console.log('Partial setup cleaned successfully');
     } catch (error) {
       console.error('Error cleaning partial setup:', error);
