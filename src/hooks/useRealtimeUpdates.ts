@@ -8,12 +8,14 @@ type Table = Tables<'tables'>;
 interface UseRealtimeUpdatesProps {
   onNewOrder?: (order: Order) => void;
   onTableStatusChange?: (table: Table, oldStatus: string) => void;
+  onTableCreated?: (table: Table) => void;
   enabled?: boolean;
 }
 
 export const useRealtimeUpdates = ({
   onNewOrder,
   onTableStatusChange,
+  onTableCreated,
   enabled = true
 }: UseRealtimeUpdatesProps) => {
   useEffect(() => {
@@ -40,7 +42,7 @@ export const useRealtimeUpdates = ({
       )
       .subscribe();
 
-    // Subscribe to table status changes
+    // Subscribe to table changes (updates AND inserts)
     const tablesChannel = supabase
       .channel('tables-changes')
       .on(
@@ -60,6 +62,20 @@ export const useRealtimeUpdates = ({
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tables'
+        },
+        (payload) => {
+          console.log('New table created:', payload);
+          if (onTableCreated) {
+            onTableCreated(payload.new as Table);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
@@ -67,5 +83,5 @@ export const useRealtimeUpdates = ({
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(tablesChannel);
     };
-  }, [enabled, onNewOrder, onTableStatusChange]);
+  }, [enabled, onNewOrder, onTableStatusChange, onTableCreated]);
 };
