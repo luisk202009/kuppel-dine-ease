@@ -917,26 +917,17 @@ export type Database = {
         Args: { vote_type: Database["public"]["Enums"]["vote_type"] }
         Returns: Json
       }
-      get_user_branches: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
-      get_user_companies: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
+      get_user_branches: { Args: never; Returns: string[] }
+      get_user_companies: { Args: never; Returns: string[] }
       get_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
       get_user_role_safe: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      get_vote_counts: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_vote_counts: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCategory, Customer, POSSettings } from '@/types/pos';
+import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCategory, Customer, POSSettings, PendingOrder, CartItem } from '@/types/pos';
 import { Company, Branch } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import { useLogin, useLogout, getStoredAuth } from '@/hooks/useAuth';
@@ -28,6 +28,10 @@ interface POSContextType {
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Promise<void>;
   searchProducts: (query: string) => Product[];
   searchCustomers: (query: string) => Customer[];
+  savePendingOrder: (tableId: string, items: CartItem[]) => Promise<void>;
+  loadPendingOrder: (tableId: string) => PendingOrder | null;
+  clearPendingOrder: (tableId: string) => void;
+  getPendingOrdersCount: () => number;
 }
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
@@ -817,6 +821,84 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  // Pending Orders Management
+  const savePendingOrder = async (tableId: string, items: CartItem[]): Promise<void> => {
+    try {
+      const pendingOrder: PendingOrder = {
+        id: `pending-${tableId}-${Date.now()}`,
+        tableId,
+        items,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // Save to localStorage
+      const storedOrders = localStorage.getItem('kuppel_pending_orders');
+      const orders: PendingOrder[] = storedOrders ? JSON.parse(storedOrders) : [];
+      
+      // Remove any existing order for this table
+      const filteredOrders = orders.filter(order => order.tableId !== tableId);
+      filteredOrders.push(pendingOrder);
+      
+      localStorage.setItem('kuppel_pending_orders', JSON.stringify(filteredOrders));
+
+      // Update table status to pending
+      updateTableStatus(tableId, 'pending');
+
+      toast({
+        title: "Cuenta guardada",
+        description: "La cuenta ha sido guardada exitosamente",
+      });
+    } catch (error) {
+      console.error('Error saving pending order:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la cuenta pendiente",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const loadPendingOrder = (tableId: string): PendingOrder | null => {
+    try {
+      const storedOrders = localStorage.getItem('kuppel_pending_orders');
+      if (!storedOrders) return null;
+
+      const orders: PendingOrder[] = JSON.parse(storedOrders);
+      return orders.find(order => order.tableId === tableId) || null;
+    } catch (error) {
+      console.error('Error loading pending order:', error);
+      return null;
+    }
+  };
+
+  const clearPendingOrder = (tableId: string): void => {
+    try {
+      const storedOrders = localStorage.getItem('kuppel_pending_orders');
+      if (!storedOrders) return;
+
+      const orders: PendingOrder[] = JSON.parse(storedOrders);
+      const filteredOrders = orders.filter(order => order.tableId !== tableId);
+      
+      localStorage.setItem('kuppel_pending_orders', JSON.stringify(filteredOrders));
+    } catch (error) {
+      console.error('Error clearing pending order:', error);
+    }
+  };
+
+  const getPendingOrdersCount = (): number => {
+    try {
+      const storedOrders = localStorage.getItem('kuppel_pending_orders');
+      if (!storedOrders) return 0;
+
+      const orders: PendingOrder[] = JSON.parse(storedOrders);
+      return orders.length;
+    } catch (error) {
+      console.error('Error getting pending orders count:', error);
+      return 0;
+    }
+  };
+
   // Check for stored user on mount - simplified since Supabase handles session persistence
   useEffect(() => {
     // Supabase auth listener will handle the session automatically
@@ -842,7 +924,11 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateTableStatus,
       addCustomer,
       searchProducts,
-      searchCustomers
+      searchCustomers,
+      savePendingOrder,
+      loadPendingOrder,
+      clearPendingOrder,
+      getPendingOrdersCount
     }}>
       {children}
     </POSContext.Provider>

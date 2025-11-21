@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
+import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { AreaManager } from '@/components/pos/AreaManager';
 
 interface LayoutSettings {
@@ -18,11 +19,13 @@ interface LayoutSettings {
   touchOptimized: boolean;
   gridColumns: number;
   buttonSize: 'small' | 'medium' | 'large';
+  tablesEnabled: boolean;
 }
 
 export const LayoutConfig: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const { config, updateConfig } = useLayoutConfig();
   const [isOpen, setIsOpen] = useState(false);
   
   const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>({
@@ -31,7 +34,8 @@ export const LayoutConfig: React.FC = () => {
     compactMode: false,
     touchOptimized: true,
     gridColumns: 5,
-    buttonSize: 'medium'
+    buttonSize: 'medium',
+    tablesEnabled: config.tablesEnabled
   });
 
   const handleSettingChange = (key: keyof LayoutSettings, value: any) => {
@@ -45,9 +49,12 @@ export const LayoutConfig: React.FC = () => {
     // Save to localStorage or API
     localStorage.setItem('kuppel-layout-settings', JSON.stringify(layoutSettings));
     
+    // Update layout config for tables enabled
+    updateConfig({ tablesEnabled: layoutSettings.tablesEnabled });
+    
     toast({
       title: "Configuración Guardada",
-      description: "Los cambios se aplicarán en la próxima recarga",
+      description: "Los cambios se aplicarán inmediatamente",
     });
     
     setIsOpen(false);
@@ -60,11 +67,13 @@ export const LayoutConfig: React.FC = () => {
       compactMode: false,
       touchOptimized: true,
       gridColumns: 5,
-      buttonSize: 'medium'
+      buttonSize: 'medium',
+      tablesEnabled: true
     };
     
     setLayoutSettings(defaultSettings);
     localStorage.removeItem('kuppel-layout-settings');
+    updateConfig({ tablesEnabled: true });
     
     toast({
       title: "Configuración Restaurada",
@@ -294,6 +303,34 @@ export const LayoutConfig: React.FC = () => {
                   Configura las áreas de tu establecimiento. Las áreas te permiten organizar las mesas por zonas (jardín, terraza, salón principal, etc.).
                 </p>
                 <AreaManager />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Sistema de Mesas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="tables-enabled">Habilitar gestión de mesas</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Activa o desactiva el sistema de mesas. Si se desactiva, solo se mostrarán ventas de mostrador.
+                    </p>
+                  </div>
+                  <Switch
+                    id="tables-enabled"
+                    checked={layoutSettings.tablesEnabled}
+                    onCheckedChange={(checked) => handleSettingChange('tablesEnabled', checked)}
+                  />
+                </div>
+                {!layoutSettings.tablesEnabled && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Con el sistema de mesas desactivado, todas las ventas se registrarán como ventas de mostrador.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

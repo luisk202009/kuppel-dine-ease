@@ -5,6 +5,7 @@ export interface LayoutConfig {
   compactMode: boolean;
   touchOptimized: boolean;
   showTableNumbers: boolean;
+  tablesEnabled: boolean;
 }
 
 const defaultConfig: LayoutConfig = {
@@ -12,6 +13,7 @@ const defaultConfig: LayoutConfig = {
   compactMode: false,
   touchOptimized: true,
   showTableNumbers: true,
+  tablesEnabled: true,
 };
 
 export const useLayoutConfig = () => {
