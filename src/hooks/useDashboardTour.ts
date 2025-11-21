@@ -82,17 +82,21 @@ export const useDashboardTour = (userId: string | undefined, shouldShow: boolean
       nextBtnText: 'Siguiente →',
       prevBtnText: '← Anterior',
       doneBtnText: '¡Entendido!',
-      showButtons: ['next', 'previous'],
+      showButtons: ['next', 'previous', 'close'],
       popoverClass: 'dashboard-tour-popover',
       onDestroyed: async () => {
+        console.log('🎯 Tour destroyed - completing tour');
         setIsTourActive(false);
         await completeTour();
       },
-      onDestroyStarted: async () => {
+      onNextClick: (element) => {
+        // Si no hay más pasos, destruir el tour
         if (!driverObj.hasNextStep()) {
-          await completeTour();
+          console.log('✅ Last step completed - destroying tour');
+          driverObj.destroy();
+        } else {
+          driverObj.moveNext();
         }
-        return true;
       }
     });
 
