@@ -105,6 +105,13 @@ export type Database = {
             foreignKeyName: "branches_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "company_product_sales_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "branches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "company_usage_stats"
             referencedColumns: ["company_id"]
           },
@@ -450,6 +457,13 @@ export type Database = {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "company_product_sales_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -762,6 +776,13 @@ export type Database = {
             foreignKeyName: "user_companies_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "company_product_sales_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "user_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "company_usage_stats"
             referencedColumns: ["company_id"]
           },
@@ -887,6 +908,19 @@ export type Database = {
           total_orders_month: number | null
           total_sales_month: number | null
           year_month: string | null
+        }
+        Relationships: []
+      }
+      company_product_sales_stats: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          product_id: string | null
+          product_name: string | null
+          total_quantity_last_30d: number | null
+          total_quantity_sold: number | null
+          total_sales_amount: number | null
+          total_sales_last_30d: number | null
         }
         Relationships: []
       }
