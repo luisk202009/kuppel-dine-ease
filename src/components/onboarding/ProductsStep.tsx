@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, X, ChevronLeft } from 'lucide-react';
+import { Plus, X, ChevronLeft, AlertCircle } from 'lucide-react';
+import { productSchema, checkDuplicateNames } from '@/lib/wizardValidation';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   name: string;
@@ -23,12 +25,53 @@ export const ProductsStep: React.FC<ProductsStepProps> = ({ categories, onNext, 
   const [productName, setProductName] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState('0');
+  const [error, setError] = useState('');
+  const { toast } = useToast();
 
   const addProduct = () => {
-    if (!productName.trim() || !productPrice) return;
+    setError('');
+    
+    if (!productName.trim()) {
+      setError('El nombre del producto no puede estar vacío');
+      return;
+    }
+    
+    if (!productPrice) {
+      setError('El precio es requerido');
+      return;
+    }
     
     const price = parseFloat(productPrice);
-    if (isNaN(price) || price <= 0) return;
+    
+    // Check for duplicates
+    const duplicateCheck = checkDuplicateNames(products, productName, 'producto');
+    if (duplicateCheck.isDuplicate) {
+      setError(duplicateCheck.message!);
+      toast({
+        title: "Error de validación",
+        description: duplicateCheck.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate the product
+    const validation = productSchema.safeParse({
+      name: productName.trim(),
+      price,
+      categoryId: selectedCategoryIndex
+    });
+    
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
+      setError(errorMsg);
+      toast({
+        title: "Error de validación",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
 
     setProducts([...products, {
       name: productName.trim(),
@@ -65,6 +108,12 @@ export const ProductsStep: React.FC<ProductsStepProps> = ({ categories, onNext, 
 
       {/* Add Product Form */}
       <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-2">
             <Label htmlFor="product-name">Nombre del Producto</Label>
@@ -72,9 +121,13 @@ export const ProductsStep: React.FC<ProductsStepProps> = ({ categories, onNext, 
               id="product-name"
               placeholder="Ej: Café Americano"
               value={productName}
-              onChange={(e) => setProductName(e.target.value)}
+              onChange={(e) => {
+                setProductName(e.target.value);
+                setError('');
+              }}
               onKeyPress={(e) => e.key === 'Enter' && addProduct()}
               maxLength={50}
+              className={error ? 'border-destructive' : ''}
             />
           </div>
 
@@ -85,10 +138,14 @@ export const ProductsStep: React.FC<ProductsStepProps> = ({ categories, onNext, 
               type="number"
               placeholder="0.00"
               value={productPrice}
-              onChange={(e) => setProductPrice(e.target.value)}
+              onChange={(e) => {
+                setProductPrice(e.target.value);
+                setError('');
+              }}
               onKeyPress={(e) => e.key === 'Enter' && addProduct()}
               min="0"
               step="0.01"
+              className={error ? 'border-destructive' : ''}
             />
           </div>
 

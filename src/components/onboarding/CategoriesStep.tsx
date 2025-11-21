@@ -3,8 +3,10 @@ import { CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, X, Check, Coffee, UtensilsCrossed, Wine, IceCream, Pizza, Cake } from 'lucide-react';
+import { Plus, X, Check, Coffee, UtensilsCrossed, Wine, IceCream, Pizza, Cake, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { categorySchema, checkDuplicateNames } from '@/lib/wizardValidation';
+import { useToast } from '@/hooks/use-toast';
 
 const PRESET_COLORS = [
   '#3b82f6', '#22c55e', '#f97316', '#a855f7', '#ec4899', '#eab308', '#ef4444', '#14b8a6'
@@ -37,16 +39,83 @@ export const CategoriesStep: React.FC<CategoriesStepProps> = ({ onNext }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [customName, setCustomName] = useState('');
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
+  const [error, setError] = useState('');
+  const { toast } = useToast();
 
   const addSuggestion = (suggestion: typeof CATEGORY_SUGGESTIONS[0]) => {
-    if (categories.some(c => c.name === suggestion.name)) return;
+    setError('');
+    
+    // Check for duplicates
+    const duplicateCheck = checkDuplicateNames(categories, suggestion.name, 'categoría');
+    if (duplicateCheck.isDuplicate) {
+      setError(duplicateCheck.message!);
+      toast({
+        title: "Error de validación",
+        description: duplicateCheck.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate the category
+    const validation = categorySchema.safeParse({
+      name: suggestion.name,
+      color: suggestion.color,
+      icon: suggestion.icon
+    });
+    
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
+      setError(errorMsg);
+      toast({
+        title: "Error de validación",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setCategories([...categories, { ...suggestion }]);
   };
 
   const addCustomCategory = () => {
-    if (!customName.trim()) return;
-    if (categories.some(c => c.name.toLowerCase() === customName.toLowerCase())) return;
-
+    setError('');
+    
+    if (!customName.trim()) {
+      setError('El nombre no puede estar vacío');
+      return;
+    }
+    
+    // Check for duplicates
+    const duplicateCheck = checkDuplicateNames(categories, customName, 'categoría');
+    if (duplicateCheck.isDuplicate) {
+      setError(duplicateCheck.message!);
+      toast({
+        title: "Error de validación",
+        description: duplicateCheck.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate the category
+    const validation = categorySchema.safeParse({
+      name: customName.trim(),
+      color: selectedColor,
+      icon: 'UtensilsCrossed'
+    });
+    
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
+      setError(errorMsg);
+      toast({
+        title: "Error de validación",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setCategories([...categories, {
       name: customName.trim(),
       color: selectedColor,
@@ -115,13 +184,23 @@ export const CategoriesStep: React.FC<CategoriesStepProps> = ({ onNext }) => {
       {/* Custom Category */}
       <div className="space-y-3">
         <Label>Crear Categoría Personalizada</Label>
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
         <div className="flex gap-2">
           <Input
             placeholder="Ej: Ensaladas, Sopas..."
             value={customName}
-            onChange={(e) => setCustomName(e.target.value)}
+            onChange={(e) => {
+              setCustomName(e.target.value);
+              setError('');
+            }}
             onKeyPress={(e) => e.key === 'Enter' && addCustomCategory()}
             maxLength={30}
+            className={error ? 'border-destructive' : ''}
           />
           <div className="flex gap-1">
             {PRESET_COLORS.slice(0, 4).map((color) => (

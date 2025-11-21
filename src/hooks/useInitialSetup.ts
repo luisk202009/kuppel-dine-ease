@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { validateSetupData } from '@/lib/wizardValidation';
 
 export interface SetupData {
   categories: Array<{ name: string; color: string; icon: string }>;
@@ -83,6 +84,23 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
   const completeSetup = async (setupData: SetupData) => {
     setIsCompleting(true);
     try {
+      // Validate all setup data before saving
+      console.log('Validating setup data...');
+      const validation = validateSetupData(setupData);
+      
+      if (!validation.success) {
+        console.error('Validation errors:', validation.errors);
+        const errorMessages = validation.errors?.map(e => e.message).join(', ') || 'Error de validación';
+        toast({
+          title: 'Error de validación',
+          description: errorMessages,
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      console.log('Setup data validated successfully');
+      
       // Verificar si hay datos parciales de un intento anterior
       const { data: existingCategories } = await supabase
         .from('categories')

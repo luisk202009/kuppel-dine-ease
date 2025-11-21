@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, X, ChevronLeft, MapPin } from 'lucide-react';
+import { Plus, X, ChevronLeft, MapPin, AlertCircle } from 'lucide-react';
+import { areaSchema, tableSchema, checkDuplicateNames } from '@/lib/wizardValidation';
+import { useToast } from '@/hooks/use-toast';
 
 interface Area {
   name: string;
@@ -35,9 +37,47 @@ export const TablesStep: React.FC<TablesStepProps> = ({ onNext, onBack }) => {
   const [tableName, setTableName] = useState('');
   const [tableCapacity, setTableCapacity] = useState('4');
   const [selectedAreaIndex, setSelectedAreaIndex] = useState('0');
+  const [areaError, setAreaError] = useState('');
+  const [tableError, setTableError] = useState('');
+  const { toast } = useToast();
 
   const addArea = (name: string) => {
-    if (!name.trim() || areas.some(a => a.name === name)) return;
+    setAreaError('');
+    
+    if (!name.trim()) {
+      setAreaError('El nombre del área no puede estar vacío');
+      return;
+    }
+    
+    // Check for duplicates
+    const duplicateCheck = checkDuplicateNames(areas, name, 'área');
+    if (duplicateCheck.isDuplicate) {
+      setAreaError(duplicateCheck.message!);
+      toast({
+        title: "Error de validación",
+        description: duplicateCheck.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate the area
+    const validation = areaSchema.safeParse({
+      name: name.trim(),
+      color: selectedColor
+    });
+    
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
+      setAreaError(errorMsg);
+      toast({
+        title: "Error de validación",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setAreas([...areas, { name: name.trim(), color: selectedColor }]);
     setAreaName('');
   };
@@ -48,9 +88,49 @@ export const TablesStep: React.FC<TablesStepProps> = ({ onNext, onBack }) => {
   };
 
   const addTable = () => {
-    if (!tableName.trim() || areas.length === 0) return;
+    setTableError('');
+    
+    if (!tableName.trim()) {
+      setTableError('El nombre de la mesa no puede estar vacío');
+      return;
+    }
+    
+    if (areas.length === 0) {
+      setTableError('Debe crear al menos un área primero');
+      return;
+    }
+    
     const capacity = parseInt(tableCapacity);
-    if (isNaN(capacity) || capacity < 1) return;
+    
+    // Check for duplicates
+    const duplicateCheck = checkDuplicateNames(tables, tableName, 'mesa');
+    if (duplicateCheck.isDuplicate) {
+      setTableError(duplicateCheck.message!);
+      toast({
+        title: "Error de validación",
+        description: duplicateCheck.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate the table
+    const validation = tableSchema.safeParse({
+      name: tableName.trim(),
+      capacity,
+      areaId: selectedAreaIndex
+    });
+    
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0]?.message || 'Error de validación';
+      setTableError(errorMsg);
+      toast({
+        title: "Error de validación",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
 
     setTables([...tables, {
       name: tableName.trim(),
@@ -130,13 +210,23 @@ export const TablesStep: React.FC<TablesStepProps> = ({ onNext, onBack }) => {
             </div>
 
             {/* Add Custom Area */}
+            {areaError && (
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+                <AlertCircle className="h-4 w-4" />
+                <span>{areaError}</span>
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 placeholder="Nombre del área"
                 value={areaName}
-                onChange={(e) => setAreaName(e.target.value)}
+                onChange={(e) => {
+                  setAreaName(e.target.value);
+                  setAreaError('');
+                }}
                 onKeyPress={(e) => e.key === 'Enter' && addArea(areaName)}
                 maxLength={30}
+                className={areaError ? 'border-destructive' : ''}
               />
               <div className="flex gap-1">
                 {PRESET_COLORS.slice(0, 3).map((color) => (
@@ -178,20 +268,34 @@ export const TablesStep: React.FC<TablesStepProps> = ({ onNext, onBack }) => {
               </div>
 
               {/* Add Table */}
+              {tableError && (
+                <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg text-sm col-span-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{tableError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-2">
                 <Input
                   placeholder="Mesa 1"
                   value={tableName}
-                  onChange={(e) => setTableName(e.target.value)}
+                  onChange={(e) => {
+                    setTableName(e.target.value);
+                    setTableError('');
+                  }}
                   onKeyPress={(e) => e.key === 'Enter' && addTable()}
+                  className={tableError ? 'border-destructive' : ''}
                 />
                 <Input
                   type="number"
                   placeholder="Capacidad"
                   value={tableCapacity}
-                  onChange={(e) => setTableCapacity(e.target.value)}
+                  onChange={(e) => {
+                    setTableCapacity(e.target.value);
+                    setTableError('');
+                  }}
                   min="1"
                   max="20"
+                  className={tableError ? 'border-destructive' : ''}
                 />
                 <select
                   value={selectedAreaIndex}
