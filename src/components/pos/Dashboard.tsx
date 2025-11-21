@@ -35,11 +35,6 @@ export const Dashboard: React.FC = () => {
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
   const [showTourPrompt, setShowTourPrompt] = useState(false);
 
-  // Show setup wizard if needed
-  if (authState.needsInitialSetup) {
-    return <SetupWizard />;
-  }
-
   // Check if tour should be shown after setup
   useEffect(() => {
     if (!authState.needsInitialSetup && !authState.tourCompleted && !showTourPrompt) {
