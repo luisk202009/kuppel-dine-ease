@@ -131,6 +131,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  needsInitialSetup?: boolean;
 }
 
 export interface POSState {

@@ -20,6 +20,7 @@ import { TableGrid } from './TableGrid';
 import { ShoppingCart } from './ShoppingCart';
 import { ProductManager } from './ProductManager';
 import { Table } from '@/types/pos';
+import { SetupWizard } from '../onboarding/SetupWizard';
 
 type ViewMode = 'table-list' | 'table-products' | 'products';
 
@@ -30,6 +31,11 @@ export const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
+
+  // Show setup wizard if needed
+  if (authState.needsInitialSetup) {
+    return <SetupWizard />;
+  }
   
   // Notifications setup
   const { showNotification, requestPermission, isGranted, isSupported } = useNotifications();

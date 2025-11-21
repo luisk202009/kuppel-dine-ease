@@ -15,6 +15,7 @@ interface POSContextType {
     selectedCompany: Company | null;
     selectedBranch: Branch | null;
     needsCompanySelection: boolean;
+    needsInitialSetup: boolean;
   };
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -200,6 +201,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     selectedCompany: Company | null;
     selectedBranch: Branch | null;
     needsCompanySelection: boolean;
+    needsInitialSetup: boolean;
   }>({
     user: null,
     isAuthenticated: false,
@@ -209,6 +211,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     selectedCompany: null,
     selectedBranch: null,
     needsCompanySelection: false,
+    needsInitialSetup: false,
   });
 
   // Set up Supabase auth listener
@@ -256,6 +259,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             selectedCompany: null,
             selectedBranch: null,
             needsCompanySelection: false,
+            needsInitialSetup: false,
           });
         }
       }
@@ -375,6 +379,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
          selectedBranch: stored.selectedBranch,
          isAuthenticated: !needsSelection || (stored.selectedCompany && stored.selectedBranch) || companies.length === 0,
          needsCompanySelection: needsSelection && !(stored.selectedCompany && stored.selectedBranch),
+         needsInitialSetup: profile?.setup_completed === false,
          isLoading: false,
        });
 
@@ -718,6 +723,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       selectedBranch: branch,
       isAuthenticated: true,
       needsCompanySelection: false,
+      needsInitialSetup: prev.needsInitialSetup
     }));
   };
 
