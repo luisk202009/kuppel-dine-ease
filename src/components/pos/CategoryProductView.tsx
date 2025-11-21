@@ -20,10 +20,21 @@ export const CategoryProductView: React.FC = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 CategoryProductView - authState:', {
+      selectedCompany: authState.selectedCompany,
+      selectedCompanyId: authState.selectedCompany?.id,
+      user: authState.user?.id
+    });
+  }, [authState]);
+
   // Fetch categories
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ['categories', authState.selectedCompany?.id],
     queryFn: async () => {
+      console.log('📦 Fetching categories for company:', authState.selectedCompany?.id);
+      
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -31,10 +42,17 @@ export const CategoryProductView: React.FC = () => {
         .eq('is_active', true)
         .order('name');
       
-      if (error) throw error;
+      console.log('📦 Categories fetched:', { count: data?.length, error });
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
       return data || [];
     },
-    enabled: !!authState.selectedCompany?.id
+    enabled: !!authState.selectedCompany?.id,
+    retry: 1,
+    staleTime: 30 * 1000, // 30 seconds
   });
 
   // Fetch products
@@ -99,17 +117,27 @@ export const CategoryProductView: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
-  if (categories.length === 0 && !isLoading) {
+  if (categories.length === 0 && !isLoadingCategories) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Package className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Aún no tienes categorías configuradas.</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          {authState.selectedCompany 
+            ? "Aún no tienes categorías configuradas."
+            : "Selecciona una empresa para continuar"
+          }
+        </h3>
         <p className="text-muted-foreground mb-4">
-          Configura categorías y productos para comenzar a vender
+          {authState.selectedCompany
+            ? "Configura categorías y productos para comenzar a vender"
+            : "Debes tener una empresa seleccionada para ver productos"
+          }
         </p>
-        <Button onClick={() => navigate('/settings')}>
-          Ir a Configuración de productos
-        </Button>
+        {authState.selectedCompany && (
+          <Button onClick={() => navigate('/settings?section=products')}>
+            Ir a Configuración de productos
+          </Button>
+        )}
       </div>
     );
   }
