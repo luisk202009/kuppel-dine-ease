@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Building2, ArrowRight, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { usePOS } from '@/contexts/POSContext';
 
 interface CompanyInfoStepProps {
   onNext: (companyId: string, branchId: string, companyName: string) => void;
@@ -14,6 +15,7 @@ interface CompanyInfoStepProps {
 
 export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId }) => {
   const { toast } = useToast();
+  const { selectCompanyAndBranch } = usePOS();
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -70,12 +72,19 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
           phone: formData.phone || null,
           address: formData.address || null,
           is_active: true,
-          owner_id: userId, // ✅ Asignar ownership al usuario actual
+          owner_id: userId,
         })
         .select()
         .single();
 
-      if (companyError) throw companyError;
+      if (companyError) {
+        console.error('Error creating company:', companyError);
+        throw new Error(`No se pudo crear la empresa: ${companyError.message}`);
+      }
+
+      if (!company || !company.id) {
+        throw new Error('No se recibió el ID de la empresa creada');
+      }
 
       // 2. Asignar el usuario a la compañía (sin branch_id todavía)
       const { error: userCompanyError } = await supabase
@@ -83,12 +92,15 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
         .insert({
           user_id: userId,
           company_id: company.id,
-          branch_id: null, // Se actualizará después
+          branch_id: null,
         });
 
-      if (userCompanyError) throw userCompanyError;
+      if (userCompanyError) {
+        console.error('Error creating user_companies:', userCompanyError);
+        throw new Error(`No se pudo asociar el usuario a la empresa: ${userCompanyError.message}`);
+      }
 
-      // 3. Ahora crear la sucursal principal (RLS pasará porque user_companies ya existe)
+      // 3. Crear la sucursal principal
       const { data: branch, error: branchError } = await supabase
         .from('branches')
         .insert({
@@ -101,23 +113,49 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
         .select()
         .single();
 
-      if (branchError) throw branchError;
+      if (branchError) {
+        console.error('Error creating branch:', branchError);
+        throw new Error(`No se pudo crear la sucursal: ${branchError.message}`);
+      }
 
-      // 4. Actualizar la asociación user_companies con el branch_id
+      if (!branch || !branch.id) {
+        throw new Error('No se recibió el ID de la sucursal creada');
+      }
+
+      // 4. Actualizar user_companies con el branch_id
       const { error: updateError } = await supabase
         .from('user_companies')
         .update({ branch_id: branch.id })
         .eq('user_id', userId)
         .eq('company_id', company.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating user_companies with branch_id:', updateError);
+        // No bloqueamos aquí, ya que la branch se creó correctamente
+      }
+
+      // 5. Actualizar el estado global inmediatamente
+      selectCompanyAndBranch(
+        {
+          id: company.id,
+          name: company.name,
+          address: company.address || '',
+          phone: company.phone || '',
+        },
+        {
+          id: branch.id,
+          name: branch.name,
+          address: branch.address || '',
+          companyId: company.id,
+        }
+      );
 
       toast({
         title: "¡Empresa creada!",
         description: `${formData.companyName} ha sido creada exitosamente`,
       });
 
-      // Pasar al siguiente paso
+      // 6. Pasar al siguiente paso con IDs válidos
       onNext(company.id, branch.id, company.name);
 
     } catch (error: any) {
