@@ -57,10 +57,13 @@ interface CompanyUsageStats {
   categories_count: number;
   users_count: number;
   last_order_at: string | null;
+  days_since_last_order: number | null;
+  activity_status: 'new' | 'active' | 'cooling' | 'at_risk' | 'churned';
 }
 
 type SortOption = 'name' | 'sales_30d' | 'products' | 'last_order';
 type FilterOption = 'all' | 'with_sales' | 'no_sales';
+type ActivityFilterOption = 'all' | 'active' | 'at_risk' | 'inactive' | 'new';
 
 export const AdminCompaniesTab: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -77,6 +80,7 @@ export const AdminCompaniesTab: React.FC = () => {
   const [selectedCompanyUsage, setSelectedCompanyUsage] = useState<CompanyUsageStats | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('name');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
+  const [activityFilter, setActivityFilter] = useState<ActivityFilterOption>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -111,7 +115,29 @@ export const AdminCompaniesTab: React.FC = () => {
       });
     }
 
-    // 3. Aplicar ordenación
+    // 3. Aplicar filtro por estado de actividad
+    if (activityFilter !== 'all') {
+      filtered = filtered.filter((company) => {
+        const stats = usageStats.get(company.id);
+        if (!stats) return false;
+
+        if (activityFilter === 'active') {
+          return stats.activity_status === 'active';
+        }
+        if (activityFilter === 'at_risk') {
+          return stats.activity_status === 'at_risk' || stats.activity_status === 'cooling';
+        }
+        if (activityFilter === 'inactive') {
+          return stats.activity_status === 'churned';
+        }
+        if (activityFilter === 'new') {
+          return stats.activity_status === 'new';
+        }
+        return true;
+      });
+    }
+
+    // 4. Aplicar ordenación
     filtered.sort((a, b) => {
       const statsA = usageStats.get(a.id);
       const statsB = usageStats.get(b.id);
@@ -133,7 +159,7 @@ export const AdminCompaniesTab: React.FC = () => {
     });
 
     setFilteredCompanies(filtered);
-  }, [searchQuery, companies, usageStats, sortOption, filterOption]);
+  }, [searchQuery, companies, usageStats, sortOption, filterOption, activityFilter]);
 
   const fetchCompanies = async () => {
     try {
@@ -161,7 +187,7 @@ export const AdminCompaniesTab: React.FC = () => {
 
         const statsMap = new Map<string, CompanyUsageStats>();
         statsData?.forEach((stat) => {
-          statsMap.set(stat.company_id, stat);
+          statsMap.set(stat.company_id, stat as CompanyUsageStats);
         });
         setUsageStats(statsMap);
       } catch (statsErr) {
@@ -274,6 +300,44 @@ export const AdminCompaniesTab: React.FC = () => {
     return { value: growth, label: `${growth > 0 ? '+' : ''}${growth.toFixed(1)}%`, isNew: false };
   };
 
+  const getActivityStatusBadge = (status: 'new' | 'active' | 'cooling' | 'at_risk' | 'churned', daysAgo: number | null) => {
+    let badgeElement;
+    let badgeText;
+
+    switch (status) {
+      case 'new':
+        badgeElement = <Badge variant="default" className="bg-blue-500">Nuevo</Badge>;
+        badgeText = 'Sin ventas aún';
+        break;
+      case 'active':
+        badgeElement = <Badge variant="default" className="bg-green-500">Activo</Badge>;
+        badgeText = daysAgo !== null ? `Hace ${daysAgo}d` : '';
+        break;
+      case 'cooling':
+        badgeElement = <Badge variant="default" className="bg-yellow-500">Enfriando</Badge>;
+        badgeText = daysAgo !== null ? `Hace ${daysAgo}d` : '';
+        break;
+      case 'at_risk':
+        badgeElement = <Badge variant="destructive">En riesgo</Badge>;
+        badgeText = daysAgo !== null ? `Hace ${daysAgo}d` : '';
+        break;
+      case 'churned':
+        badgeElement = <Badge variant="secondary">Inactivo</Badge>;
+        badgeText = daysAgo !== null ? `Hace ${daysAgo}d` : '';
+        break;
+      default:
+        badgeElement = <Badge variant="secondary">{status}</Badge>;
+        badgeText = '';
+    }
+
+    return (
+      <div className="flex flex-col space-y-1">
+        {badgeElement}
+        {badgeText && <span className="text-xs text-muted-foreground">{badgeText}</span>}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -330,6 +394,19 @@ export const AdminCompaniesTab: React.FC = () => {
                 <option value="no_sales">Sin ventas aún</option>
               </select>
 
+              {/* Filtro de estado de actividad */}
+              <select
+                value={activityFilter}
+                onChange={(e) => setActivityFilter(e.target.value as ActivityFilterOption)}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="at_risk">En riesgo</option>
+                <option value="inactive">Inactivos</option>
+                <option value="new">Nuevos</option>
+              </select>
+
               {/* Ordenación */}
               <select
                 value={sortOption}
@@ -351,12 +428,12 @@ export const AdminCompaniesTab: React.FC = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Tipo de Negocio</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead>Ventas 30d</TableHead>
                   <TableHead>Órdenes 30d</TableHead>
                   <TableHead>Crec. 30d</TableHead>
                   <TableHead>Productos</TableHead>
                   <TableHead>Usuarios</TableHead>
-                  <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -378,6 +455,9 @@ export const AdminCompaniesTab: React.FC = () => {
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">{company.name}</TableCell>
                         <TableCell>{getBusinessTypeLabel(company.business_type)}</TableCell>
+                        <TableCell>
+                          {stats ? getActivityStatusBadge(stats.activity_status, stats.days_since_last_order) : '–'}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {stats ? formatCurrency(stats.total_sales_last_30d) : '–'}
                         </TableCell>
@@ -400,11 +480,6 @@ export const AdminCompaniesTab: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {stats?.users_count ?? '–'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={company.is_active ? 'default' : 'secondary'}>
-                            {company.is_active ? 'Activa' : 'Inactiva'}
-                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Button
