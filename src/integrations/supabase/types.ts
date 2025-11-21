@@ -98,6 +98,13 @@ export type Database = {
             foreignKeyName: "branches_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "company_monthly_sales_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "branches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "company_usage_stats"
             referencedColumns: ["company_id"]
           },
@@ -748,6 +755,13 @@ export type Database = {
             foreignKeyName: "user_companies_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "company_monthly_sales_stats"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "user_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "company_usage_stats"
             referencedColumns: ["company_id"]
           },
@@ -865,6 +879,17 @@ export type Database = {
       }
     }
     Views: {
+      company_monthly_sales_stats: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          month_label: string | null
+          total_orders_month: number | null
+          total_sales_month: number | null
+          year_month: string | null
+        }
+        Relationships: []
+      }
       company_usage_stats: {
         Row: {
           business_type: Database["public"]["Enums"]["business_type"] | null
@@ -877,8 +902,10 @@ export type Database = {
           products_count: number | null
           total_orders: number | null
           total_orders_last_30d: number | null
+          total_orders_prev_30d: number | null
           total_sales_amount: number | null
           total_sales_last_30d: number | null
+          total_sales_prev_30d: number | null
           users_count: number | null
         }
         Relationships: []

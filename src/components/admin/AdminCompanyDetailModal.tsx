@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, MapPin, Users, TrendingUp, ShoppingCart, Package } from 'lucide-react';
+import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
 
 interface Branch {
   id: string;
@@ -44,10 +47,19 @@ interface CompanyUsageStats {
   total_sales_amount: number;
   total_orders_last_30d: number;
   total_sales_last_30d: number;
+  total_orders_prev_30d: number;
+  total_sales_prev_30d: number;
   products_count: number;
   categories_count: number;
   users_count: number;
   last_order_at: string | null;
+}
+
+interface MonthlySalesData {
+  year_month: string;
+  month_label: string;
+  total_orders_month: number;
+  total_sales_month: number;
 }
 
 interface AdminCompanyDetailModalProps {
@@ -69,6 +81,55 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   onClose,
   isLoading = false,
 }) => {
+  const [monthlySales, setMonthlySales] = useState<MonthlySalesData[]>([]);
+  const [isLoadingChart, setIsLoadingChart] = useState(false);
+  const { toast } = useToast();
+
+  // Cargar datos mensuales cuando se abre el modal
+  useEffect(() => {
+    if (open && company) {
+      fetchMonthlySales();
+    }
+  }, [open, company]);
+
+  const fetchMonthlySales = async () => {
+    if (!company) return;
+
+    try {
+      setIsLoadingChart(true);
+      const { data, error } = await supabase
+        .from('company_monthly_sales_stats')
+        .select('*')
+        .eq('company_id', company.id)
+        .order('year_month', { ascending: true });
+
+      if (error) throw error;
+
+      // Limitar a los últimos 6 meses
+      const last6Months = (data || []).slice(-6);
+      setMonthlySales(last6Months);
+    } catch (error) {
+      console.error('Error fetching monthly sales:', error);
+      toast({
+        title: 'Error al cargar tendencia',
+        description: 'No se pudo cargar la tendencia de ventas.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingChart(false);
+    }
+  };
+
+  // Calcular % de crecimiento
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) {
+      if (current === 0) return { value: 0, isPositive: false, isNew: false };
+      return { value: 100, isPositive: true, isNew: true };
+    }
+    const growth = ((current - previous) / previous) * 100;
+    return { value: Math.abs(growth), isPositive: growth >= 0, isNew: false };
+  };
+
   if (!company) return null;
 
   const getRoleLabel = (role: string) => {
@@ -109,7 +170,7 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Usage Summary */}
+          {/* Usage Summary con comparación de períodos */}
           {usage && (
             <Card>
               <CardHeader>
@@ -143,7 +204,22 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
                       <TrendingUp className="h-4 w-4" />
                       <span>Ventas (30 días)</span>
                     </div>
-                    <p className="text-2xl font-bold">{formatCurrency(usage.total_sales_last_30d)}</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-2xl font-bold">{formatCurrency(usage.total_sales_last_30d)}</p>
+                      {(() => {
+                        const growth = calculateGrowth(usage.total_sales_last_30d, usage.total_sales_prev_30d);
+                        if (growth.isNew) {
+                          return <Badge variant="default" className="text-xs">Nuevo</Badge>;
+                        }
+                        if (growth.value === 0) return null;
+                        return (
+                          <div className={`flex items-center space-x-1 text-sm font-medium ${growth.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                            {growth.isPositive ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                            <span>{growth.value.toFixed(1)}%</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
                 {usage.last_order_at && (
@@ -157,6 +233,53 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-sm text-muted-foreground">Sin ventas registradas</p>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Gráfico de tendencia de ventas (últimos 6 meses) */}
+          {usage && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tendencia de Ventas (Últimos 6 Meses)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingChart ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm">Cargando gráfico...</p>
+                  </div>
+                ) : monthlySales.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm">No hay datos de ventas mensuales disponibles</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={monthlySales}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="month_label" 
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        tickFormatter={(value) => formatCurrency(value)}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => formatCurrency(value)}
+                        labelStyle={{ color: '#000' }}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="total_sales_month" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        name="Ventas"
+                        dot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 )}
               </CardContent>
             </Card>
