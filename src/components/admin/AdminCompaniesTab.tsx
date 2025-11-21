@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Search, Building2, ExternalLink, MapPin, Users } from 'lucide-react';
+import { Search, Building2, ExternalLink } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AdminCompanyDetailModal } from './AdminCompanyDetailModal';
 
 interface Company {
   id: string;
@@ -18,6 +18,7 @@ interface Company {
   tax_id: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
   is_active: boolean;
   created_at: string;
   owner_id: string | null;
@@ -48,6 +49,7 @@ export const AdminCompaniesTab: React.FC = () => {
   const [companyBranches, setCompanyBranches] = useState<Branch[]>([]);
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -106,6 +108,7 @@ export const AdminCompaniesTab: React.FC = () => {
 
   const fetchCompanyDetail = async (company: Company) => {
     setSelectedCompany(company);
+    setIsModalOpen(true);
     setIsLoadingDetail(true);
 
     try {
@@ -148,6 +151,13 @@ export const AdminCompaniesTab: React.FC = () => {
     } finally {
       setIsLoadingDetail(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCompany(null);
+    setCompanyBranches([]);
+    setCompanyUsers([]);
   };
 
   const getRoleLabel = (role: string) => {
@@ -260,143 +270,15 @@ export const AdminCompaniesTab: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Company Detail Panel */}
-      {selectedCompany && (
-        <Card className="border-primary">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">{selectedCompany.name}</CardTitle>
-                <CardDescription className="mt-1">
-                  {getBusinessTypeLabel(selectedCompany.business_type)} • Creada el {format(new Date(selectedCompany.created_at), 'PP', { locale: es })}
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedCompany(null)}>
-                Cerrar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {isLoadingDetail ? (
-              <div className="text-center text-muted-foreground py-8">
-                Cargando detalles...
-              </div>
-            ) : (
-              <>
-                {/* Basic Info */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Información General</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">ID</p>
-                      <p className="text-sm font-mono">{selectedCompany.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">NIT/ID Tributario</p>
-                      <p className="text-sm">{selectedCompany.tax_id || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Email</p>
-                      <p className="text-sm">{selectedCompany.email || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Teléfono</p>
-                      <p className="text-sm">{selectedCompany.phone || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Estado</p>
-                      <Badge variant={selectedCompany.is_active ? 'default' : 'secondary'}>
-                        {selectedCompany.is_active ? 'Activa' : 'Inactiva'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Branches Section */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">Sucursales</h3>
-                    <Badge variant="secondary">{companyBranches.length}</Badge>
-                  </div>
-                  {companyBranches.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay sucursales registradas</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {companyBranches.map((branch) => (
-                        <div
-                          key={branch.id}
-                          className="border rounded-lg p-3 bg-muted/50"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{branch.name}</p>
-                              {branch.address && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {branch.address}
-                                </p>
-                              )}
-                              {branch.phone && (
-                                <p className="text-sm text-muted-foreground">
-                                  Tel: {branch.phone}
-                                </p>
-                              )}
-                            </div>
-                            <Badge variant={branch.is_active ? 'default' : 'secondary'}>
-                              {branch.is_active ? 'Activa' : 'Inactiva'}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Users Section */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">Usuarios Asociados</h3>
-                    <Badge variant="secondary">{companyUsers.length}</Badge>
-                  </div>
-                  {companyUsers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay usuarios asociados</p>
-                  ) : (
-                    <div className="border rounded-lg overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Rol</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {companyUsers.map((user) => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.email}</TableCell>
-                              <TableCell>{user.name}</TableCell>
-                              <TableCell>
-                                <Badge variant="secondary">
-                                  {getRoleLabel(user.role)}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Company Detail Modal */}
+      <AdminCompanyDetailModal
+        company={selectedCompany}
+        branches={companyBranches}
+        users={companyUsers}
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        isLoading={isLoadingDetail}
+      />
     </div>
   );
 };
