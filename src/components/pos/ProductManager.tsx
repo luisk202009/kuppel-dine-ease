@@ -211,10 +211,7 @@ export const ProductManager: React.FC = () => {
       isAlcoholic: product.is_alcoholic
     }, 1);
 
-    toast({
-      title: "Producto agregado",
-      description: `${product.name} agregado al carrito`
-    });
+    // Visual feedback in cart is sufficient, no toast needed
   };
 
   const filteredProducts = products.filter(product =>

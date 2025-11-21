@@ -102,10 +102,7 @@ export const CategoryProductView: React.FC = () => {
       isAlcoholic: product.is_alcoholic
     }, 1);
 
-    toast({
-      title: "Producto agregado",
-      description: `${product.name} agregado al carrito`
-    });
+    // Visual feedback in cart is sufficient, no toast needed
   };
 
   // Filter products by selected category and search query
