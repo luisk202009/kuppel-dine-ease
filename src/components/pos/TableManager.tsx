@@ -22,7 +22,10 @@ export const TableManager: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const loadAreas = async () => {
-    if (!authState.selectedBranch) return;
+    if (!authState.selectedBranch) {
+      console.log('No branch selected, skipping area load');
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -33,7 +36,10 @@ export const TableManager: React.FC = () => {
         .eq('is_active', true)
         .order('display_order');
 
-      if (areasError) throw areasError;
+      if (areasError) {
+        console.error('Error loading areas:', areasError);
+        throw areasError;
+      }
 
       // Get table counts for each area
       const areasWithCount = await Promise.all(
@@ -53,11 +59,20 @@ export const TableManager: React.FC = () => {
       );
 
       setAreas(areasWithCount);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading areas:', error);
+      
+      let errorMessage = "No se pudieron cargar las áreas.";
+      
+      if (error.code === '42501') {
+        errorMessage = "No tienes permisos para ver las áreas. Asegúrate de haber completado la configuración inicial.";
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudieron cargar las áreas",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
