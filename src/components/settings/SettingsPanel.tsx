@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { AreaManager } from '@/components/pos/AreaManager';
 import { TableManager } from '@/components/pos/TableManager';
+import { CompanyAndPlanSettings } from './CompanyAndPlanSettings';
 
 interface LayoutSettings {
   catalogPosition: 'left' | 'right';
@@ -85,13 +86,18 @@ export const SettingsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="layout" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="company" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="company">Empresa</TabsTrigger>
           <TabsTrigger value="layout">Diseño</TabsTrigger>
           <TabsTrigger value="display">Pantalla</TabsTrigger>
           <TabsTrigger value="touch">Táctil</TabsTrigger>
           <TabsTrigger value="admin">Administración</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="company" className="space-y-6 mt-6">
+          <CompanyAndPlanSettings />
+        </TabsContent>
 
         <TabsContent value="layout" className="space-y-6 mt-6">
           <Card>
