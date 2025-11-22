@@ -133,6 +133,17 @@ export const AreaManager: React.FC = () => {
   };
 
   const executeCreateArea = async () => {
+    // Validación de estado antes de crear
+    if (!authState.selectedBranch) {
+      toast({
+        title: "Error de configuración",
+        description: "No se ha seleccionado una sucursal. Por favor, completa la configuración inicial.",
+        variant: "destructive"
+      });
+      setIsCreateDialogOpen(false);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -141,11 +152,31 @@ export const AreaManager: React.FC = () => {
         .insert({
           name: areaName.trim(),
           color: areaColor,
-          branch_id: authState.selectedBranch!.id,
+          branch_id: authState.selectedBranch.id,
           display_order: areas.length + 1
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating area:', error);
+        
+        // Mensajes de error más específicos
+        let errorMessage = "No se pudo crear el área.";
+        
+        if (error.code === '42501') {
+          errorMessage = "No tienes permisos para crear áreas. Asegúrate de haber completado la configuración inicial.";
+        } else if (error.code === '23503') {
+          errorMessage = "La sucursal seleccionada no existe. Por favor, recarga la página e intenta nuevamente.";
+        } else if (error.message) {
+          errorMessage = `Error: ${error.message}`;
+        }
+        
+        toast({
+          title: "Error al crear área",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
+      }
 
       toast({
         title: "Área creada",
@@ -159,11 +190,11 @@ export const AreaManager: React.FC = () => {
       setPendingAreaCreation(false);
       await loadAreas();
       await refetchLimits();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating area:', error);
       toast({
         title: "Error al crear área",
-        description: "No se pudo crear el área. Intenta nuevamente.",
+        description: error.message || "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
         variant: "destructive"
       });
     } finally {
