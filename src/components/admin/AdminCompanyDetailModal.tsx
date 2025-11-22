@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon, CreditCard } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon, CreditCard, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
@@ -78,6 +79,28 @@ interface PlanLimits {
   max_documents_per_month?: number | null;
 }
 
+interface CompanyLimitsStatus {
+  users: {
+    used: number;
+    limit: number | null;
+    status: string;
+    usage_pct: number | null;
+  };
+  branches: {
+    used: number;
+    limit: number | null;
+    status: string;
+    usage_pct: number | null;
+  };
+  documents: {
+    used: number;
+    limit: number | null;
+    status: string;
+    usage_pct: number | null;
+  };
+  overall_status: string;
+}
+
 interface MonthlySalesData {
   year_month: string;
   month_label: string;
@@ -120,6 +143,8 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   const [plan, setPlan] = useState<Plan | null>(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = useState(false);
+  const [limitsStatus, setLimitsStatus] = useState<CompanyLimitsStatus | null>(null);
+  const [isLoadingLimits, setIsLoadingLimits] = useState(false);
   const { toast } = useToast();
 
   // Cargar datos mensuales y productos cuando se abre el modal
@@ -128,8 +153,27 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
       fetchMonthlySales();
       fetchTopProducts();
       fetchPlan();
+      fetchLimitsStatus();
     }
   }, [open, company]);
+
+  const fetchLimitsStatus = async () => {
+    if (!company) return;
+
+    try {
+      setIsLoadingLimits(true);
+      const { data, error } = await supabase
+        .rpc('check_company_limits', { p_company_id: company.id });
+
+      if (error) throw error;
+      setLimitsStatus(data as unknown as CompanyLimitsStatus);
+    } catch (error) {
+      console.error('Error fetching limits status:', error);
+      setLimitsStatus(null);
+    } finally {
+      setIsLoadingLimits(false);
+    }
+  };
 
   const fetchPlan = async () => {
     if (!company || !company.plan_id) {
@@ -292,6 +336,48 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Alertas de límites */}
+          {!isLoadingLimits && limitsStatus && limitsStatus.overall_status !== 'ok' && limitsStatus.overall_status !== 'no_plan' && (
+            <Alert variant={limitsStatus.overall_status === 'over_limit' ? 'destructive' : 'default'} 
+                   className={limitsStatus.overall_status === 'near_limit' ? 'border-yellow-600 bg-yellow-50 dark:bg-yellow-950' : ''}>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {limitsStatus.overall_status === 'over_limit' && (
+                  <div>
+                    <strong>¡Límite superado!</strong> Esta empresa ha superado uno o más límites de su plan:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      {limitsStatus.users.status === 'over_limit' && (
+                        <li>Usuarios: {limitsStatus.users.used} / {limitsStatus.users.limit} ({limitsStatus.users.usage_pct}%)</li>
+                      )}
+                      {limitsStatus.branches.status === 'over_limit' && (
+                        <li>Sucursales: {limitsStatus.branches.used} / {limitsStatus.branches.limit} ({limitsStatus.branches.usage_pct}%)</li>
+                      )}
+                      {limitsStatus.documents.status === 'over_limit' && (
+                        <li>Documentos este mes: {limitsStatus.documents.used} / {limitsStatus.documents.limit} ({limitsStatus.documents.usage_pct}%)</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                {limitsStatus.overall_status === 'near_limit' && (
+                  <div>
+                    <strong>Cerca del límite</strong> - Esta empresa está alcanzando los límites de su plan:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      {limitsStatus.users.status === 'near_limit' && (
+                        <li>Usuarios: {limitsStatus.users.used} / {limitsStatus.users.limit} ({limitsStatus.users.usage_pct}%)</li>
+                      )}
+                      {limitsStatus.branches.status === 'near_limit' && (
+                        <li>Sucursales: {limitsStatus.branches.used} / {limitsStatus.branches.limit} ({limitsStatus.branches.usage_pct}%)</li>
+                      )}
+                      {limitsStatus.documents.status === 'near_limit' && (
+                        <li>Documentos este mes: {limitsStatus.documents.used} / {limitsStatus.documents.limit} ({limitsStatus.documents.usage_pct}%)</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Plan & Suscripción */}
           <Card>
             <CardHeader>
@@ -884,6 +970,7 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
             setIsEditSubscriptionOpen(false);
             if (refreshNeeded) {
               fetchPlan();
+              fetchLimitsStatus();
               onClose(); // Cerrar el modal principal para refrescar la lista
             }
           }}

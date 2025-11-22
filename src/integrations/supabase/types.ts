@@ -1217,6 +1217,7 @@ export type Database = {
         Args: { vote_type: Database["public"]["Enums"]["vote_type"] }
         Returns: Json
       }
+      check_company_limits: { Args: { p_company_id: string }; Returns: Json }
       get_user_branches: { Args: never; Returns: string[] }
       get_user_companies: { Args: never; Returns: string[] }
       get_user_role: {
