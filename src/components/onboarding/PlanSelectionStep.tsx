@@ -79,7 +79,7 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-7xl mx-auto">
       <CardHeader>
         <CardTitle>Selecciona tu Plan</CardTitle>
         <CardDescription>
@@ -87,7 +87,7 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {plans.map((plan) => {
             const isSelected = selectedPlanId === plan.id;
             const priceToShow = plan.billing_interval_default === 'monthly' 
@@ -99,7 +99,7 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
                 key={plan.id}
                 onClick={() => setSelectedPlanId(plan.id)}
                 className={`
-                  relative border-2 rounded-lg p-6 cursor-pointer transition-all
+                  relative border-2 rounded-lg p-4 cursor-pointer transition-all
                   ${isSelected 
                     ? 'border-primary bg-primary/5 shadow-md' 
                     : 'border-border hover:border-primary/50 hover:shadow'
@@ -116,7 +116,7 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-xl font-semibold">{plan.name}</h3>
+                    <h3 className="text-lg font-semibold">{plan.name}</h3>
                     {plan.description && (
                       <p className="text-sm text-muted-foreground mt-1">
                         {plan.description}
@@ -125,7 +125,7 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
                   </div>
 
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">
+                    <span className="text-2xl font-bold">
                       {formatPrice(priceToShow, plan.currency)}
                     </span>
                     <span className="text-muted-foreground">
