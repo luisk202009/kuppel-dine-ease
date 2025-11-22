@@ -48,8 +48,8 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
 
     if (!authState.selectedBranch) {
       toast({
-        title: "Error de configuración",
-        description: "No hay sucursal seleccionada. Por favor, completa la configuración inicial.",
+        title: "Error", 
+        description: "No hay sucursal seleccionada",
         variant: "destructive"
       });
       return;
@@ -66,10 +66,7 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
         .order('display_order', { ascending: false })
         .limit(1);
 
-      if (countError) {
-        console.error('Error fetching existing tables:', countError);
-        throw new Error('No se pudo verificar las mesas existentes');
-      }
+      if (countError) throw countError;
 
       const nextOrder = existingTables && existingTables.length > 0 
         ? (existingTables[0].display_order || 0) + 1 
@@ -90,27 +87,7 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
         .single();
 
       if (error) {
-        console.error('Error inserting table:', error);
-        
-        // Mensajes de error más específicos
-        let errorMessage = "No se pudo crear la mesa.";
-        
-        if (error.code === '42501') {
-          errorMessage = "No tienes permisos para crear mesas. Asegúrate de haber completado la configuración inicial.";
-        } else if (error.code === '23503') {
-          errorMessage = "El área o sucursal seleccionada no existe. Por favor, recarga la página e intenta nuevamente.";
-        } else if (error.code === '23505') {
-          errorMessage = "Ya existe una mesa con ese nombre en esta área.";
-        } else if (error.message) {
-          errorMessage = `Error: ${error.message}`;
-        }
-        
-        toast({
-          title: "Error al crear mesa",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        return;
+        throw error;
       }
 
       toast({
@@ -122,11 +99,11 @@ export const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
       setCapacity(4);
       onTableCreated();
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating table:', error);
       toast({
         title: "Error al crear mesa",
-        description: error.message || "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
+        description: "No se pudo crear la mesa. Intenta nuevamente.",
         variant: "destructive"
       });
     } finally {
