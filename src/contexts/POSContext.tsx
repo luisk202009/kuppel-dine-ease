@@ -309,6 +309,41 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Subscribe to user profile changes via Realtime
+  useEffect(() => {
+    if (!authState.user?.id || !authState.isAuthenticated) return;
+    
+    console.log('🔔 Setting up user profile realtime subscription for:', authState.user.id);
+    
+    const userChannel = supabase
+      .channel(`user_profile_${authState.user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${authState.user.id}`
+        },
+        (payload) => {
+          console.log('✅ User profile updated via Realtime:', payload.new);
+          setAuthState(prev => ({
+            ...prev,
+            tourCompleted: payload.new.tour_completed === true,
+            needsInitialSetup: payload.new.setup_completed === false
+          }));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 User profile subscription status:', status);
+      });
+      
+    return () => {
+      console.log('🧹 Cleaning up user profile subscription');
+      supabase.removeChannel(userChannel);
+    };
+  }, [authState.user?.id, authState.isAuthenticated]);
+
   // Handle user session and load associated data
   const handleUserSession = async (session: Session) => {
     try {
