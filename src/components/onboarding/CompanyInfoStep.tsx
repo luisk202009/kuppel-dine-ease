@@ -11,9 +11,10 @@ import { usePOS } from '@/contexts/POSContext';
 interface CompanyInfoStepProps {
   onNext: (companyId: string, branchId: string, companyName: string) => void;
   userId: string;
+  planId: string;
 }
 
-export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId }) => {
+export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId, planId }) => {
   const { toast } = useToast();
   const { selectCompanyAndBranch } = usePOS();
   const [isCreating, setIsCreating] = useState(false);
@@ -63,7 +64,11 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
     setIsCreating(true);
 
     try {
-      // 1. Crear la compañía (con owner_id = usuario actual)
+      // Calcular fecha de fin de prueba (15 días desde hoy)
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 15);
+
+      // 1. Crear la compañía con plan y trial
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -73,6 +78,9 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
           address: formData.address || null,
           is_active: true,
           owner_id: userId,
+          plan_id: planId,
+          subscription_status: 'trialing',
+          trial_end_at: trialEndDate.toISOString(),
         })
         .select()
         .single();
@@ -134,7 +142,28 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
         // No bloqueamos aquí, ya que la branch se creó correctamente
       }
 
-      // 5. Actualizar el estado global inmediatamente
+      // 5. Crear suscripción de prueba
+      const currentPeriodStart = new Date();
+      const currentPeriodEnd = new Date(trialEndDate);
+
+      const { error: subscriptionError } = await supabase
+        .from('company_subscriptions')
+        .insert({
+          company_id: company.id,
+          plan_id: planId,
+          status: 'trialing',
+          billing_period: 'monthly',
+          current_period_start: currentPeriodStart.toISOString(),
+          current_period_end: currentPeriodEnd.toISOString(),
+          trial_end_at: trialEndDate.toISOString(),
+        });
+
+      if (subscriptionError) {
+        console.error('Error creating subscription:', subscriptionError);
+        // No bloqueamos, pero logeamos el error
+      }
+
+      // 6. Actualizar el estado global inmediatamente
       selectCompanyAndBranch(
         {
           id: company.id,
@@ -152,10 +181,10 @@ export const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ onNext, userId
 
       toast({
         title: "¡Empresa creada!",
-        description: `${formData.companyName} ha sido creada exitosamente`,
+        description: `${formData.companyName} ha sido creada con 15 días de prueba gratis`,
       });
 
-      // 6. Pasar al siguiente paso con IDs válidos
+      // 7. Pasar al siguiente paso con IDs válidos
       onNext(company.id, branch.id, company.name);
 
     } catch (error: any) {

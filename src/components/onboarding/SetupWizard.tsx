@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { WelcomeStep } from './WelcomeStep';
+import { PlanSelectionStep } from './PlanSelectionStep';
 import { BusinessTypeStep } from './BusinessTypeStep';
 import { CategoriesStep } from './CategoriesStep';
 import { ProductsStep } from './ProductsStep';
@@ -12,11 +13,12 @@ import { usePOS } from '@/contexts/POSContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-type Step = 'welcome' | 'company-info' | 'business-type' | 'categories' | 'products' | 'tables' | 'completion';
+type Step = 'welcome' | 'plan-selection' | 'company-info' | 'business-type' | 'categories' | 'products' | 'tables' | 'completion';
 
 export const SetupWizard: React.FC = () => {
   const { authState } = usePOS();
   const [currentStep, setCurrentStep] = useState<Step>('welcome');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
   // ✅ NO usar '' como fallback - si no hay ID, es undefined
   const [companyId, setCompanyId] = useState(authState.selectedCompany?.id);
   const [branchId, setBranchId] = useState(authState.selectedBranch?.id);
@@ -38,6 +40,11 @@ export const SetupWizard: React.FC = () => {
   const [isCompleting, setIsCompleting] = useState(false);
 
   const handleStart = () => {
+    setCurrentStep('plan-selection');
+  };
+
+  const handlePlanSelected = (planId: string) => {
+    setSelectedPlanId(planId);
     setCurrentStep('company-info');
   };
 
@@ -131,6 +138,7 @@ export const SetupWizard: React.FC = () => {
   const getStepNumber = () => {
     const steps = { 
       welcome: 0, 
+      'plan-selection': 0,
       'company-info': 0, 
       'business-type': 0,
       categories: 1, 
@@ -145,7 +153,7 @@ export const SetupWizard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-2xl">
         {/* Progress Bar */}
-        {currentStep !== 'welcome' && currentStep !== 'company-info' && currentStep !== 'business-type' && currentStep !== 'completion' && (
+        {currentStep !== 'welcome' && currentStep !== 'plan-selection' && currentStep !== 'company-info' && currentStep !== 'business-type' && currentStep !== 'completion' && (
           <div className="px-8 pt-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">
@@ -169,10 +177,18 @@ export const SetupWizard: React.FC = () => {
           <WelcomeStep onStart={handleStart} onSkip={handleSkip} />
         )}
 
+        {currentStep === 'plan-selection' && (
+          <PlanSelectionStep
+            onNext={handlePlanSelected}
+            onBack={() => setCurrentStep('welcome')}
+          />
+        )}
+
         {currentStep === 'company-info' && (
           <CompanyInfoStep
             onNext={handleCompanyInfoComplete}
             userId={authState.user?.id || ''}
+            planId={selectedPlanId}
           />
         )}
 
