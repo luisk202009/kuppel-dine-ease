@@ -83,6 +83,29 @@ interface PlanLimits {
 type SortOption = 'name' | 'sales_30d' | 'products' | 'last_order';
 type FilterOption = 'all' | 'with_sales' | 'no_sales';
 type ActivityFilterOption = 'all' | 'active' | 'at_risk' | 'inactive' | 'new';
+type LimitFilterOption = 'all' | 'near_limit' | 'over_limit';
+
+interface CompanyLimitsStatus {
+  users: {
+    used: number;
+    limit: number | null;
+    status: string;
+    usage_pct: number | null;
+  };
+  branches: {
+    used: number;
+    limit: number | null;
+    status: string;
+    usage_pct: number | null;
+  };
+  documents: {
+    used: number;
+    limit: number | null;
+    status: string;
+    usage_pct: number | null;
+  };
+  overall_status: string;
+}
 
 export const AdminCompaniesTab: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -100,7 +123,9 @@ export const AdminCompaniesTab: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('name');
   const [filterOption, setFilterOption] = useState<FilterOption>('all');
   const [activityFilter, setActivityFilter] = useState<ActivityFilterOption>('all');
+  const [limitFilter, setLimitFilter] = useState<LimitFilterOption>('all');
   const [plans, setPlans] = useState<Map<string, Plan>>(new Map());
+  const [limitsStatus, setLimitsStatus] = useState<Map<string, CompanyLimitsStatus>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -157,7 +182,23 @@ export const AdminCompaniesTab: React.FC = () => {
       });
     }
 
-    // 4. Aplicar ordenación
+    // 4. Aplicar filtro por límites de plan
+    if (limitFilter !== 'all') {
+      filtered = filtered.filter((company) => {
+        const limits = limitsStatus.get(company.id);
+        if (!limits) return false;
+        
+        if (limitFilter === 'near_limit') {
+          return limits.overall_status === 'near_limit';
+        }
+        if (limitFilter === 'over_limit') {
+          return limits.overall_status === 'over_limit';
+        }
+        return true;
+      });
+    }
+
+    // 5. Aplicar ordenación
     filtered.sort((a, b) => {
       const statsA = usageStats.get(a.id);
       const statsB = usageStats.get(b.id);
@@ -179,7 +220,7 @@ export const AdminCompaniesTab: React.FC = () => {
     });
 
     setFilteredCompanies(filtered);
-  }, [searchQuery, companies, usageStats, sortOption, filterOption, activityFilter]);
+  }, [searchQuery, companies, usageStats, sortOption, filterOption, activityFilter, limitFilter, limitsStatus]);
 
   const fetchCompanies = async () => {
     try {
@@ -239,6 +280,36 @@ export const AdminCompaniesTab: React.FC = () => {
           description: 'No se pudieron cargar las métricas de uso. Intenta de nuevo más tarde.',
           variant: 'destructive',
         });
+      }
+
+      // Fetch limits status for all companies
+      if (data && data.length > 0) {
+        try {
+          const limitsPromises = data.map(async (company) => {
+            const { data: limitsData, error: limitsError } = await supabase
+              .rpc('check_company_limits', { p_company_id: company.id });
+            
+            if (limitsError) {
+              console.error('Error checking limits for company:', company.id, limitsError);
+              return null;
+            }
+            
+            return { companyId: company.id, limits: limitsData as unknown as CompanyLimitsStatus };
+          });
+
+          const limitsResults = await Promise.all(limitsPromises);
+          const limitsMap = new Map<string, CompanyLimitsStatus>();
+          
+          limitsResults.forEach((result) => {
+            if (result) {
+              limitsMap.set(result.companyId, result.limits);
+            }
+          });
+          
+          setLimitsStatus(limitsMap);
+        } catch (limitsErr) {
+          console.error('Error fetching limits status:', limitsErr);
+        }
       }
     } catch (err) {
       console.error('Error fetching companies:', err);
@@ -451,6 +522,17 @@ export const AdminCompaniesTab: React.FC = () => {
                 <option value="new">Nuevos</option>
               </select>
 
+              {/* Filtro de límites de plan */}
+              <select
+                value={limitFilter}
+                onChange={(e) => setLimitFilter(e.target.value as LimitFilterOption)}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="all">Todos los límites</option>
+                <option value="near_limit">Cerca del límite (&gt;80%)</option>
+                <option value="over_limit">Límite superado</option>
+              </select>
+
               {/* Ordenación */}
               <select
                 value={sortOption}
@@ -512,10 +594,25 @@ export const AdminCompaniesTab: React.FC = () => {
                     const usersUsage = stats?.users_count || 0;
                     const branchesUsage = stats?.branches_count || 0;
                     const documentsUsage = stats?.documents_this_month || 0;
+                    const companyLimits = limitsStatus.get(company.id);
                     
                     return (
                       <TableRow key={company.id}>
-                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center space-x-2">
+                            <span>{company.name}</span>
+                            {companyLimits?.overall_status === 'over_limit' && (
+                              <Badge variant="destructive" className="text-xs">
+                                ¡Límite superado!
+                              </Badge>
+                            )}
+                            {companyLimits?.overall_status === 'near_limit' && (
+                              <Badge variant="default" className="bg-yellow-600 text-xs">
+                                Cerca del límite
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{getBusinessTypeLabel(company.business_type)}</TableCell>
                         <TableCell>
                           {plan ? (
