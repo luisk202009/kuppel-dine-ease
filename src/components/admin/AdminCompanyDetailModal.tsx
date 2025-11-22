@@ -47,6 +47,7 @@ interface Plan {
   id: string;
   name: string;
   code: string;
+  limits: PlanLimits | null;
 }
 
 interface CompanyUsageStats {
@@ -64,9 +65,17 @@ interface CompanyUsageStats {
   products_count: number;
   categories_count: number;
   users_count: number;
+  branches_count: number;
+  documents_this_month: number;
   last_order_at: string | null;
   days_since_last_order: number | null;
   activity_status: 'new' | 'active' | 'cooling' | 'at_risk' | 'churned';
+}
+
+interface PlanLimits {
+  max_users?: number | null;
+  max_branches?: number | null;
+  max_documents_per_month?: number | null;
 }
 
 interface MonthlySalesData {
@@ -132,12 +141,12 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
       setIsLoadingPlan(true);
       const { data, error } = await supabase
         .from('plans')
-        .select('id, name, code')
+        .select('id, name, code, limits')
         .eq('id', company.plan_id)
         .single();
 
       if (error) throw error;
-      setPlan(data);
+      setPlan(data as Plan);
     } catch (error) {
       console.error('Error fetching plan:', error);
       setPlan(null);
@@ -364,6 +373,172 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
                       <p className="text-sm text-muted-foreground">—</p>
                     )}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Uso vs límites del plan */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5" />
+                <span>Uso vs Límites del Plan</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!plan ? (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground mb-4">Esta empresa no tiene un plan asignado actualmente.</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditSubscriptionOpen(true)}
+                  >
+                    Asignar plan
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Usuarios */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Usuarios</span>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-2xl font-bold">{usage?.users_count || 0}</span>
+                        {plan.limits?.max_users ? (
+                          <span className="text-sm text-muted-foreground">/ {plan.limits.max_users}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">/ ∞</span>
+                        )}
+                      </div>
+                      {plan.limits?.max_users && (
+                        <>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                ((usage?.users_count || 0) / plan.limits.max_users) * 100 >= 90
+                                  ? 'bg-red-500'
+                                  : ((usage?.users_count || 0) / plan.limits.max_users) * 100 >= 70
+                                  ? 'bg-yellow-500'
+                                  : 'bg-green-500'
+                              }`}
+                              style={{
+                                width: `${Math.min(((usage?.users_count || 0) / plan.limits.max_users) * 100, 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className={`text-xs font-medium ${
+                            ((usage?.users_count || 0) / plan.limits.max_users) * 100 >= 90
+                              ? 'text-red-600'
+                              : ((usage?.users_count || 0) / plan.limits.max_users) * 100 >= 70
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
+                          }`}>
+                            Uso: {(((usage?.users_count || 0) / plan.limits.max_users) * 100).toFixed(0)}%
+                          </p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Sucursales */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Sucursales</span>
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-2xl font-bold">{usage?.branches_count || 0}</span>
+                        {plan.limits?.max_branches ? (
+                          <span className="text-sm text-muted-foreground">/ {plan.limits.max_branches}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">/ ∞</span>
+                        )}
+                      </div>
+                      {plan.limits?.max_branches && (
+                        <>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                ((usage?.branches_count || 0) / plan.limits.max_branches) * 100 >= 90
+                                  ? 'bg-red-500'
+                                  : ((usage?.branches_count || 0) / plan.limits.max_branches) * 100 >= 70
+                                  ? 'bg-yellow-500'
+                                  : 'bg-green-500'
+                              }`}
+                              style={{
+                                width: `${Math.min(((usage?.branches_count || 0) / plan.limits.max_branches) * 100, 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className={`text-xs font-medium ${
+                            ((usage?.branches_count || 0) / plan.limits.max_branches) * 100 >= 90
+                              ? 'text-red-600'
+                              : ((usage?.branches_count || 0) / plan.limits.max_branches) * 100 >= 70
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
+                          }`}>
+                            Uso: {(((usage?.branches_count || 0) / plan.limits.max_branches) * 100).toFixed(0)}%
+                          </p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Documentos este mes */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span>Documentos este mes</span>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-2xl font-bold">{usage?.documents_this_month || 0}</span>
+                        {plan.limits?.max_documents_per_month ? (
+                          <span className="text-sm text-muted-foreground">/ {plan.limits.max_documents_per_month}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">/ ∞</span>
+                        )}
+                      </div>
+                      {plan.limits?.max_documents_per_month && (
+                        <>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                ((usage?.documents_this_month || 0) / plan.limits.max_documents_per_month) * 100 >= 90
+                                  ? 'bg-red-500'
+                                  : ((usage?.documents_this_month || 0) / plan.limits.max_documents_per_month) * 100 >= 70
+                                  ? 'bg-yellow-500'
+                                  : 'bg-green-500'
+                              }`}
+                              style={{
+                                width: `${Math.min(((usage?.documents_this_month || 0) / plan.limits.max_documents_per_month) * 100, 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className={`text-xs font-medium ${
+                            ((usage?.documents_this_month || 0) / plan.limits.max_documents_per_month) * 100 >= 90
+                              ? 'text-red-600'
+                              : ((usage?.documents_this_month || 0) / plan.limits.max_documents_per_month) * 100 >= 70
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
+                          }`}>
+                            Uso: {(((usage?.documents_this_month || 0) / plan.limits.max_documents_per_month) * 100).toFixed(0)}%
+                          </p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </CardContent>
