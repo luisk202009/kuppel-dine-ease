@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOS } from '@/contexts/POSContext';
 import { cn } from '@/lib/utils';
+import { useCompanyLimits } from '@/hooks/useCompanyLimits';
+import { PlanLimitWarningModal } from '@/components/common/PlanLimitWarningModal';
 
 const PRESET_COLORS = [
   { name: 'Azul', color: '#3b82f6' },
@@ -53,6 +55,9 @@ export const AreaManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const { limitsStatus, refetch: refetchLimits, checkDimension } = useCompanyLimits(authState.selectedCompany?.id);
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
+  const [pendingAreaCreation, setPendingAreaCreation] = useState(false);
 
   const loadAreas = async () => {
     if (!authState.selectedBranch) return;
@@ -116,6 +121,18 @@ export const AreaManager: React.FC = () => {
     if (!areaName.trim() || !authState.selectedBranch) return;
     if (!validateAreaName(areaName)) return;
 
+    // Verificar límite de branches antes de crear
+    const branchesLimit = checkDimension('branches');
+    if (branchesLimit && (branchesLimit.status === 'near_limit' || branchesLimit.status === 'over_limit')) {
+      setPendingAreaCreation(true);
+      setShowLimitWarning(true);
+      return;
+    }
+
+    await executeCreateArea();
+  };
+
+  const executeCreateArea = async () => {
     setIsLoading(true);
 
     try {
@@ -124,7 +141,7 @@ export const AreaManager: React.FC = () => {
         .insert({
           name: areaName.trim(),
           color: areaColor,
-          branch_id: authState.selectedBranch.id,
+          branch_id: authState.selectedBranch!.id,
           display_order: areas.length + 1
         });
 
@@ -139,7 +156,9 @@ export const AreaManager: React.FC = () => {
       setAreaColor('#3b82f6');
       setNameError(null);
       setIsCreateDialogOpen(false);
-      loadAreas();
+      setPendingAreaCreation(false);
+      await loadAreas();
+      await refetchLimits();
     } catch (error) {
       console.error('Error creating area:', error);
       toast({
@@ -616,6 +635,24 @@ export const AreaManager: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Plan Limit Warning Modal */}
+      {limitsStatus && checkDimension('branches') && showLimitWarning && (
+        <PlanLimitWarningModal
+          open={showLimitWarning}
+          onOpenChange={setShowLimitWarning}
+          onContinue={async () => {
+            if (pendingAreaCreation) {
+              await executeCreateArea();
+            }
+          }}
+          dimension="branches"
+          status={checkDimension('branches')!.status as 'near_limit' | 'over_limit'}
+          used={checkDimension('branches')!.used}
+          limit={checkDimension('branches')!.limit}
+          usagePct={checkDimension('branches')!.usage_pct}
+        />
+      )}
     </div>
   );
 };

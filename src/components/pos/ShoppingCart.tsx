@@ -8,6 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePOS } from '@/contexts/POSContext';
 import { PaymentModal } from './PaymentModal';
 import { CartItem, Table } from '@/types/pos';
+import { useCompanyLimits } from '@/hooks/useCompanyLimits';
+import { PlanLimitWarningModal } from '@/components/common/PlanLimitWarningModal';
 
 interface ShoppingCartProps {
   selectedTable?: Table | null;
@@ -16,8 +18,10 @@ interface ShoppingCartProps {
 }
 
 export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBackToTables, onPaymentComplete }) => {
-  const { posState, updateCartItem, removeFromCart, clearCart, savePendingOrder, clearPendingOrder } = usePOS();
+  const { posState, authState, updateCartItem, removeFromCart, clearCart, savePendingOrder, clearPendingOrder } = usePOS();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const { limitsStatus, refetch: refetchLimits, checkDimension } = useCompanyLimits(authState.selectedCompany?.id);
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
 
   const calculations = useMemo(() => {
     const subtotal = posState.cart.reduce((sum, item) => sum + item.total, 0);
@@ -49,14 +53,28 @@ export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBac
   };
 
   const handleCheckout = () => {
+    // Verificar límite de documentos antes de continuar
+    const documentsLimit = checkDimension('documents');
+    if (documentsLimit && (documentsLimit.status === 'near_limit' || documentsLimit.status === 'over_limit')) {
+      setShowLimitWarning(true);
+    } else {
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleContinueWithWarning = () => {
+    setShowLimitWarning(false);
     setIsPaymentModalOpen(true);
   };
 
-  const handlePaymentComplete = () => {
+  const handlePaymentComplete = async () => {
     if (selectedTable) {
       clearPendingOrder(selectedTable.id);
     }
     clearCart();
+    
+    // Refrescar límites después de crear un documento
+    await refetchLimits();
     
     // Llamar al handler de pago completo del Dashboard si existe
     if (onPaymentComplete) {
@@ -259,6 +277,20 @@ export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBac
         total={calculations.total}
         onPaymentComplete={handlePaymentComplete}
       />
+
+      {/* Plan Limit Warning Modal */}
+      {limitsStatus && checkDimension('documents') && (
+        <PlanLimitWarningModal
+          open={showLimitWarning}
+          onOpenChange={setShowLimitWarning}
+          onContinue={handleContinueWithWarning}
+          dimension="documents"
+          status={checkDimension('documents')!.status as 'near_limit' | 'over_limit'}
+          used={checkDimension('documents')!.used}
+          limit={checkDimension('documents')!.limit}
+          usagePct={checkDimension('documents')!.usage_pct}
+        />
+      )}
     </div>
   );
 };

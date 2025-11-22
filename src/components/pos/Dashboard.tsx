@@ -25,12 +25,15 @@ import { Table } from '@/types/pos';
 import { SetupWizard } from '../onboarding/SetupWizard';
 import { DashboardTourPrompt } from '../onboarding/DashboardTourPrompt';
 import { useDashboardTour } from '@/hooks/useDashboardTour';
+import { useCompanyLimits } from '@/hooks/useCompanyLimits';
+import { PlanLimitsAlert } from '@/components/common/PlanLimitsAlert';
 
 type ViewMode = 'table-list' | 'table-products' | 'products';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { authState, posState, logout, searchProducts, loadPendingOrder, addToCart, refreshAreas, dataLoading } = usePOS();
+  const { limitsStatus } = useCompanyLimits(authState.selectedCompany?.id);
   const { config } = useLayoutConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(config.tablesEnabled ? 'table-list' : 'products');
@@ -388,6 +391,13 @@ export const Dashboard: React.FC = () => {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
+          {/* Plan Limits Alert */}
+          {limitsStatus && (
+            <div className="px-6 pt-4">
+              <PlanLimitsAlert limitsStatus={limitsStatus} />
+            </div>
+          )}
+          
           {/* Navigation Tabs */}
           <div id="main-navigation" className="bg-card border-b border-border px-6 py-3">
             <div className="flex items-center space-x-4">
