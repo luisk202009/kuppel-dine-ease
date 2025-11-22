@@ -34,6 +34,7 @@ interface Plan {
   id: string;
   name: string;
   code: string;
+  limits: PlanLimits | null;
 }
 
 interface Branch {
@@ -66,9 +67,17 @@ interface CompanyUsageStats {
   products_count: number;
   categories_count: number;
   users_count: number;
+  branches_count: number;
+  documents_this_month: number;
   last_order_at: string | null;
   days_since_last_order: number | null;
   activity_status: 'new' | 'active' | 'cooling' | 'at_risk' | 'churned';
+}
+
+interface PlanLimits {
+  max_users?: number | null;
+  max_branches?: number | null;
+  max_documents_per_month?: number | null;
 }
 
 type SortOption = 'name' | 'sales_30d' | 'products' | 'last_order';
@@ -192,13 +201,18 @@ export const AdminCompaniesTab: React.FC = () => {
       try {
         const { data: plansData, error: plansError } = await supabase
           .from('plans')
-          .select('id, name, code');
+          .select('id, name, code, limits');
 
         if (plansError) throw plansError;
 
         const plansMap = new Map<string, Plan>();
         plansData?.forEach((plan) => {
-          plansMap.set(plan.id, plan);
+          plansMap.set(plan.id, {
+            id: plan.id,
+            name: plan.name,
+            code: plan.code,
+            limits: plan.limits as PlanLimits | null,
+          });
         });
         setPlans(plansMap);
       } catch (plansErr) {
@@ -301,6 +315,8 @@ export const AdminCompaniesTab: React.FC = () => {
     setSelectedCompanyUsage(null);
     setCompanyBranches([]);
     setCompanyUsers([]);
+    // Refrescar datos cuando se cierra el modal
+    fetchCompanies();
   };
 
   const getRoleLabel = (role: string) => {
@@ -458,6 +474,7 @@ export const AdminCompaniesTab: React.FC = () => {
                   <TableHead>Tipo de Negocio</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead>Suscripción</TableHead>
+                  <TableHead>Uso del Plan</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Ventas 30d</TableHead>
                   <TableHead>Órdenes 30d</TableHead>
@@ -470,7 +487,7 @@ export const AdminCompaniesTab: React.FC = () => {
               <TableBody>
                 {filteredCompanies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center text-muted-foreground">
                       {searchQuery ? 'No se encontraron empresas con ese criterio' : 'No hay empresas registradas'}
                     </TableCell>
                   </TableRow>
@@ -481,6 +498,20 @@ export const AdminCompaniesTab: React.FC = () => {
                       ? calculateGrowthPercentage(stats.total_sales_last_30d, stats.total_sales_prev_30d)
                       : null;
                     const plan = company.plan_id ? plans.get(company.plan_id) : null;
+                    
+                    // Calcular uso vs límites
+                    const getUsageColor = (used: number, limit: number | null | undefined) => {
+                      if (!limit) return 'text-foreground';
+                      const pct = (used / limit) * 100;
+                      if (pct >= 90) return 'text-red-600 font-semibold';
+                      if (pct >= 70) return 'text-yellow-600 font-medium';
+                      return 'text-foreground';
+                    };
+                    
+                    const limits = plan?.limits;
+                    const usersUsage = stats?.users_count || 0;
+                    const branchesUsage = stats?.branches_count || 0;
+                    const documentsUsage = stats?.documents_this_month || 0;
                     
                     return (
                       <TableRow key={company.id}>
@@ -528,6 +559,23 @@ export const AdminCompaniesTab: React.FC = () => {
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {plan && limits ? (
+                            <div className="text-xs space-y-0.5">
+                              <div className={getUsageColor(usersUsage, limits.max_users)}>
+                                U: {usersUsage}{limits.max_users ? `/${limits.max_users}` : ''}
+                              </div>
+                              <div className={getUsageColor(branchesUsage, limits.max_branches)}>
+                                S: {branchesUsage}{limits.max_branches ? `/${limits.max_branches}` : ''}
+                              </div>
+                              <div className={getUsageColor(documentsUsage, limits.max_documents_per_month)}>
+                                D: {documentsUsage}{limits.max_documents_per_month ? `/${limits.max_documents_per_month}` : ''}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </TableCell>
                         <TableCell>

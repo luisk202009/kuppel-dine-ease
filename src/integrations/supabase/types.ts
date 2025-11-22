@@ -1073,6 +1073,7 @@ export type Database = {
       company_usage_stats: {
         Row: {
           activity_status: string | null
+          branches_count: number | null
           business_type: Database["public"]["Enums"]["business_type"] | null
           categories_count: number | null
           company_created_at: string | null
@@ -1080,6 +1081,7 @@ export type Database = {
           company_is_active: boolean | null
           company_name: string | null
           days_since_last_order: number | null
+          documents_this_month: number | null
           last_order_at: string | null
           products_count: number | null
           total_orders: number | null
@@ -1089,6 +1091,48 @@ export type Database = {
           total_sales_last_30d: number | null
           total_sales_prev_30d: number | null
           users_count: number | null
+        }
+        Insert: {
+          activity_status?: never
+          branches_count?: never
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          categories_count?: never
+          company_created_at?: string | null
+          company_id?: string | null
+          company_is_active?: boolean | null
+          company_name?: string | null
+          days_since_last_order?: never
+          documents_this_month?: never
+          last_order_at?: never
+          products_count?: never
+          total_orders?: never
+          total_orders_last_30d?: never
+          total_orders_prev_30d?: never
+          total_sales_amount?: never
+          total_sales_last_30d?: never
+          total_sales_prev_30d?: never
+          users_count?: never
+        }
+        Update: {
+          activity_status?: never
+          branches_count?: never
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          categories_count?: never
+          company_created_at?: string | null
+          company_id?: string | null
+          company_is_active?: boolean | null
+          company_name?: string | null
+          days_since_last_order?: never
+          documents_this_month?: never
+          last_order_at?: never
+          products_count?: never
+          total_orders?: never
+          total_orders_last_30d?: never
+          total_orders_prev_30d?: never
+          total_sales_amount?: never
+          total_sales_last_30d?: never
+          total_sales_prev_30d?: never
+          users_count?: never
         }
         Relationships: []
       }
