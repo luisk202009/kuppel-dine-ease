@@ -165,9 +165,16 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
                     </div>
                   )}
 
-                  <Badge variant="secondary" className="mt-4">
-                    15 días de prueba gratis
-                  </Badge>
+                  {plan.trial_days && plan.trial_days > 0 ? (
+                    <Badge variant="secondary" className="mt-4">
+                      {plan.trial_days} días de prueba gratis
+                    </Badge>
+                  ) : (plan.price_monthly === null || plan.price_monthly === 0) && 
+                     (plan.price_yearly === null || plan.price_yearly === 0) ? (
+                    <Badge variant="secondary" className="mt-4">
+                      Gratis para siempre
+                    </Badge>
+                  ) : null}
                 </div>
               </div>
             );

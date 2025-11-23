@@ -38,6 +38,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
   const [currency, setCurrency] = useState('COP');
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [isActive, setIsActive] = useState(true);
+  const [trialDays, setTrialDays] = useState('15');
   
   // Limits
   const [maxUsers, setMaxUsers] = useState('');
@@ -55,6 +56,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
       setCurrency(plan.currency);
       setBillingInterval(plan.billing_interval_default as 'monthly' | 'yearly');
       setIsActive(plan.is_active);
+      setTrialDays(plan.trial_days?.toString() || '0');
       
       const planLimits = plan.limits as PlanLimits | null;
       setMaxUsers(planLimits?.max_users?.toString() || '');
@@ -75,6 +77,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
     setCurrency('COP');
     setBillingInterval('monthly');
     setIsActive(true);
+    setTrialDays('15');
     setMaxUsers('');
     setMaxBranches('');
     setMaxDocuments('');
@@ -110,6 +113,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
         currency,
         billing_interval_default: billingInterval,
         is_active: isActive,
+        trial_days: trialDays ? parseInt(trialDays) : 0,
         limits: Object.keys(limits).length > 0 ? limits : null,
       };
 
@@ -259,6 +263,21 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
                   <SelectItem value="yearly">Anual</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="trialDays">Días de Prueba</Label>
+              <Input
+                id="trialDays"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={trialDays}
+                onChange={(e) => setTrialDays(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Dejar en 0 para planes sin periodo de prueba
+              </p>
             </div>
           </div>
 
