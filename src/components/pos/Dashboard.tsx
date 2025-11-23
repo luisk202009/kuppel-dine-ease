@@ -10,6 +10,10 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { VersionInfo } from '@/components/common/VersionInfo';
 import { VotingButton } from '@/components/voting/VotingButton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer';
+import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
+import { Menu, X } from 'lucide-react';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
@@ -40,6 +44,10 @@ export const Dashboard: React.FC = () => {
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | null>(null);
   const [showTourPrompt, setShowTourPrompt] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   // Check if user is admin
   useEffect(() => {
@@ -216,9 +224,9 @@ export const Dashboard: React.FC = () => {
           </div>
           
           <Tabs defaultValue={posState.areas[0]?.id || 'plantas'} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className={isMobile ? 'flex w-full overflow-x-auto mb-6' : 'grid w-full mb-6 grid-cols-2 md:grid-cols-3 laptop:grid-cols-4'}>
               {posState.areas.map((area) => (
-                <TabsTrigger key={area.id} value={area.id} className="capitalize">
+                <TabsTrigger key={area.id} value={area.id} className="capitalize whitespace-nowrap flex-shrink-0">
                   {area.name}
                 </TabsTrigger>
               ))}
@@ -307,100 +315,191 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Header */}
-      <header id="dashboard-header" className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col space-y-2">
-            <div className="flex items-center space-x-4">
-              <Logo width={120} height={40} />
+      <header id="dashboard-header" className="bg-card border-b border-border px-3 md:px-6 py-3 md:py-4">
+        <div className="flex items-center justify-between gap-2 md:gap-4">
+          {/* Left side - Logo and welcome */}
+          <div className="flex flex-col space-y-1 md:space-y-2 min-w-0 flex-shrink">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <Logo width={isMobile ? 80 : 120} height={isMobile ? 26 : 40} />
               {!isAuthRequired() && (
-                <Badge variant="secondary" className="hidden md:flex">
+                <Badge variant="secondary" className="hidden laptop:flex text-xs">
                   Modo Demo
                 </Badge>
               )}
             </div>
-            <div className="hidden md:block">
-              <h1 className="text-sm font-semibold text-foreground">
+            <div className="hidden laptop:block">
+              <h1 className="text-xs md:text-sm font-semibold text-foreground">
                 ¡Hola, {authState.user?.name}!
               </h1>
-              <p className="text-xs text-muted-foreground capitalize">
+              <p className="text-[10px] md:text-xs text-muted-foreground capitalize line-clamp-1">
                 {getCurrentDate()}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            {/* Search Bar */}
-            <div id="search-bar" className="relative w-80 md:w-96">
-              <Input
-                placeholder="Buscar productos, clientes..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-3"
-              />
+          {/* Center - Search Bar (Hidden on mobile) */}
+          <div id="search-bar" className="relative hidden laptop:block flex-1 max-w-md">
+            <Input
+              placeholder="Buscar productos, clientes..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-3"
+            />
+          </div>
+
+          {/* Right side - Actions */}
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+            {/* Mobile Menu */}
+            {isMobile && (
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 w-9 p-0">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+                  <div className="flex flex-col gap-4 pt-8">
+                    {/* Mobile Search */}
+                    <div className="relative">
+                      <Input
+                        placeholder="Buscar productos..."
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                      <VotingButton />
+                      {isAdmin && (
+                        <Button variant="outline" onClick={() => { navigate('/admin'); setIsMobileMenuOpen(false); }}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => { navigate('/settings'); setIsMobileMenuOpen(false); }}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Configuración
+                      </Button>
+                      {shouldUseMockData() && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline">
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Reset Demo
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Restablecer datos demo?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará todos los datos de demostración.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleResetDemoData}>
+                                Restablecer
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                      <Button variant="outline" onClick={logout}>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Salir
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
+
+            {/* Desktop actions */}
+            <div className="hidden laptop:flex items-center gap-2">
+              <VotingButton />
+              <div id="theme-toggle">
+                <ThemeToggle />
+              </div>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={() => navigate('/admin')}>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              )}
+              <Button id="settings-button" variant="outline" size="sm" onClick={() => navigate('/settings')}>
+                <Settings className="h-4 w-4 mr-2" />
+                Configuración
+              </Button>
+              
+              {shouldUseMockData() && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset Demo
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Restablecer datos demo?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción eliminará todos los datos de demostración (facturas, gastos, sesiones de caja) y los restablecerá a los valores iniciales.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetDemoData}>
+                        Restablecer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              
+              <Button variant="outline" size="sm" onClick={logout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Salir
+              </Button>
             </div>
 
-            {/* Actions */}
-            <VotingButton />
-            <div id="theme-toggle">
-              <ThemeToggle />
-            </div>
-            {isAdmin && (
-              <Button variant="outline" size="sm" onClick={() => navigate('/admin')}>
-                <Shield className="h-4 w-4 mr-2" />
-                Admin
+            {/* Mobile cart button */}
+            {isMobile && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsCartOpen(true)}
+                className="relative h-9 w-9 p-0"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                {posState.cart.length > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+                    {posState.cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </Badge>
+                )}
               </Button>
             )}
-            <Button id="settings-button" variant="outline" size="sm" onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 mr-2" />
-              Configuración
-            </Button>
-            
-            {shouldUseMockData() && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden md:flex">
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset Demo
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Restablecer datos demo?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta acción eliminará todos los datos de demostración (facturas, gastos, sesiones de caja) y los restablecerá a los valores iniciales. Esta acción no se puede deshacer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleResetDemoData}>
-                      Restablecer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            
-            <Button variant="outline" size="sm" onClick={logout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Salir
-            </Button>
+
+            {/* Tablet/Desktop theme toggle (only on tablet) */}
+            <div className="laptop:hidden">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-76px)] lg:h-[calc(100vh-88px)]">
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Plan Limits Alert */}
           {limitsStatus && (
-            <div className="px-6 pt-4">
+            <div className="px-3 md:px-6 pt-2 md:pt-4">
               <PlanLimitsAlert limitsStatus={limitsStatus} />
             </div>
           )}
           
           {/* Navigation Tabs */}
-          <div id="main-navigation" className="bg-card border-b border-border px-6 py-3">
-            <div className="flex items-center space-x-4">
+          <div id="main-navigation" className="bg-card border-b border-border px-3 md:px-6 py-2 md:py-3">
+            <div className="flex items-center gap-2 md:gap-4 overflow-x-auto">
               {config.tablesEnabled && (
                 <Button
                   variant={viewMode === 'table-list' ? 'default' : 'ghost'}
@@ -408,7 +507,8 @@ export const Dashboard: React.FC = () => {
                     setViewMode('table-list');
                     setSelectedTableForOrder(null);
                   }}
-                  className="flex items-center space-x-2"
+                  size={isMobile ? 'sm' : 'default'}
+                  className="flex items-center gap-2 whitespace-nowrap"
                 >
                   <Receipt className="h-4 w-4" />
                   <span>Mesas</span>
@@ -421,7 +521,8 @@ export const Dashboard: React.FC = () => {
                   setViewMode('products');
                   setSelectedTableForOrder(null);
                 }}
-                className="flex items-center space-x-2"
+                size={isMobile ? 'sm' : 'default'}
+                className="flex items-center gap-2 whitespace-nowrap"
               >
                 <ShoppingBag className="h-4 w-4" />
                 <span>Productos</span>
@@ -430,19 +531,63 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-3 md:p-6 overflow-auto">
             {renderMainContent()}
           </div>
         </div>
 
-        {/* Shopping Cart Sidebar */}
-        <div id="shopping-cart" className="w-96 bg-card border-l border-border h-full">
-          <ShoppingCart 
-            selectedTable={selectedTableForOrder} 
-            onBackToTables={handleBackToTables}
-            onPaymentComplete={handlePaymentComplete}
-          />
-        </div>
+        {/* Shopping Cart - Desktop Sidebar / Mobile Drawer / Tablet Sheet */}
+        {isMobile ? (
+          <Drawer open={isCartOpen} onOpenChange={setIsCartOpen}>
+            <DrawerContent className="max-h-[85vh]">
+              <div className="h-full overflow-hidden">
+                <ShoppingCart 
+                  selectedTable={selectedTableForOrder} 
+                  onBackToTables={handleBackToTables}
+                  onPaymentComplete={() => {
+                    handlePaymentComplete();
+                    setIsCartOpen(false);
+                  }}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        ) : isTablet ? (
+          <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="fixed bottom-4 right-4 h-14 w-14 rounded-full shadow-lg z-50"
+              >
+                <ShoppingBag className="h-6 w-6" />
+                {posState.cart.length > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-6 w-6 p-0 flex items-center justify-center">
+                    {posState.cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-96 p-0">
+              <ShoppingCart 
+                selectedTable={selectedTableForOrder} 
+                onBackToTables={handleBackToTables}
+                onPaymentComplete={() => {
+                  handlePaymentComplete();
+                  setIsCartOpen(false);
+                }}
+              />
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <div id="shopping-cart" className="w-80 xl:w-96 bg-card border-l border-border h-full flex-shrink-0">
+            <ShoppingCart 
+              selectedTable={selectedTableForOrder} 
+              onBackToTables={handleBackToTables}
+              onPaymentComplete={handlePaymentComplete}
+            />
+          </div>
+        )}
       </div>
       
       {/* Version Info */}
