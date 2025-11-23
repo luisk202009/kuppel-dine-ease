@@ -17,6 +17,10 @@ import { Menu, X } from 'lucide-react';
 import { usePOS } from '@/contexts/POSContext';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates';
+import { OfflineIndicator } from '@/components/common/OfflineIndicator';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { setupAutoSync } from '@/lib/offlineSync';
+import { cacheProducts, cacheCustomers, cacheTables } from '@/lib/offlineStorage';
 import { shouldUseMockData, isAuthRequired } from '@/config/environment';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +52,7 @@ export const Dashboard: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const { isOnline } = useOnlineStatus();
 
   // Check if user is admin
   useEffect(() => {
@@ -100,6 +105,41 @@ export const Dashboard: React.FC = () => {
     },
     enabled: true
   });
+
+  // Setup offline sync and caching
+  useEffect(() => {
+    setupAutoSync();
+    
+    // Cache data for offline use when online
+    if (isOnline && authState.selectedCompany) {
+      const cacheData = async () => {
+        try {
+          // Cache products from all categories
+          const allProducts = posState.categories.flatMap(cat => cat.products || []);
+          if (allProducts.length > 0) {
+            await cacheProducts(allProducts);
+          }
+          
+          // Cache customers
+          if (posState.customers.length > 0) {
+            await cacheCustomers(posState.customers);
+          }
+          
+          // Cache tables
+          const allTables = posState.areas.flatMap(area => area.tables || []);
+          if (allTables.length > 0) {
+            await cacheTables(allTables);
+          }
+          
+          console.log('✅ Data cached for offline use');
+        } catch (error) {
+          console.error('Error caching data:', error);
+        }
+      };
+      
+      cacheData();
+    }
+  }, [isOnline, authState.selectedCompany, posState.categories, posState.customers, posState.areas]);
 
   // Update view mode when tablesEnabled changes
   useEffect(() => {
@@ -416,6 +456,7 @@ export const Dashboard: React.FC = () => {
 
             {/* Desktop actions */}
             <div className="hidden laptop:flex items-center gap-2">
+              <OfflineIndicator />
               <VotingButton />
               <div id="theme-toggle">
                 <ThemeToggle />
