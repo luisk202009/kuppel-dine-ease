@@ -162,6 +162,38 @@ export const useResetPassword = () => {
   });
 };
 
+export const useMagicLink = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) {
+        throw new Error(getAuthErrorMessage(error.message));
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Magic Link enviado",
+        description: "Revisa tu email para iniciar sesión con el enlace mágico.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al enviar el magic link",
+        variant: "destructive"
+      });
+    }
+  });
+};
+
 export const useLogout = () => {
   return async () => {
     await supabase.auth.signOut();

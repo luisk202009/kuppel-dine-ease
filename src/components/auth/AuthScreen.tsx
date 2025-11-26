@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, Zap, Mail, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Zap, Mail, UserPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Logo } from '@/components/ui/logo';
 import { CompanySelection } from '@/components/auth/CompanySelection';
-import { useSignUp, useResetPassword } from '@/hooks/useAuth';
+import { useSignUp, useResetPassword, useMagicLink } from '@/hooks/useAuth';
 import { usePOS } from '@/contexts/POSContext';
 import { useToast } from '@/hooks/use-toast';
 import { shouldUseMockData } from '@/config/environment';
+import { ThemeSelector } from '@/components/common/ThemeSelector';
 export const AuthScreen: React.FC = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -22,6 +23,7 @@ export const AuthScreen: React.FC = () => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const {
     authState,
     login,
@@ -29,6 +31,7 @@ export const AuthScreen: React.FC = () => {
   } = usePOS();
   const signUpMutation = useSignUp();
   const resetPasswordMutation = useResetPassword();
+  const magicLinkMutation = useMagicLink();
   const {
     toast
   } = useToast();
@@ -161,7 +164,33 @@ export const AuthScreen: React.FC = () => {
       setIsLoading(false);
     }
   };
-  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex items-center justify-center p-4">
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!magicLinkEmail) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa tu email",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await magicLinkMutation.mutateAsync(magicLinkEmail);
+      setMagicLinkEmail('');
+    } catch (error) {
+      console.error('Magic link error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex items-center justify-center p-4 relative">
+      {/* Theme Selector - Top Right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeSelector />
+      </div>
+      
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{
@@ -184,10 +213,11 @@ export const AuthScreen: React.FC = () => {
 
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="login">Iniciar</TabsTrigger>
+              <TabsTrigger value="signup">Registro</TabsTrigger>
               <TabsTrigger value="reset">Restablecer</TabsTrigger>
+              <TabsTrigger value="magic">Magic Link</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login" className="space-y-4 mt-4">
@@ -284,6 +314,31 @@ export const AuthScreen: React.FC = () => {
                 </Button>
               </form>
             </TabsContent>
+
+            <TabsContent value="magic" className="space-y-4 mt-4">
+              <form onSubmit={handleMagicLink} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="magic-email">Email</Label>
+                  <div className="relative">
+                    <Sparkles className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="magic-email" type="email" placeholder="tu@email.com" value={magicLinkEmail} onChange={e => setMagicLinkEmail(e.target.value)} className="pl-10 h-11" disabled={isLoading} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Recibirás un enlace mágico en tu email para iniciar sesión sin contraseña
+                  </p>
+                </div>
+
+                <Button type="submit" className="w-full h-11" disabled={isLoading || magicLinkMutation.isPending}>
+                  {isLoading || magicLinkMutation.isPending ? <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Enviando...</span>
+                    </div> : <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Enviar Magic Link
+                    </>}
+                </Button>
+              </form>
+            </TabsContent>
           </Tabs>
 
           {/* Demo Login Button */}
@@ -304,20 +359,6 @@ export const AuthScreen: React.FC = () => {
                 Entrar en modo demo
               </Button>
             </div>}
-
-          {/* Security Notice */}
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            {shouldUseMockData() ? <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-1">
-                  Modo demo activo - Supabase Auth
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Email: demo@kuppel.co | Contraseña: demo123456
-                </p>
-              </div> : <p className="text-xs text-muted-foreground text-center font-medium">
-                Sistema seguro con Supabase Auth
-              </p>}
-          </div>
         </CardContent>
       </Card>
     </div>;
