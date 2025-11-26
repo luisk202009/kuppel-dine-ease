@@ -12,6 +12,14 @@ import { usePOS } from '@/contexts/POSContext';
 import { useToast } from '@/hooks/use-toast';
 import { shouldUseMockData } from '@/config/environment';
 import { ThemeSelector } from '@/components/common/ThemeSelector';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 export const AuthScreen: React.FC = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -24,6 +32,7 @@ export const AuthScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const {
     authState,
     login,
@@ -76,15 +85,45 @@ export const AuthScreen: React.FC = () => {
       setIsLoading(false);
     }
   };
-  const handleRetry = () => {
-    // Clear any stuck loading states and reset form
-    setIsLoading(false);
-    setLoginEmail('');
-    setLoginPassword('');
-    toast({
-      title: "Reiniciando",
-      description: "Puedes intentar iniciar sesión nuevamente"
-    });
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa tu email",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await resetPasswordMutation.mutateAsync(resetEmail);
+      setShowResetDialog(false);
+      setResetEmail('');
+    } catch (error) {
+      console.error('Reset password error:', error);
+    }
+  };
+
+  const handleMagicLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = magicLinkEmail || loginEmail;
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa tu email",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await magicLinkMutation.mutateAsync(email);
+      setMagicLinkEmail('');
+    } catch (error) {
+      console.error('Magic link error:', error);
+    }
   };
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,27 +162,6 @@ export const AuthScreen: React.FC = () => {
       setIsLoading(false);
     }
   };
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetEmail) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa tu email",
-        variant: "destructive"
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await resetPasswordMutation.mutateAsync(resetEmail);
-      setResetEmail('');
-      setActiveTab('login');
-    } catch (error) {
-      console.error('Reset password error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   const handleDemoLogin = async () => {
     setIsLoading(true);
     try {
@@ -160,27 +178,6 @@ export const AuthScreen: React.FC = () => {
         description: "Error al iniciar modo demo",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!magicLinkEmail) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa tu email",
-        variant: "destructive"
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await magicLinkMutation.mutateAsync(magicLinkEmail);
-      setMagicLinkEmail('');
-    } catch (error) {
-      console.error('Magic link error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -212,13 +209,11 @@ export const AuthScreen: React.FC = () => {
         </CardHeader>
 
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="login">Iniciar</TabsTrigger>
-              <TabsTrigger value="signup">Registro</TabsTrigger>
-              <TabsTrigger value="reset">Restablecer</TabsTrigger>
-              <TabsTrigger value="magic">Magic Link</TabsTrigger>
-            </TabsList>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Iniciar</TabsTrigger>
+                  <TabsTrigger value="signup">Registro</TabsTrigger>
+                </TabsList>
             
             <TabsContent value="login" className="space-y-4 mt-4">
               <form onSubmit={handleLogin} className="space-y-4">
@@ -239,6 +234,57 @@ export const AuthScreen: React.FC = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  
+                  <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        ¿Olvidó su contraseña?
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Recuperar contraseña</DialogTitle>
+                        <DialogDescription>
+                          Ingrese su email y le enviaremos un enlace para restablecer su contraseña.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="reset-email">Email</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="reset-email"
+                              type="email"
+                              placeholder="tu@email.com"
+                              className="pl-10 h-11"
+                              value={resetEmail}
+                              onChange={(e) => setResetEmail(e.target.value)}
+                              disabled={resetPasswordMutation.isPending}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="submit"
+                          className="w-full h-11"
+                          disabled={resetPasswordMutation.isPending}
+                        >
+                          {resetPasswordMutation.isPending ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Enviando...</span>
+                            </div>
+                          ) : (
+                            "Enviar enlace de recuperación"
+                          )}
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <Button type="submit" className="w-full h-11" disabled={isLoading}>
@@ -247,11 +293,54 @@ export const AuthScreen: React.FC = () => {
                       <span>Verificando credenciales...</span>
                     </div> : 'Iniciar Sesión'}
                 </Button>
-                
-                {/* Retry button if there's an issue */}
-                {!isLoading && <Button type="button" variant="outline" className="w-full h-11 mt-2" onClick={handleRetry}>
-                    Reintentar
-                  </Button>}
+              </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">o</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="magic-email">Iniciar sesión sin contraseña</Label>
+                  <div className="relative">
+                    <Sparkles className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="magic-email"
+                      type="email"
+                      placeholder={loginEmail || "tu@email.com"}
+                      className="pl-10 h-11"
+                      value={magicLinkEmail}
+                      onChange={(e) => setMagicLinkEmail(e.target.value)}
+                      disabled={magicLinkMutation.isPending}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Recibirás un enlace mágico en tu email para iniciar sesión
+                  </p>
+                </div>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full h-11"
+                  disabled={magicLinkMutation.isPending}
+                >
+                  {magicLinkMutation.isPending ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Enviando enlace...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Iniciar con Magic Link
+                    </>
+                  )}
+                </Button>
               </form>
             </TabsContent>
 
@@ -296,49 +385,6 @@ export const AuthScreen: React.FC = () => {
               </form>
             </TabsContent>
 
-            <TabsContent value="reset" className="space-y-4 mt-4">
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="reset-email" type="email" placeholder="tu@email.com" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="pl-10 h-11" disabled={isLoading} />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full h-11" disabled={isLoading || resetPasswordMutation.isPending}>
-                  {isLoading || resetPasswordMutation.isPending ? <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Enviando email...</span>
-                    </div> : 'Enviar Email de Restablecimiento'}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="magic" className="space-y-4 mt-4">
-              <form onSubmit={handleMagicLink} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="magic-email">Email</Label>
-                  <div className="relative">
-                    <Sparkles className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="magic-email" type="email" placeholder="tu@email.com" value={magicLinkEmail} onChange={e => setMagicLinkEmail(e.target.value)} className="pl-10 h-11" disabled={isLoading} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Recibirás un enlace mágico en tu email para iniciar sesión sin contraseña
-                  </p>
-                </div>
-
-                <Button type="submit" className="w-full h-11" disabled={isLoading || magicLinkMutation.isPending}>
-                  {isLoading || magicLinkMutation.isPending ? <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Enviando...</span>
-                    </div> : <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Enviar Magic Link
-                    </>}
-                </Button>
-              </form>
-            </TabsContent>
           </Tabs>
 
           {/* Demo Login Button */}
