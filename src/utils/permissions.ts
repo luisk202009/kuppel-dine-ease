@@ -25,6 +25,18 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'create_expenses',
     'manage_users'
   ],
+  company_owner: [
+    'view_tables',
+    'view_products',
+    'view_customers',
+    'view_orders',
+    'view_reports',
+    'view_expenses',
+    'view_cash',
+    'manage_cash',
+    'create_expenses',
+    'manage_users'
+  ],
   manager: [
     'view_tables',
     'view_products',

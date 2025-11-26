@@ -148,28 +148,41 @@ export const CategoryProductView: React.FC = () => {
           Elige una categoría para ver sus productos.
         </p>
         <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <Button
-              key={category.id}
-              variant={selectedCategoryId === category.id ? "default" : "outline"}
-              onClick={() => {
-                setSelectedCategoryId(category.id);
-                setSearchQuery(''); // Clear search when changing category
-              }}
-              className={cn(
-                "transition-all",
-                selectedCategoryId === category.id && "ring-2 ring-primary/50"
-              )}
-              style={
-                selectedCategoryId === category.id && category.color
-                  ? { backgroundColor: category.color, borderColor: category.color }
-                  : {}
-              }
-            >
-              {category.icon && <span className="mr-2">{category.icon}</span>}
-              {category.name}
-            </Button>
-          ))}
+            {categories.map((category) => {
+              const Icon = (() => {
+                try {
+                  const lucideIcons = require('lucide-react');
+                  return lucideIcons[category.icon as keyof typeof lucideIcons];
+                } catch {
+                  return null;
+                }
+              })();
+              
+              return (
+                <Button
+                  key={category.id}
+                  variant={selectedCategoryId === category.id ? "default" : "outline"}
+                  onClick={() => {
+                    setSelectedCategoryId(category.id);
+                    setSearchQuery(''); // Clear search when changing category
+                  }}
+                  className={cn(
+                    "transition-all",
+                    selectedCategoryId === category.id && "ring-2 ring-primary/50"
+                  )}
+                  style={
+                    selectedCategoryId === category.id && category.color
+                      ? { backgroundColor: category.color, borderColor: category.color }
+                      : {}
+                  }
+                >
+                  {Icon && typeof Icon === 'function' ? (
+                    <Icon className="h-4 w-4 mr-2" />
+                  ) : null}
+                  {category.name}
+                </Button>
+              );
+            })}
         </div>
       </div>
 

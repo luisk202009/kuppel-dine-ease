@@ -54,6 +54,30 @@ export const Dashboard: React.FC = () => {
   const isTablet = useIsTablet();
   const { isOnline } = useOnlineStatus();
 
+  // Check if tables are available and should be enabled
+  useEffect(() => {
+    const checkTablesAvailability = async () => {
+      if (!authState.selectedBranch?.id) return;
+      
+      // Query areas to check if tables exist
+      const { data: areasData } = await supabase
+        .from('areas')
+        .select('id')
+        .eq('branch_id', authState.selectedBranch.id)
+        .eq('is_active', true)
+        .limit(1);
+      
+      const hasAreas = areasData && areasData.length > 0;
+      
+      // If no areas/tables exist but tablesEnabled is true, switch to products view
+      if (!hasAreas && config.tablesEnabled) {
+        setViewMode('products');
+      }
+    };
+    
+    checkTablesAvailability();
+  }, [authState.selectedBranch?.id, config.tablesEnabled]);
+
   // Check if user is admin
   useEffect(() => {
     const checkAdminStatus = async () => {
