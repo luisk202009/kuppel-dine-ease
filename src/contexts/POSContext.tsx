@@ -392,7 +392,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
            id: profile.id,
            username: profile.email,
            name: profile.name,
-           role: profile.role as 'admin' | 'manager' | 'waiter' | 'cashier',
+           role: profile.role as 'admin' | 'company_owner' | 'manager' | 'waiter' | 'cashier',
            email: profile.email,
            isActive: profile.is_active
          } : { 
