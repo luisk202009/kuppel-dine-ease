@@ -12,10 +12,10 @@ export const Logo: React.FC<LogoProps> = ({
   width = 120, 
   height = 40 
 }) => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   
-  // Use the appropriate logo based on theme
-  const logoSrc = theme === 'dark' 
+  // Use the appropriate logo based on resolved theme (handles 'system' option correctly)
+  const logoSrc = resolvedTheme === 'dark' 
     ? 'https://app.kuppel.co/assets/img/logo-kuppel-blanco.png'
     : 'https://lirp.cdn-website.com/d704af89/dms3rep/multi/opt/Imagotipo-fondo-claro-e4496d03-183w.png';
 
