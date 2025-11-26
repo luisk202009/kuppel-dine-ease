@@ -72,8 +72,11 @@ export const SetupWizard: React.FC = () => {
   };
 
   const handleSkip = async () => {
-    await skipSetup();
-    window.location.reload();
+    const success = await skipSetup();
+    if (success) {
+      window.location.reload();
+    }
+    // Si falla, el toast ya se mostró en skipSetup
   };
 
   const handleCategoriesComplete = (categories: SetupData['categories']) => {
