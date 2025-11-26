@@ -6,6 +6,7 @@ export interface LayoutConfig {
   touchOptimized: boolean;
   showTableNumbers: boolean;
   tablesEnabled: boolean;
+  businessType?: string;
 }
 
 const defaultConfig: LayoutConfig = {
@@ -14,6 +15,7 @@ const defaultConfig: LayoutConfig = {
   touchOptimized: true,
   showTableNumbers: true,
   tablesEnabled: true,
+  businessType: undefined,
 };
 
 export const useLayoutConfig = () => {
