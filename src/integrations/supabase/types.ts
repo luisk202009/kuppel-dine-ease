@@ -94,27 +94,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "branches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_monthly_sales_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "branches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_product_sales_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "branches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_usage_stats"
-            referencedColumns: ["company_id"]
-          },
         ]
       }
       cash_registers: {
@@ -163,13 +142,6 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cash_registers_cashier_id_fkey"
-            columns: ["cashier_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -328,27 +300,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "company_subscriptions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_monthly_sales_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "company_subscriptions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_product_sales_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "company_subscriptions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_usage_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
             foreignKeyName: "company_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
@@ -455,13 +406,6 @@ export type Database = {
             foreignKeyName: "expenses_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -499,13 +443,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "logs_user_id_fkey"
             columns: ["user_id"]
@@ -553,13 +490,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "company_product_sales_stats"
-            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "order_items_product_id_fkey"
@@ -646,21 +576,7 @@ export type Database = {
             foreignKeyName: "orders_cashier_id_fkey"
             columns: ["cashier_id"]
             isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_cashier_id_fkey"
-            columns: ["cashier_id"]
-            isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customer_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -675,13 +591,6 @@ export type Database = {
             columns: ["table_id"]
             isOneToOne: false
             referencedRelation: "tables"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_waiter_id_fkey"
-            columns: ["waiter_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -865,13 +774,6 @@ export type Database = {
             foreignKeyName: "tables_waiter_id_fkey"
             columns: ["waiter_id"]
             isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tables_waiter_id_fkey"
-            columns: ["waiter_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -912,34 +814,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_monthly_sales_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "user_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_product_sales_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "user_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_usage_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "user_companies_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1035,13 +909,6 @@ export type Database = {
             foreignKeyName: "votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "votes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1049,168 +916,7 @@ export type Database = {
       }
     }
     Views: {
-      company_monthly_sales_stats: {
-        Row: {
-          company_id: string | null
-          company_name: string | null
-          month_label: string | null
-          total_orders_month: number | null
-          total_sales_month: number | null
-          year_month: string | null
-        }
-        Relationships: []
-      }
-      company_product_sales_stats: {
-        Row: {
-          company_id: string | null
-          company_name: string | null
-          product_id: string | null
-          product_name: string | null
-          total_quantity_last_30d: number | null
-          total_quantity_sold: number | null
-          total_sales_amount: number | null
-          total_sales_last_30d: number | null
-        }
-        Relationships: []
-      }
-      company_usage_stats: {
-        Row: {
-          activity_status: string | null
-          branches_count: number | null
-          business_type: Database["public"]["Enums"]["business_type"] | null
-          categories_count: number | null
-          company_created_at: string | null
-          company_id: string | null
-          company_is_active: boolean | null
-          company_name: string | null
-          days_since_last_order: number | null
-          documents_this_month: number | null
-          last_order_at: string | null
-          products_count: number | null
-          total_orders: number | null
-          total_orders_last_30d: number | null
-          total_orders_prev_30d: number | null
-          total_sales_amount: number | null
-          total_sales_last_30d: number | null
-          total_sales_prev_30d: number | null
-          users_count: number | null
-        }
-        Insert: {
-          activity_status?: never
-          branches_count?: never
-          business_type?: Database["public"]["Enums"]["business_type"] | null
-          categories_count?: never
-          company_created_at?: string | null
-          company_id?: string | null
-          company_is_active?: boolean | null
-          company_name?: string | null
-          days_since_last_order?: never
-          documents_this_month?: never
-          last_order_at?: never
-          products_count?: never
-          total_orders?: never
-          total_orders_last_30d?: never
-          total_orders_prev_30d?: never
-          total_sales_amount?: never
-          total_sales_last_30d?: never
-          total_sales_prev_30d?: never
-          users_count?: never
-        }
-        Update: {
-          activity_status?: never
-          branches_count?: never
-          business_type?: Database["public"]["Enums"]["business_type"] | null
-          categories_count?: never
-          company_created_at?: string | null
-          company_id?: string | null
-          company_is_active?: boolean | null
-          company_name?: string | null
-          days_since_last_order?: never
-          documents_this_month?: never
-          last_order_at?: never
-          products_count?: never
-          total_orders?: never
-          total_orders_last_30d?: never
-          total_orders_prev_30d?: never
-          total_sales_amount?: never
-          total_sales_last_30d?: never
-          total_sales_prev_30d?: never
-          users_count?: never
-        }
-        Relationships: []
-      }
-      customer_profiles: {
-        Row: {
-          address: string | null
-          city: string | null
-          company_id: string | null
-          created_at: string | null
-          email: string | null
-          id: string | null
-          last_name: string | null
-          name: string | null
-          notes: string | null
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address?: string | null
-          city?: string | null
-          company_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          last_name?: string | null
-          name?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string | null
-          city?: string | null
-          company_id?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          last_name?: string | null
-          name?: string | null
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      user_profiles: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       cast_vote: {
@@ -1218,8 +924,84 @@ export type Database = {
         Returns: Json
       }
       check_company_limits: { Args: { p_company_id: string }; Returns: Json }
+      get_company_monthly_sales_stats: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_name: string
+          month_label: string
+          total_orders_month: number
+          total_sales_month: number
+          year_month: string
+        }[]
+      }
+      get_company_product_sales_stats: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_name: string
+          product_id: string
+          product_name: string
+          total_quantity_last_30d: number
+          total_quantity_sold: number
+          total_sales_amount: number
+          total_sales_last_30d: number
+        }[]
+      }
+      get_company_usage_stats: {
+        Args: never
+        Returns: {
+          activity_status: string
+          branches_count: number
+          business_type: Database["public"]["Enums"]["business_type"]
+          categories_count: number
+          company_created_at: string
+          company_id: string
+          company_is_active: boolean
+          company_name: string
+          days_since_last_order: number
+          documents_this_month: number
+          last_order_at: string
+          products_count: number
+          total_orders: number
+          total_orders_last_30d: number
+          total_orders_prev_30d: number
+          total_sales_amount: number
+          total_sales_last_30d: number
+          total_sales_prev_30d: number
+          users_count: number
+        }[]
+      }
+      get_customer_profiles: {
+        Args: never
+        Returns: {
+          address: string
+          city: string
+          company_id: string
+          created_at: string
+          email: string
+          id: string
+          last_name: string
+          name: string
+          notes: string
+          phone: string
+          updated_at: string
+        }[]
+      }
       get_user_branches: { Args: never; Returns: string[] }
       get_user_companies: { Args: never; Returns: string[] }
+      get_user_profiles: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }[]
+      }
       get_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
