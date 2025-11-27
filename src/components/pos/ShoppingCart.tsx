@@ -166,6 +166,11 @@ export const ShoppingCart: React.FC<ShoppingCartProps> = ({ selectedTable, onBac
                         <h4 className="font-medium text-sm leading-tight">
                           {item.product.name}
                         </h4>
+                        {item.variantName && (
+                          <p className="text-xs text-primary font-medium">
+                            {item.variantName}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {formatPrice(item.unitPrice)} c/u
                         </p>

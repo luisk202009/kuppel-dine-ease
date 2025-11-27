@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductImportModal } from './ProductImportModal';
+import { ProductVariantsManager } from './ProductVariantsManager';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ export const ProductsTab: React.FC = () => {
   const { toast } = useToast();
   const { authState } = usePOS();
   const queryClient = useQueryClient();
+  const selectedCompanyId = authState.selectedCompany?.id || '';
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -62,7 +64,8 @@ export const ProductsTab: React.FC = () => {
     cost: 0,
     stock: 0,
     min_stock: 0,
-    is_alcoholic: false
+    is_alcoholic: false,
+    has_variants: false,
   });
 
   // Fetch categories for dropdown
@@ -262,7 +265,8 @@ export const ProductsTab: React.FC = () => {
       cost: 0,
       stock: 0,
       min_stock: 0,
-      is_alcoholic: false
+      is_alcoholic: false,
+      has_variants: false,
     });
   };
 
@@ -562,6 +566,17 @@ export const ProductsTab: React.FC = () => {
               
               <div className="col-span-2 flex items-center space-x-2">
                 <Checkbox
+                  id="has_variants"
+                  checked={formData.has_variants}
+                  onCheckedChange={(checked) => setFormData({ ...formData, has_variants: checked as boolean })}
+                />
+                <Label htmlFor="has_variants" className="cursor-pointer">
+                  Este producto tiene variantes (tallas, colores, sabores)
+                </Label>
+              </div>
+
+              <div className="col-span-2 flex items-center space-x-2">
+                <Checkbox
                   id="is_alcoholic"
                   checked={formData.is_alcoholic}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_alcoholic: checked as boolean })}
@@ -570,6 +585,15 @@ export const ProductsTab: React.FC = () => {
                   Producto alcohólico (requiere verificación de edad)
                 </Label>
               </div>
+
+              {editingProduct && formData.has_variants && (
+                <div className="col-span-2 mt-4">
+                  <ProductVariantsManager 
+                    productId={editingProduct.id} 
+                    companyId={selectedCompanyId}
+                  />
+                </div>
+              )}
             </div>
           </div>
           

@@ -462,6 +462,8 @@ export type Database = {
           quantity: number
           total_price: number
           unit_price: number
+          variant_id: string | null
+          variant_name: string | null
         }
         Insert: {
           created_at?: string
@@ -472,6 +474,8 @@ export type Database = {
           quantity?: number
           total_price: number
           unit_price: number
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Update: {
           created_at?: string
@@ -482,6 +486,8 @@ export type Database = {
           quantity?: number
           total_price?: number
           unit_price?: number
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Relationships: [
           {
@@ -496,6 +502,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -650,6 +663,69 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variants: {
+        Row: {
+          cost: number | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          min_stock: number | null
+          price: number
+          product_id: string
+          sku: string | null
+          stock: number | null
+          updated_at: string | null
+          variant_type_id: string
+          variant_value: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          min_stock?: number | null
+          price: number
+          product_id: string
+          sku?: string | null
+          stock?: number | null
+          updated_at?: string | null
+          variant_type_id: string
+          variant_value: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          min_stock?: number | null
+          price?: number
+          product_id?: string
+          sku?: string | null
+          stock?: number | null
+          updated_at?: string | null
+          variant_type_id?: string
+          variant_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_variant_type_id_fkey"
+            columns: ["variant_type_id"]
+            isOneToOne: false
+            referencedRelation: "variant_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string
@@ -657,6 +733,7 @@ export type Database = {
           cost: number | null
           created_at: string
           description: string | null
+          has_variants: boolean | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -673,6 +750,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           description?: string | null
+          has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -689,6 +767,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           description?: string | null
+          has_variants?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -884,6 +963,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      variant_types: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_types_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       votes: {
         Row: {
