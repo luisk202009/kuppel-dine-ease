@@ -1147,7 +1147,6 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string | null
-          identification: string | null
           last_name: string | null
           name: string | null
           notes: string | null
@@ -1155,13 +1154,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          address?: never
+          address?: string | null
           city?: string | null
           company_id?: string | null
           created_at?: string | null
           email?: string | null
           id?: string | null
-          identification?: never
           last_name?: string | null
           name?: string | null
           notes?: string | null
@@ -1169,13 +1167,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          address?: never
+          address?: string | null
           city?: string | null
           company_id?: string | null
           created_at?: string | null
           email?: string | null
           id?: string | null
-          identification?: never
           last_name?: string | null
           name?: string | null
           notes?: string | null
