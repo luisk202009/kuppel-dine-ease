@@ -30,6 +30,7 @@ interface Product {
   company_id: string;
   is_active: boolean;
   is_alcoholic: boolean;
+  has_variants?: boolean;
   categories?: {
     id: string;
     name: string;
@@ -280,8 +281,10 @@ export const ProductsTab: React.FC = () => {
       cost: product.cost || 0,
       stock: product.stock,
       min_stock: product.min_stock,
-      is_alcoholic: product.is_alcoholic
+      is_alcoholic: product.is_alcoholic,
+      has_variants: product.has_variants || false
     });
+    setShowCreateModal(true);
   };
 
   const handleSubmit = () => {
