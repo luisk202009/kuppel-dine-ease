@@ -205,15 +205,13 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
     try {
       setIsLoadingChart(true);
       const { data, error } = await supabase
-        .from('company_monthly_sales_stats')
-        .select('*')
-        .eq('company_id', company.id)
-        .order('year_month', { ascending: true });
+        .rpc('get_company_monthly_sales_stats');
 
       if (error) throw error;
 
-      // Limitar a los últimos 6 meses
-      const last6Months = (data || []).slice(-6);
+      // Filter by company and limit to last 6 months
+      const companyData = (data || []).filter(d => d.company_id === company.id);
+      const last6Months = companyData.slice(-6);
       setMonthlySales(last6Months);
     } catch (error) {
       console.error('Error fetching monthly sales:', error);
@@ -234,13 +232,13 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
     try {
       setIsLoadingProducts(true);
       const { data, error } = await supabase
-        .from('company_product_sales_stats')
-        .select('*')
-        .eq('company_id', company.id);
+        .rpc('get_company_product_sales_stats');
 
       if (error) throw error;
 
-      setTopProducts(data || []);
+      // Filter by company
+      const companyProducts = (data || []).filter(d => d.company_id === company.id);
+      setTopProducts(companyProducts);
     } catch (error) {
       console.error('Error fetching top products:', error);
       toast({

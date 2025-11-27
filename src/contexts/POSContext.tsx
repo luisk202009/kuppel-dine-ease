@@ -22,7 +22,7 @@ interface POSContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   selectCompanyAndBranch: (company: Company, branch: Branch) => void;
-  addToCart: (product: Product, quantity?: number) => void;
+  addToCart: (product: Product, quantity?: number, variantId?: string, variantName?: string) => void;
   removeFromCart: (itemId: string) => void;
   updateCartItem: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -43,7 +43,7 @@ const POSContext = createContext<POSContextType | undefined>(undefined);
 type POSAction = 
   | { type: 'SET_USER'; payload: User | null }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number } }
+  | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number; variantId?: string; variantName?: string } }
   | { type: 'REMOVE_FROM_CART'; payload: string }
   | { type: 'UPDATE_CART_ITEM'; payload: { itemId: string; quantity: number } }
   | { type: 'CLEAR_CART' }
@@ -94,12 +94,16 @@ function posReducer(state: POSState & AuthState, action: POSAction): POSState & 
       };
       
     case 'ADD_TO_CART':
-      const existingItem = state.cart.find(item => item.productId === action.payload.product.id);
+      // Check if item with same product AND variant already exists
+      const existingItem = state.cart.find(item => 
+        item.productId === action.payload.product.id && 
+        item.variantId === action.payload.variantId
+      );
       if (existingItem) {
         return {
           ...state,
           cart: state.cart.map(item =>
-            item.productId === action.payload.product.id
+            item.productId === action.payload.product.id && item.variantId === action.payload.variantId
               ? {
                   ...item,
                   quantity: item.quantity + action.payload.quantity,
@@ -115,7 +119,9 @@ function posReducer(state: POSState & AuthState, action: POSAction): POSState & 
           product: action.payload.product,
           quantity: action.payload.quantity,
           unitPrice: action.payload.product.price,
-          total: action.payload.product.price * action.payload.quantity
+          total: action.payload.product.price * action.payload.quantity,
+          variantId: action.payload.variantId,
+          variantName: action.payload.variantName
         };
         return {
           ...state,
@@ -841,8 +847,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const addToCart = (product: Product, quantity: number = 1) => {
-    dispatch({ type: 'ADD_TO_CART', payload: { product, quantity } });
+  const addToCart = (product: Product, quantity: number = 1, variantId?: string, variantName?: string) => {
+    dispatch({ type: 'ADD_TO_CART', payload: { product, quantity, variantId, variantName } });
   };
 
   const removeFromCart = (itemId: string) => {

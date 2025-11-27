@@ -11,6 +11,31 @@ export interface Table {
   waiter?: string;
 }
 
+export interface VariantType {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string;
+  displayOrder?: number;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  variantTypeId: string;
+  variantTypeName?: string;
+  variantValue: string;
+  price: number;
+  cost?: number;
+  stock: number;
+  minStock: number;
+  sku?: string;
+  imageUrl?: string;
+  isActive: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -20,6 +45,8 @@ export interface Product {
   image?: string;
   available: boolean;
   isAlcoholic?: boolean;
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
 }
 
 export interface Customer {
@@ -39,6 +66,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   notes?: string;
+  variantId?: string;
+  variantName?: string;
 }
 
 export interface OrderItem {
@@ -49,6 +78,8 @@ export interface OrderItem {
   unitPrice: number;
   total: number;
   notes?: string;
+  variantId?: string;
+  variantName?: string;
 }
 
 export interface Order {

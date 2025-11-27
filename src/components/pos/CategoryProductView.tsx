@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePOS } from '@/contexts/POSContext';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { VariantSelectionModal } from './VariantSelectionModal';
 
 export const CategoryProductView: React.FC = () => {
   const { toast } = useToast();
@@ -63,14 +64,31 @@ export const CategoryProductView: React.FC = () => {
         .from('products')
         .select(`
           *,
-          categories(name)
+          categories(name),
+          product_variants(
+            id,
+            variant_type_id,
+            variant_value,
+            price,
+            stock,
+            is_active,
+            variant_types(
+              id,
+              name
+            )
+          )
         `)
         .eq('company_id', authState.selectedCompany?.id)
         .eq('is_active', true)
         .order('name');
       
       if (error) throw error;
-      return data || [];
+      
+      // Map products and filter active variants
+      return (data || []).map(product => ({
+        ...product,
+        variants: product.product_variants?.filter((v: any) => v.is_active && v.stock > 0) || []
+      }));
     },
     enabled: !!authState.selectedCompany?.id
   });
@@ -82,8 +100,11 @@ export const CategoryProductView: React.FC = () => {
     }
   }, [categories, selectedCategoryId]);
 
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
   const handleAddToCart = (product: any) => {
-    if (!product.is_active || product.stock <= 0) {
+    if (!product.is_active || (product.stock <= 0 && !product.has_variants)) {
       toast({
         title: "Producto no disponible",
         description: "Este producto no está disponible para agregar al carrito",
@@ -92,6 +113,14 @@ export const CategoryProductView: React.FC = () => {
       return;
     }
 
+    // If product has variants, show selection modal
+    if (product.has_variants && product.variants && product.variants.length > 0) {
+      setSelectedProduct(product);
+      setShowVariantModal(true);
+      return;
+    }
+
+    // Add simple product without variants
     addToCart({
       id: product.id,
       name: product.name,
@@ -103,6 +132,20 @@ export const CategoryProductView: React.FC = () => {
     }, 1);
 
     // Visual feedback in cart is sufficient, no toast needed
+  };
+
+  const handleVariantSelect = (product: any, variant: any) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: variant.price,
+      category: product.categories?.name || '',
+      description: product.description,
+      available: product.is_active,
+      isAlcoholic: product.is_alcoholic
+    }, 1, variant.id, `${variant.variant_types?.name}: ${variant.variant_value}`);
+    setShowVariantModal(false);
+    setSelectedProduct(null);
   };
 
   // Filter products by selected category and search query
@@ -282,6 +325,17 @@ export const CategoryProductView: React.FC = () => {
           </div>
         )}
       </div>
+
+      <VariantSelectionModal
+        open={showVariantModal}
+        onClose={() => {
+          setShowVariantModal(false);
+          setSelectedProduct(null);
+        }}
+        productName={selectedProduct?.name || ''}
+        variants={selectedProduct?.variants || []}
+        onSelect={(variant) => handleVariantSelect(selectedProduct, variant)}
+      />
     </div>
   );
 };

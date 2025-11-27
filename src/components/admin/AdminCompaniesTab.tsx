@@ -263,8 +263,7 @@ export const AdminCompaniesTab: React.FC = () => {
       // Fetch usage stats
       try {
         const { data: statsData, error: statsError } = await supabase
-          .from('company_usage_stats')
-          .select('*');
+          .rpc('get_company_usage_stats');
 
         if (statsError) throw statsError;
 
