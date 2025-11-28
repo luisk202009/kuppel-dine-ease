@@ -136,7 +136,7 @@ export const ProductsTab: React.FC = () => {
   // Create product mutation
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase
+      const { data: newProduct, error } = await supabase
         .from('products')
         .insert({
           name: data.name,
@@ -150,18 +150,44 @@ export const ProductsTab: React.FC = () => {
           has_variants: data.has_variants,
           company_id: authState.selectedCompany?.id,
           is_active: true
-        });
+        })
+        .select()
+        .single();
       
       if (error) throw error;
+      return newProduct;
     },
-    onSuccess: () => {
+    onSuccess: (newProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({
         title: "Producto creado",
-        description: "El producto se creó correctamente"
+        description: newProduct.has_variants 
+          ? "Ahora puedes agregar las variantes"
+          : "El producto se creó correctamente"
       });
-      setShowCreateModal(false);
-      resetForm();
+      
+      // Si tiene variantes, abrir modo edición automáticamente
+      if (newProduct.has_variants) {
+        setShowCreateModal(false);
+        setTimeout(() => {
+          setEditingProduct(newProduct);
+          setFormData({
+            name: newProduct.name,
+            description: newProduct.description || '',
+            category_id: newProduct.category_id,
+            price: newProduct.price,
+            cost: newProduct.cost || 0,
+            stock: newProduct.stock,
+            min_stock: newProduct.min_stock,
+            is_alcoholic: newProduct.is_alcoholic,
+            has_variants: newProduct.has_variants || false,
+          });
+          setShowCreateModal(true);
+        }, 100);
+      } else {
+        setShowCreateModal(false);
+        resetForm();
+      }
     },
     onError: (error) => {
       toast({
@@ -639,6 +665,16 @@ export const ProductsTab: React.FC = () => {
                   Producto alcohólico (requiere verificación de edad)
                 </Label>
               </div>
+
+              {/* Mensaje informativo para productos con variantes */}
+              {!editingProduct && formData.has_variants && (
+                <div className="col-span-2 p-4 bg-muted rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Nota:</strong> Al crear el producto, se abrirá automáticamente 
+                    el editor para que agregues las variantes (tallas, colores, etc.)
+                  </p>
+                </div>
+              )}
 
               {editingProduct && formData.has_variants && (
                 <div className="col-span-2 mt-4">
