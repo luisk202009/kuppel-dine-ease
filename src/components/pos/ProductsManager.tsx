@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CategoriesTab } from './products/CategoriesTab';
 import { ProductsTab } from './products/ProductsTab';
 import { VariantTypesTab } from './products/VariantTypesTab';
+import { usePOS } from '@/contexts/POSContext';
 
 interface ProductsManagerProps {
   companyId?: string;
@@ -10,9 +11,10 @@ interface ProductsManagerProps {
 
 export const ProductsManager: React.FC<ProductsManagerProps> = ({ companyId }) => {
   const [activeTab, setActiveTab] = useState<'categories' | 'products' | 'variants'>('categories');
+  const { authState } = usePOS();
 
-  // Get companyId from localStorage if not provided
-  const selectedCompanyId = companyId || localStorage.getItem('selectedCompanyId') || '';
+  // Get companyId from props or POSContext
+  const selectedCompanyId = companyId || authState.selectedCompany?.id || '';
 
   return (
     <div className="space-y-6">

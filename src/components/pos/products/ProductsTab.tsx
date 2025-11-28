@@ -132,6 +132,7 @@ export const ProductsTab: React.FC = () => {
           stock: data.stock,
           min_stock: data.min_stock,
           is_alcoholic: data.is_alcoholic,
+          has_variants: data.has_variants,
           company_id: authState.selectedCompany?.id,
           is_active: true
         });
@@ -170,7 +171,8 @@ export const ProductsTab: React.FC = () => {
           cost: data.cost || null,
           stock: data.stock,
           min_stock: data.min_stock,
-          is_alcoholic: data.is_alcoholic
+          is_alcoholic: data.is_alcoholic,
+          has_variants: data.has_variants
         })
         .eq('id', id);
       
