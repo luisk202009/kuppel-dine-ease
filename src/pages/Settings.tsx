@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePOS } from '@/contexts/POSContext';
@@ -18,14 +18,17 @@ export type SettingsSection = 'settings' | 'products' | 'customers' | 'orders' |
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = usePOS();
+  const [searchParams, setSearchParams] = useSearchParams();
   
-  // Check URL params for initial section
-  const searchParams = new URLSearchParams(window.location.search);
-  const initialSection = (searchParams.get('section') as SettingsSection) || 'settings';
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+  // Get active section from URL params or default to 'settings'
+  const activeSection = (searchParams.get('section') as SettingsSection) || 'settings';
 
   const handleBackToPOS = () => {
     navigate('/');
+  };
+
+  const handleSectionChange = (section: SettingsSection) => {
+    setSearchParams({ section });
   };
 
   const renderContent = () => {
@@ -126,7 +129,7 @@ export const Settings: React.FC = () => {
         {/* Sidebar */}
         <SettingsSidebar 
           activeSection={activeSection} 
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
           user={authState.user}
         />
 
