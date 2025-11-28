@@ -711,6 +711,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_product_variants_product"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_variants_variant_type"
+            columns: ["variant_type_id"]
+            isOneToOne: false
+            referencedRelation: "variant_types"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false

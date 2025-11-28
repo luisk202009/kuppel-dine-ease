@@ -30,7 +30,7 @@ export const useProductVariants = (productId: string) => {
         .from('product_variants')
         .select(`
           *,
-          variant_types (
+          variant_types!fk_product_variants_variant_type (
             id,
             name
           )
