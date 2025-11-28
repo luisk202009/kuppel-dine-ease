@@ -86,7 +86,7 @@ export const ProductsTab: React.FC = () => {
     enabled: !!authState.selectedCompany?.id
   });
 
-  // Fetch products
+  // Fetch products with variants
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products', authState.selectedCompany?.id, selectedCategoryFilter],
     queryFn: async () => {
@@ -94,7 +94,14 @@ export const ProductsTab: React.FC = () => {
         .from('products')
         .select(`
           *,
-          categories(id, name, color)
+          categories(id, name, color),
+          product_variants(
+            id,
+            variant_value,
+            price,
+            stock,
+            is_active
+          )
         `)
         .eq('company_id', authState.selectedCompany?.id)
         .order('name');
@@ -105,7 +112,15 @@ export const ProductsTab: React.FC = () => {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Calculate total stock and price range for products with variants
+      return (data || []).map(product => ({
+        ...product,
+        variants: product.product_variants?.filter((v: any) => v.is_active) || [],
+        totalStock: product.has_variants && product.product_variants?.length > 0
+          ? product.product_variants.filter((v: any) => v.is_active).reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
+          : product.stock
+      }));
     },
     enabled: !!authState.selectedCompany?.id
   });
@@ -308,7 +323,8 @@ export const ProductsTab: React.FC = () => {
       return;
     }
 
-    if (formData.price <= 0) {
+    // Only validate price if product doesn't have variants
+    if (!formData.has_variants && formData.price <= 0) {
       toast({
         title: "Precio inválido",
         description: "El precio debe ser mayor a 0",
@@ -418,11 +434,32 @@ export const ProductsTab: React.FC = () => {
                       {product.categories?.name}
                     </Badge>
                   </TableCell>
-                  <TableCell>${product.price.toLocaleString()}</TableCell>
                   <TableCell>
-                    <span className={product.stock <= product.min_stock ? 'text-destructive font-semibold' : ''}>
-                      {product.stock}
-                    </span>
+                    {product.has_variants && product.variants?.length > 0 ? (
+                      (() => {
+                        const prices = product.variants.map((v: any) => v.price);
+                        const min = Math.min(...prices);
+                        const max = Math.max(...prices);
+                        return min === max ? `$${min.toLocaleString()}` : `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+                      })()
+                    ) : (
+                      `$${product.price.toLocaleString()}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const totalStock = (product as any).totalStock ?? product.stock;
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span className={totalStock <= product.min_stock ? 'text-destructive font-semibold' : ''}>
+                            {totalStock}
+                          </span>
+                          {product.has_variants && product.variants?.length > 0 && (
+                            <Badge variant="outline" className="text-xs">Σ variantes</Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant={product.is_active ? 'default' : 'secondary'}>
@@ -520,10 +557,14 @@ export const ProductsTab: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="price">Precio *</Label>
+                <Label htmlFor="price">
+                  Precio *
+                  {formData.has_variants && <span className="text-xs text-muted-foreground ml-2">(definido por variantes)</span>}
+                </Label>
                 <Input
                   id="price"
                   type="number"
+                  disabled={formData.has_variants}
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                   placeholder="0"
@@ -533,10 +574,14 @@ export const ProductsTab: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="cost">Costo</Label>
+                <Label htmlFor="cost">
+                  Costo
+                  {formData.has_variants && <span className="text-xs text-muted-foreground ml-2">(definido por variantes)</span>}
+                </Label>
                 <Input
                   id="cost"
                   type="number"
+                  disabled={formData.has_variants}
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                   placeholder="0"
@@ -546,10 +591,14 @@ export const ProductsTab: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
+                <Label htmlFor="stock">
+                  Stock
+                  {formData.has_variants && <span className="text-xs text-muted-foreground ml-2">(definido por variantes)</span>}
+                </Label>
                 <Input
                   id="stock"
                   type="number"
+                  disabled={formData.has_variants}
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
                   placeholder="0"

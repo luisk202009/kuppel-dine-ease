@@ -13,6 +13,36 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { VariantSelectionModal } from './VariantSelectionModal';
 
+// Helper functions for variant-aware calculations
+const getProductStock = (product: any) => {
+  if (product.has_variants && product.variants?.length > 0) {
+    return product.variants
+      .filter((v: any) => v.is_active)
+      .reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+  }
+  return product.stock;
+};
+
+const getProductPriceDisplay = (product: any) => {
+  if (product.has_variants && product.variants?.length > 0) {
+    const prices = product.variants
+      .filter((v: any) => v.is_active)
+      .map((v: any) => v.price);
+    if (prices.length === 0) return `$${product.price.toLocaleString()}`;
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return min === max ? `$${min.toLocaleString()}` : `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+  }
+  return `$${product.price.toLocaleString()}`;
+};
+
+const hasAvailableStock = (product: any) => {
+  if (product.has_variants) {
+    return product.variants?.some((v: any) => v.is_active && v.stock > 0) || false;
+  }
+  return product.stock > 0;
+};
+
 export const CategoryProductView: React.FC = () => {
   const { toast } = useToast();
   const { authState, addToCart } = usePOS();
@@ -104,7 +134,9 @@ export const CategoryProductView: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const handleAddToCart = (product: any) => {
-    if (!product.is_active || (product.stock <= 0 && !product.has_variants)) {
+    const hasStock = hasAvailableStock(product);
+    
+    if (!product.is_active || !hasStock) {
       toast({
         title: "Producto no disponible",
         description: "Este producto no está disponible para agregar al carrito",
@@ -113,7 +145,7 @@ export const CategoryProductView: React.FC = () => {
       return;
     }
 
-    // If product has variants, show selection modal
+    // If product has variants with stock, show selection modal
     if (product.has_variants && product.variants && product.variants.length > 0) {
       setSelectedProduct(product);
       setShowVariantModal(true);
@@ -279,37 +311,44 @@ export const CategoryProductView: React.FC = () => {
                   <p className="text-sm text-muted-foreground mb-3">{product.description}</p>
                   
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-2xl font-bold">${product.price.toLocaleString()}</span>
+                    <span className="text-2xl font-bold">{getProductPriceDisplay(product)}</span>
                     <div className="flex items-center gap-2 text-sm">
-                      {product.stock <= 5 && product.stock > 0 ? (
-                        <Badge variant="outline" className="gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          Stock bajo: {product.stock}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">Stock: {product.stock}</span>
-                      )}
+                      {(() => {
+                        const totalStock = getProductStock(product);
+                        if (totalStock <= 5 && totalStock > 0) {
+                          return (
+                            <Badge variant="outline" className="gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              Stock bajo: {totalStock}
+                            </Badge>
+                          );
+                        }
+                        return <span className="text-muted-foreground">Stock: {totalStock}</span>;
+                      })()}
                     </div>
                   </div>
 
                   <div className="flex gap-2 mb-3 flex-wrap">
-                    {product.stock > 0 ? (
+                    {hasAvailableStock(product) ? (
                       <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">Disponible</Badge>
                     ) : (
                       <Badge variant="destructive">Sin stock</Badge>
+                    )}
+                    {product.has_variants && (
+                      <Badge variant="outline">Con variantes</Badge>
                     )}
                     {product.is_alcoholic && (
                       <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Alcohólico</Badge>
                     )}
                   </div>
 
-                  {product.stock > 0 ? (
+                  {hasAvailableStock(product) ? (
                     <Button 
                       className="w-full" 
                       onClick={() => handleAddToCart(product)}
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
-                      Agregar al carrito
+                      {product.has_variants ? 'Seleccionar variante' : 'Agregar al carrito'}
                     </Button>
                   ) : (
                     <Button 
