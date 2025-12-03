@@ -400,6 +400,15 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const stored = getStoredAuth();
       const needsSelection = companies.length > 1 || branches.length > 1;
 
+       // Detectar estado inconsistente: setup_completed=true pero sin empresa
+       const hasNoCompanyAssociation = companies.length === 0;
+       const needsSetup = profile?.setup_completed === false || 
+                         (profile?.setup_completed === true && hasNoCompanyAssociation);
+
+       if (hasNoCompanyAssociation && profile?.setup_completed === true) {
+         console.warn('Estado inconsistente detectado: setup_completed=true pero sin empresa asociada. Forzando wizard.');
+       }
+
        setAuthState({
          user: profile ? {
            id: profile.id,
@@ -432,9 +441,9 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
          })),
          selectedCompany: stored.selectedCompany,
          selectedBranch: stored.selectedBranch,
-         isAuthenticated: !needsSelection || (stored.selectedCompany && stored.selectedBranch) || companies.length === 0,
+         isAuthenticated: !needsSelection || (stored.selectedCompany && stored.selectedBranch) || hasNoCompanyAssociation,
          needsCompanySelection: needsSelection && !(stored.selectedCompany && stored.selectedBranch),
-         needsInitialSetup: profile?.setup_completed === false,
+         needsInitialSetup: needsSetup,
          tourCompleted: profile?.tour_completed === true,
          isLoading: false,
          enabledModules: stored.selectedCompany?.enabledModules || (companies[0] as any)?.enabledModules || null,

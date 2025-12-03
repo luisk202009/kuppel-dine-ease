@@ -6,10 +6,9 @@ import { Logo } from '@/components/ui/logo';
 
 interface WelcomeStepProps {
   onStart: () => void;
-  onSkip: () => void;
 }
 
-export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onStart, onSkip }) => {
+export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onStart }) => {
   return (
     <CardContent className="p-12">
       <div className="flex flex-col items-center text-center space-y-8">
@@ -80,10 +79,7 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onStart, onSkip }) => 
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button variant="outline" onClick={onSkip} className="min-w-[160px]">
-            Lo haré después
-          </Button>
-          <Button onClick={onStart} size="lg" className="min-w-[160px]">
+          <Button onClick={onStart} size="lg" className="min-w-[200px]">
             Empezar Configuración
           </Button>
         </div>
