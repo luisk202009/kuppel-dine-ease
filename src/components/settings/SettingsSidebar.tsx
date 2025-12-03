@@ -3,13 +3,14 @@ import { Settings, Users, Receipt, BarChart3, CreditCard, DollarSign, Package, W
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled } from '@/config/environment';
-import { User } from '@/types/pos';
+import { User, EnabledModules } from '@/types/pos';
 import { SettingsSection } from '@/pages/Settings';
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
   user: User | null;
+  enabledModules?: EnabledModules | null;
 }
 
 interface SidebarItem {
@@ -72,12 +73,19 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeSection,
   onSectionChange,
   user,
+  enabledModules,
 }) => {
   const isItemVisible = (item: SidebarItem): boolean => {
+    // Check permission
     if (item.permission && !hasPermission(user, item.permission as any)) {
       return false;
     }
+    // Check feature flag
     if (item.feature && !isFeatureEnabled(item.feature as any)) {
+      return false;
+    }
+    // Check if module is enabled for this company
+    if (enabledModules && enabledModules[item.id] === false) {
       return false;
     }
     return true;

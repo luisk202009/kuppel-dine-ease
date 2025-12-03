@@ -193,6 +193,7 @@ export type Database = {
           business_type: Database["public"]["Enums"]["business_type"] | null
           created_at: string
           email: string | null
+          enabled_modules: Json | null
           id: string
           is_active: boolean
           name: string
@@ -210,6 +211,7 @@ export type Database = {
           business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
           email?: string | null
+          enabled_modules?: Json | null
           id?: string
           is_active?: boolean
           name: string
@@ -227,6 +229,7 @@ export type Database = {
           business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
           email?: string | null
+          enabled_modules?: Json | null
           id?: string
           is_active?: boolean
           name?: string

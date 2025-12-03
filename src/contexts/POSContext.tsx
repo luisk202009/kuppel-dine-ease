@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCategory, Customer, POSSettings, PendingOrder, CartItem } from '@/types/pos';
+import { POSState, AuthState, User, Table, OrderItem, Product, Area, ProductCategory, Customer, POSSettings, PendingOrder, CartItem, EnabledModules, DEFAULT_ENABLED_MODULES } from '@/types/pos';
 import { Company, Branch } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import { useLogin, useLogout, getStoredAuth } from '@/hooks/useAuth';
@@ -17,6 +17,7 @@ interface POSContextType {
     needsCompanySelection: boolean;
     needsInitialSetup: boolean;
     tourCompleted: boolean;
+    enabledModules: EnabledModules | null;
   };
   dataLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
@@ -212,6 +213,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     needsCompanySelection: boolean;
     needsInitialSetup: boolean;
     tourCompleted: boolean;
+    enabledModules: EnabledModules | null;
   }>({
     user: null,
     isAuthenticated: false,
@@ -223,6 +225,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     needsCompanySelection: false,
     needsInitialSetup: false,
     tourCompleted: false,
+    enabledModules: null,
   });
 
   // Set up Supabase auth listener
@@ -272,6 +275,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             needsCompanySelection: false,
             needsInitialSetup: false,
             tourCompleted: false,
+            enabledModules: null,
           });
         }
       }
@@ -383,7 +387,10 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           `)
           .eq('user_id', session.user.id);
 
-        companies = userCompanies?.map(uc => uc.company).filter(Boolean) || [];
+        companies = userCompanies?.map(uc => ({
+          ...uc.company,
+          enabledModules: uc.company?.enabled_modules as unknown as EnabledModules | null,
+        })).filter(Boolean) || [];
         branches = userCompanies?.map(uc => uc.branch).filter(Boolean) || [];
       } catch (companiesError) {
         console.error('Error fetching companies/branches:', companiesError);
@@ -414,7 +421,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
            name: comp.name,
            address: comp.address,
            phone: comp.phone,
-           email: comp.email
+           email: comp.email,
+           enabledModules: comp.enabledModules || comp.enabled_modules || null,
          })),
          branches: branches.map((branch: any) => ({
            id: branch.id,
@@ -429,6 +437,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
          needsInitialSetup: profile?.setup_completed === false,
          tourCompleted: profile?.tour_completed === true,
          isLoading: false,
+         enabledModules: stored.selectedCompany?.enabledModules || (companies[0] as any)?.enabledModules || null,
        });
 
        // Auto-select if only one option
@@ -438,7 +447,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
            name: companies[0].name,
            address: companies[0].address,
            phone: companies[0].phone,
-           email: companies[0].email
+           email: companies[0].email,
+           enabledModules: (companies[0] as any).enabledModules || (companies[0] as any).enabled_modules || null,
          };
          const transformedBranch = {
            id: branches[0].id,
@@ -843,7 +853,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       selectedBranch: branch,
       isAuthenticated: true,
       needsCompanySelection: false,
-      needsInitialSetup: prev.needsInitialSetup
+      needsInitialSetup: prev.needsInitialSetup,
+      enabledModules: company.enabledModules || null,
     }));
   };
 

@@ -135,6 +135,7 @@ export const Settings: React.FC = () => {
           activeSection={activeSection} 
           onSectionChange={handleSectionChange}
           user={authState.user}
+          enabledModules={authState.enabledModules}
         />
 
         {/* Content Area */}
