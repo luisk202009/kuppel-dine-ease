@@ -1,1 +1,7 @@
 project_id = "efvynopreyliagayqabt"
+
+[functions.reset-user-setup]
+verify_jwt = true
+
+[functions.auto-renew-subscriptions]
+verify_jwt = false
