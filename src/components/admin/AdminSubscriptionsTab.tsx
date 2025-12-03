@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { CreditCard, Calendar, Eye, RefreshCw, XCircle, AlertCircle, CheckCircle, Clock, Ban, Plus } from 'lucide-react';
+import { CreditCard, Calendar, Eye, RefreshCw, XCircle, AlertCircle, CheckCircle, Clock, Ban, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +53,11 @@ const getStatusBadge = (status: string) => {
       label: 'Expirado', 
       icon: <XCircle className="h-3 w-3" />,
       className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' 
+    },
+    superseded: { 
+      label: 'Reemplazada', 
+      icon: <RefreshCw className="h-3 w-3" />,
+      className: 'bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400' 
     },
   };
 
@@ -98,6 +114,20 @@ export const AdminSubscriptionsTab: React.FC = () => {
       toast({ title: 'Error', description: 'No se pudo cancelar la suscripción', variant: 'destructive' });
     } else {
       toast({ title: 'Éxito', description: 'Suscripción cancelada' });
+      refetch();
+    }
+  };
+
+  const handleDeleteSubscription = async (subscriptionId: string) => {
+    const { error } = await supabase
+      .from('company_subscriptions')
+      .delete()
+      .eq('id', subscriptionId);
+
+    if (error) {
+      toast({ title: 'Error', description: 'No se pudo eliminar la suscripción', variant: 'destructive' });
+    } else {
+      toast({ title: 'Éxito', description: 'Suscripción eliminada permanentemente' });
       refetch();
     }
   };
@@ -325,6 +355,36 @@ export const AdminSubscriptionsTab: React.FC = () => {
                               <XCircle className="h-4 w-4" />
                             </Button>
                           )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Eliminar permanentemente"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar suscripción?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción eliminará permanentemente la suscripción de "{sub.companies?.name}".
+                                  El cliente ya no verá esta suscripción. Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteSubscription(sub.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
