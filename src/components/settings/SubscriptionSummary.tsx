@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Calendar, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { CreditCard, Calendar, MoreHorizontal, AlertCircle, History, ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useSubscriptions, SubscriptionWithPlan } from '@/hooks/useSubscriptions';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -226,10 +233,56 @@ export const SubscriptionSummary: React.FC = () => {
           </div>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {subscriptions.map((subscription) => (
-            <SubscriptionCard key={subscription.id} subscription={subscription} />
-          ))}
+        <div className="space-y-4">
+          {/* Current subscription card */}
+          <div className="grid gap-4">
+            {subscriptions.filter(s => s.status !== 'expired' && s.status !== 'canceled').map((subscription) => (
+              <SubscriptionCard key={subscription.id} subscription={subscription} />
+            ))}
+          </div>
+
+          {/* Subscription history accordion */}
+          {subscriptions.length > 1 && (
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="history" className="border rounded-lg">
+                <AccordionTrigger className="px-4 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <span>Ver historial de suscripciones</span>
+                    <Badge variant="secondary" className="ml-2">{subscriptions.length}</Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Periodo</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Frecuencia</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {subscriptions.map((sub, index) => (
+                        <TableRow key={sub.id} className={index === 0 && sub.status === 'active' ? 'bg-primary/5' : ''}>
+                          <TableCell className="text-muted-foreground">
+                            {format(parseISO(sub.current_period_start), 'dd MMM yyyy', { locale: es })} - {format(parseISO(sub.current_period_end), 'dd MMM yyyy', { locale: es })}
+                          </TableCell>
+                          <TableCell className="font-medium">{sub.plans?.name || 'N/A'}</TableCell>
+                          <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {sub.billing_period === 'monthly' ? 'Mensual' : 'Anual'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
         </div>
       )}
     </div>
