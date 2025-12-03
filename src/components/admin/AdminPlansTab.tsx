@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Edit, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Plus, Edit, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { AdminPlanModal } from './AdminPlanModal';
@@ -164,6 +164,7 @@ export const AdminPlansTab: React.FC = () => {
                     <TableHead>Periodo por Defecto</TableHead>
                     <TableHead>Límites</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead>Wizard</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -194,6 +195,19 @@ export const AdminPlansTab: React.FC = () => {
                           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
                             <XCircle className="h-3 w-3" />
                             Inactivo
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(plan as any).show_in_wizard ? (
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit text-green-600 border-green-300">
+                            <Eye className="h-3 w-3" />
+                            Visible
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit text-muted-foreground">
+                            <EyeOff className="h-3 w-3" />
+                            Oculto
                           </Badge>
                         )}
                       </TableCell>

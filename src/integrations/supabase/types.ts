@@ -628,6 +628,7 @@ export type Database = {
           name: string
           price_monthly: number | null
           price_yearly: number | null
+          show_in_wizard: boolean
           trial_days: number | null
           updated_at: string
         }
@@ -643,6 +644,7 @@ export type Database = {
           name: string
           price_monthly?: number | null
           price_yearly?: number | null
+          show_in_wizard?: boolean
           trial_days?: number | null
           updated_at?: string
         }
@@ -658,6 +660,7 @@ export type Database = {
           name?: string
           price_monthly?: number | null
           price_yearly?: number | null
+          show_in_wizard?: boolean
           trial_days?: number | null
           updated_at?: string
         }
