@@ -38,6 +38,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
   const [currency, setCurrency] = useState('COP');
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [isActive, setIsActive] = useState(true);
+  const [showInWizard, setShowInWizard] = useState(true);
   const [trialDays, setTrialDays] = useState('15');
   
   // Limits
@@ -56,6 +57,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
       setCurrency(plan.currency);
       setBillingInterval(plan.billing_interval_default as 'monthly' | 'yearly');
       setIsActive(plan.is_active);
+      setShowInWizard((plan as any).show_in_wizard ?? true);
       setTrialDays(plan.trial_days?.toString() || '0');
       
       const planLimits = plan.limits as PlanLimits | null;
@@ -77,6 +79,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
     setCurrency('COP');
     setBillingInterval('monthly');
     setIsActive(true);
+    setShowInWizard(true);
     setTrialDays('15');
     setMaxUsers('');
     setMaxBranches('');
@@ -113,6 +116,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
         currency,
         billing_interval_default: billingInterval,
         is_active: isActive,
+        show_in_wizard: showInWizard,
         trial_days: trialDays ? parseInt(trialDays) : 0,
         limits: Object.keys(limits).length > 0 ? limits : null,
       };
@@ -321,14 +325,30 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
             </div>
           </div>
 
-          {/* Active Status */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="isActive"
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
-            <Label htmlFor="isActive">Plan Activo</Label>
+          {/* Status Toggles */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isActive"
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+              <Label htmlFor="isActive">Plan Activo</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="showInWizard"
+                checked={showInWizard}
+                onCheckedChange={setShowInWizard}
+              />
+              <div>
+                <Label htmlFor="showInWizard">Mostrar en Wizard</Label>
+                <p className="text-xs text-muted-foreground">
+                  Si está activo, el plan aparecerá en la selección durante el registro
+                </p>
+              </div>
+            </div>
           </div>
 
           <DialogFooter>

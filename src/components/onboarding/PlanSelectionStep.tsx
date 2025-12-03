@@ -30,6 +30,7 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
         .from('plans')
         .select('*')
         .eq('is_active', true)
+        .eq('show_in_wizard', true)
         .order('price_monthly', { ascending: true, nullsFirst: false });
 
       if (error) throw error;
