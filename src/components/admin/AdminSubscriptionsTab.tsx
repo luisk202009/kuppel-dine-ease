@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { CreditCard, Calendar, Eye, RefreshCw, XCircle, AlertCircle, CheckCircle, Clock, Ban, Plus, Trash2 } from 'lucide-react';
+import { CreditCard, Calendar, Eye, RefreshCw, XCircle, AlertCircle, CheckCircle, Clock, Ban, Plus, Trash2, Pencil } from 'lucide-react';
+import { AdminSubscription } from '@/hooks/useAdminSubscriptions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminSubscriptions, SubscriptionFilters } from '@/hooks/useAdminSubscriptions';
 import { SubscriptionHistoryModal } from './SubscriptionHistoryModal';
 import { CreateSubscriptionModal } from './CreateSubscriptionModal';
+import { EditSubscriptionModal } from './EditSubscriptionModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, differenceInDays, parseISO } from 'date-fns';
@@ -80,6 +82,8 @@ export const AdminSubscriptionsTab: React.FC = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<AdminSubscription | null>(null);
 
   const { subscriptions, stats, isLoading, refetch } = useAdminSubscriptions(filters);
 
@@ -339,6 +343,17 @@ export const AdminSubscriptionsTab: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => {
+                              setSelectedSubscription(sub);
+                              setEditModalOpen(true);
+                            }}
+                            title="Editar suscripción"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleViewHistory(sub.company_id)}
                             title="Ver historial"
                           >
@@ -408,6 +423,17 @@ export const AdminSubscriptionsTab: React.FC = () => {
         open={createModalOpen}
         onClose={(refresh) => {
           setCreateModalOpen(false);
+          if (refresh) refetch();
+        }}
+      />
+
+      {/* Edit Modal */}
+      <EditSubscriptionModal
+        subscription={selectedSubscription}
+        open={editModalOpen}
+        onClose={(refresh) => {
+          setEditModalOpen(false);
+          setSelectedSubscription(null);
           if (refresh) refetch();
         }}
       />
