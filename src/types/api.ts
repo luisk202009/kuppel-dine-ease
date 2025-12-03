@@ -4,11 +4,15 @@ export interface AuthRequest {
   password: string;
 }
 
+import type { EnabledModules } from './pos';
+
 export interface Company {
   id: string;
   name: string;
   address: string;
   phone: string;
+  email?: string;
+  enabledModules?: EnabledModules | null;
 }
 
 export interface Branch {

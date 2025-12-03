@@ -157,6 +157,29 @@ export interface PendingOrder {
   updatedAt: Date;
 }
 
+// Enabled Modules Configuration
+export interface EnabledModules {
+  settings: boolean;
+  subscriptions: boolean;
+  products: boolean;
+  customers: boolean;
+  orders: boolean;
+  reports: boolean;
+  expenses: boolean;
+  cash: boolean;
+}
+
+export const DEFAULT_ENABLED_MODULES: EnabledModules = {
+  settings: true,
+  subscriptions: true,
+  products: true,
+  customers: true,
+  orders: true,
+  reports: true,
+  expenses: true,
+  cash: true,
+};
+
 // App State Types
 export interface AuthState {
   user: User | null;

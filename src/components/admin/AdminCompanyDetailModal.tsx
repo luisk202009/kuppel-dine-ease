@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { EditCompanySubscriptionModal } from './EditCompanySubscriptionModal';
+import { CompanyModulesManager } from './CompanyModulesManager';
+import { EnabledModules } from '@/types/pos';
 
 interface Branch {
   id: string;
@@ -42,6 +44,7 @@ interface Company {
   subscription_status: string | null;
   billing_period: string | null;
   trial_end_at: string | null;
+  enabled_modules?: EnabledModules | null;
 }
 
 interface Plan {
@@ -145,6 +148,7 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   const [isEditSubscriptionOpen, setIsEditSubscriptionOpen] = useState(false);
   const [limitsStatus, setLimitsStatus] = useState<CompanyLimitsStatus | null>(null);
   const [isLoadingLimits, setIsLoadingLimits] = useState(false);
+  const [enabledModules, setEnabledModules] = useState<EnabledModules | null>(null);
   const { toast } = useToast();
 
   // Cargar datos mensuales y productos cuando se abre el modal
@@ -154,8 +158,26 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
       fetchTopProducts();
       fetchPlan();
       fetchLimitsStatus();
+      fetchEnabledModules();
     }
   }, [open, company]);
+
+  const fetchEnabledModules = async () => {
+    if (!company) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('enabled_modules')
+        .eq('id', company.id)
+        .single();
+      
+      if (error) throw error;
+      setEnabledModules(data?.enabled_modules as unknown as EnabledModules | null);
+    } catch (error) {
+      console.error('Error fetching enabled modules:', error);
+    }
+  };
 
   const fetchLimitsStatus = async () => {
     if (!company) return;
@@ -627,6 +649,13 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
               )}
             </CardContent>
           </Card>
+
+          {/* Módulos Habilitados */}
+          <CompanyModulesManager 
+            companyId={company.id}
+            initialModules={enabledModules}
+            onSave={fetchEnabledModules}
+          />
 
           {/* Usage Summary con comparación de períodos */}
           {usage && (
