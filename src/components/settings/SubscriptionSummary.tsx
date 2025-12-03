@@ -109,7 +109,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ subscription }) => 
               disabled={!subscription.payment_link}
               title={!subscription.payment_link ? 'No hay link de pago configurado' : 'Ir a página de pago'}
             >
-              Actualizar mi plan
+              Pagar Ahora
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
