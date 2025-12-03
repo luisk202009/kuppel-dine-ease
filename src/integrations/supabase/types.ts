@@ -258,6 +258,7 @@ export type Database = {
           current_period_start: string
           id: string
           notes: string | null
+          payment_link: string | null
           plan_id: string
           status: string
           trial_end_at: string | null
@@ -272,6 +273,7 @@ export type Database = {
           current_period_start: string
           id?: string
           notes?: string | null
+          payment_link?: string | null
           plan_id: string
           status: string
           trial_end_at?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           current_period_start?: string
           id?: string
           notes?: string | null
+          payment_link?: string | null
           plan_id?: string
           status?: string
           trial_end_at?: string | null
