@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Building2, CreditCard, Calendar } from 'lucide-react';
+import { Plus, Building2, CreditCard, Calendar, Link as LinkIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,12 +10,17 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { format, addMonths, addYears } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface CreateSubscriptionModalProps {
   open: boolean;
@@ -27,6 +32,8 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [status, setStatus] = useState<'trialing' | 'active' | 'past_due'>('active');
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [paymentLink, setPaymentLink] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,6 +72,8 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
     setSelectedPlanId('');
     setBillingPeriod('monthly');
     setStatus('active');
+    setStartDate(new Date());
+    setPaymentLink('');
     setNotes('');
   };
 
@@ -82,10 +91,9 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
     setIsSubmitting(true);
 
     try {
-      const now = new Date();
       const periodEnd = billingPeriod === 'monthly' 
-        ? addMonths(now, 1) 
-        : addYears(now, 1);
+        ? addMonths(startDate, 1) 
+        : addYears(startDate, 1);
 
       // Create subscription
       const { error: subError } = await supabase.from('company_subscriptions').insert({
@@ -93,9 +101,10 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
         plan_id: selectedPlanId,
         status,
         billing_period: billingPeriod,
-        current_period_start: now.toISOString(),
+        current_period_start: startDate.toISOString(),
         current_period_end: periodEnd.toISOString(),
         trial_end_at: status === 'trialing' ? periodEnd.toISOString() : null,
+        payment_link: paymentLink || null,
         notes: notes || 'Suscripción creada desde panel de administración',
       });
 
@@ -131,6 +140,10 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
   const price = selectedPlan 
     ? (billingPeriod === 'monthly' ? selectedPlan.price_monthly : selectedPlan.price_yearly)
     : null;
+  
+  const periodEnd = billingPeriod === 'monthly' 
+    ? addMonths(startDate, 1) 
+    : addYears(startDate, 1);
 
   return (
     <Dialog open={open} onOpenChange={() => handleClose()}>
@@ -218,6 +231,54 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
             </Select>
           </div>
 
+          {/* Start Date */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Fecha de inicio *
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP", { locale: es }) : "Seleccionar fecha"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => date && setStartDate(date)}
+                  initialFocus
+                  locale={es}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Payment Link */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Link de pago (opcional)
+            </Label>
+            <Input
+              type="url"
+              placeholder="https://pay.example.com/..."
+              value={paymentLink}
+              onChange={(e) => setPaymentLink(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              URL destino para el botón "Actualizar mi plan" del cliente
+            </p>
+          </div>
+
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notas (opcional)</Label>
@@ -241,6 +302,9 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
                   Precio: ${price.toLocaleString()} COP/{billingPeriod === 'monthly' ? 'mes' : 'año'}
                 </p>
               )}
+              <p className="text-muted-foreground">
+                Periodo: {format(startDate, "dd MMM yyyy", { locale: es })} - {format(periodEnd, "dd MMM yyyy", { locale: es })}
+              </p>
             </div>
           )}
         </div>

@@ -98,7 +98,17 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ subscription }) => 
             <h3 className="text-xl font-semibold text-foreground">{planName}</h3>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="default" size="sm">
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => {
+                if (subscription.payment_link) {
+                  window.open(subscription.payment_link, '_blank');
+                }
+              }}
+              disabled={!subscription.payment_link}
+              title={!subscription.payment_link ? 'No hay link de pago configurado' : 'Ir a página de pago'}
+            >
               Actualizar mi plan
             </Button>
             <DropdownMenu>

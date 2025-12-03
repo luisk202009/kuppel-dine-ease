@@ -13,6 +13,7 @@ export interface SubscriptionWithPlan {
   trial_end_at: string | null;
   cancel_at: string | null;
   notes: string | null;
+  payment_link: string | null;
   created_at: string;
   updated_at: string;
   plans: {
