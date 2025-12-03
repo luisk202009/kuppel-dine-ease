@@ -5,7 +5,7 @@ import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 
 interface SettingsHeaderProps {
-  onBackToPOS: () => void;
+  onBackToPOS?: () => void;
 }
 
 export const SettingsHeader: React.FC<SettingsHeaderProps> = ({ onBackToPOS }) => {
@@ -22,10 +22,12 @@ export const SettingsHeader: React.FC<SettingsHeaderProps> = ({ onBackToPOS }) =
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Button variant="outline" onClick={onBackToPOS}>
-            <Home className="h-4 w-4 mr-2" />
-            Volver al POS
-          </Button>
+          {onBackToPOS && (
+            <Button variant="outline" onClick={onBackToPOS}>
+              <Home className="h-4 w-4 mr-2" />
+              Volver al POS
+            </Button>
+          )}
         </div>
       </div>
     </header>

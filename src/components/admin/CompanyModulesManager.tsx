@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Settings, Wallet, Package, Users, Receipt, BarChart3, CreditCard, DollarSign, Lock } from 'lucide-react';
+import { Loader2, Settings, Wallet, Package, Users, Receipt, BarChart3, CreditCard, DollarSign, Lock, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EnabledModules, DEFAULT_ENABLED_MODULES } from '@/types/pos';
@@ -23,6 +23,12 @@ interface ModuleConfig {
 }
 
 const MODULES_CONFIG: ModuleConfig[] = [
+  {
+    id: 'pos',
+    label: 'Punto de Venta (POS)',
+    description: 'Acceso al sistema de ventas, mesas y productos',
+    icon: ShoppingCart,
+  },
   {
     id: 'settings',
     label: 'Ajustes',
