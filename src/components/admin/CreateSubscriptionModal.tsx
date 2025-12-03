@@ -147,8 +147,8 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
 
   return (
     <Dialog open={open} onOpenChange={() => handleClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
             Nueva Suscripción
@@ -158,77 +158,76 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Company */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              Empresa *
-            </Label>
-            <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingCompanies ? 'Cargando...' : 'Seleccionar empresa'} />
-              </SelectTrigger>
-              <SelectContent>
-                {companies?.map(company => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex-1 overflow-y-auto space-y-4 py-4 pr-2">
+          {/* Company & Plan in grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Empresa *
+              </Label>
+              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingCompanies ? 'Cargando...' : 'Seleccionar empresa'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies?.map(company => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Plan *
+              </Label>
+              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingPlans ? 'Cargando...' : 'Seleccionar plan'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans?.map(plan => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - ${plan.price_monthly?.toLocaleString()}/mes
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Plan */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Plan *
-            </Label>
-            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingPlans ? 'Cargando...' : 'Seleccionar plan'} />
-              </SelectTrigger>
-              <SelectContent>
-                {plans?.map(plan => (
-                  <SelectItem key={plan.id} value={plan.id}>
-                    {plan.name} - ${plan.price_monthly?.toLocaleString()}/mes
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Billing Period & Status in grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Periodo *</Label>
+              <Select value={billingPeriod} onValueChange={(v) => setBillingPeriod(v as 'monthly' | 'yearly')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensual</SelectItem>
+                  <SelectItem value="yearly">Anual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Billing Period */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Periodo de facturación *
-            </Label>
-            <Select value={billingPeriod} onValueChange={(v) => setBillingPeriod(v as 'monthly' | 'yearly')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monthly">Mensual</SelectItem>
-                <SelectItem value="yearly">Anual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status */}
-          <div className="space-y-2">
-            <Label>Estado inicial *</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as 'trialing' | 'active' | 'past_due')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Activa</SelectItem>
-                <SelectItem value="trialing">En prueba</SelectItem>
-                <SelectItem value="past_due">Pago pendiente</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>Estado *</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as 'trialing' | 'active' | 'past_due')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Activa</SelectItem>
+                  <SelectItem value="trialing">En prueba</SelectItem>
+                  <SelectItem value="past_due">Pago pendiente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Start Date */}
@@ -250,13 +249,14 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
                   {startDate ? format(startDate, "PPP", { locale: es }) : "Seleccionar fecha"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                 <CalendarComponent
                   mode="single"
                   selected={startDate}
                   onSelect={(date) => date && setStartDate(date)}
                   initialFocus
                   locale={es}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -274,16 +274,13 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
               value={paymentLink}
               onChange={(e) => setPaymentLink(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              URL destino para el botón "Actualizar mi plan" del cliente
-            </p>
           </div>
 
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notas (opcional)</Label>
             <Textarea
-              placeholder="Agregar notas o comentarios..."
+              placeholder="Agregar notas..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -295,21 +292,17 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
             <div className="p-3 bg-muted rounded-lg text-sm">
               <p className="font-medium">Resumen:</p>
               <p className="text-muted-foreground">
-                Plan {selectedPlan.name} - {billingPeriod === 'monthly' ? 'Mensual' : 'Anual'}
+                {selectedPlan.name} • {billingPeriod === 'monthly' ? 'Mensual' : 'Anual'}
+                {price && ` • $${price.toLocaleString()} COP`}
               </p>
-              {price && (
-                <p className="text-muted-foreground">
-                  Precio: ${price.toLocaleString()} COP/{billingPeriod === 'monthly' ? 'mes' : 'año'}
-                </p>
-              )}
-              <p className="text-muted-foreground">
-                Periodo: {format(startDate, "dd MMM yyyy", { locale: es })} - {format(periodEnd, "dd MMM yyyy", { locale: es })}
+              <p className="text-muted-foreground text-xs mt-1">
+                {format(startDate, "dd MMM yyyy", { locale: es })} → {format(periodEnd, "dd MMM yyyy", { locale: es })}
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 pt-4 border-t">
           <Button variant="outline" onClick={() => handleClose()}>
             Cancelar
           </Button>
