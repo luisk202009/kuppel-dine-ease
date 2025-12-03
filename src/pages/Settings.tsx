@@ -12,8 +12,9 @@ import { SalesReports } from '@/components/pos/SalesReports';
 import { ExpenseManager } from '@/components/pos/ExpenseManager';
 import { CashManager } from '@/components/pos/CashManager';
 import { ProductsManager } from '@/components/pos/ProductsManager';
+import { SubscriptionsPage } from '@/components/settings/SubscriptionsPage';
 
-export type SettingsSection = 'settings' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash';
+export type SettingsSection = 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +46,9 @@ export const Settings: React.FC = () => {
             <SettingsPanel />
           </div>
         );
+      
+      case 'subscriptions':
+        return <SubscriptionsPage />;
       
       case 'products':
         return <ProductsManager />;
