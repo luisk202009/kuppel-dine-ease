@@ -244,55 +244,77 @@ export const SubscriptionSummary: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {/* Current subscription card */}
-          <div className="grid gap-4">
-            {subscriptions.filter(s => s.status !== 'expired' && s.status !== 'canceled').map((subscription) => (
-              <SubscriptionCard key={subscription.id} subscription={subscription} />
-            ))}
-          </div>
+          {/* Active subscriptions grid - 2 columns */}
+          {(() => {
+            const activeSubscriptions = subscriptions.filter(
+              s => s.status === 'active' || s.status === 'past_due'
+            );
+            const historySubscriptions = subscriptions.filter(
+              s => s.status !== 'active' && s.status !== 'past_due'
+            );
 
-          {/* Subscription history accordion */}
-          {subscriptions.length > 1 && (
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="history" className="border rounded-lg">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <History className="h-4 w-4 text-muted-foreground" />
-                    <span>Ver historial de suscripciones</span>
-                    <Badge variant="secondary" className="ml-2">{subscriptions.length}</Badge>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Periodo</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Frecuencia</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subscriptions.map((sub, index) => (
-                        <TableRow key={sub.id} className={index === 0 && sub.status === 'active' ? 'bg-primary/5' : ''}>
-                          <TableCell className="text-muted-foreground">
-                            {format(parseISO(sub.current_period_start), 'dd MMM yyyy', { locale: es })} - {format(parseISO(sub.current_period_end), 'dd MMM yyyy', { locale: es })}
-                          </TableCell>
-                          <TableCell className="font-medium">{sub.plans?.name || 'N/A'}</TableCell>
-                          <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {sub.billing_period === 'monthly' ? 'Mensual' : 'Anual'}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
+            return (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeSubscriptions.map((subscription) => (
+                    <SubscriptionCard key={subscription.id} subscription={subscription} />
+                  ))}
+                </div>
+
+                {activeSubscriptions.length === 0 && (
+                  <Card className="p-6">
+                    <div className="text-center text-muted-foreground">
+                      <CreditCard className="h-8 w-8 mx-auto mb-2" />
+                      <p>No tienes suscripciones activas o pendientes de pago</p>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Subscription history accordion */}
+                {historySubscriptions.length > 0 && (
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="history" className="border rounded-lg">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <History className="h-4 w-4 text-muted-foreground" />
+                          <span>Ver historial de suscripciones</span>
+                          <Badge variant="secondary" className="ml-2">{historySubscriptions.length}</Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Periodo</TableHead>
+                              <TableHead>Plan</TableHead>
+                              <TableHead>Estado</TableHead>
+                              <TableHead>Frecuencia</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {historySubscriptions.map((sub) => (
+                              <TableRow key={sub.id}>
+                                <TableCell className="text-muted-foreground">
+                                  {format(parseISO(sub.current_period_start), 'dd MMM yyyy', { locale: es })} - {format(parseISO(sub.current_period_end), 'dd MMM yyyy', { locale: es })}
+                                </TableCell>
+                                <TableCell className="font-medium">{sub.plans?.name || 'N/A'}</TableCell>
+                                <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">
+                                    {sub.billing_period === 'monthly' ? 'Mensual' : 'Anual'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
