@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Calendar, Eye, RefreshCw, XCircle, AlertCircle, CheckCircle, Clock, Ban } from 'lucide-react';
+import { CreditCard, Calendar, Eye, RefreshCw, XCircle, AlertCircle, CheckCircle, Clock, Ban, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAdminSubscriptions, AdminSubscription, SubscriptionFilters } from '@/hooks/useAdminSubscriptions';
+import { useAdminSubscriptions, SubscriptionFilters } from '@/hooks/useAdminSubscriptions';
 import { SubscriptionHistoryModal } from './SubscriptionHistoryModal';
+import { CreateSubscriptionModal } from './CreateSubscriptionModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, differenceInDays, parseISO } from 'date-fns';
@@ -62,6 +63,7 @@ export const AdminSubscriptionsTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const { subscriptions, stats, isLoading, refetch } = useAdminSubscriptions(filters);
 
@@ -204,11 +206,15 @@ export const AdminSubscriptionsTab: React.FC = () => {
 
       {/* Filters */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Suscripciones
           </CardTitle>
+          <Button onClick={() => setCreateModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva suscripción
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-4">
@@ -335,6 +341,15 @@ export const AdminSubscriptionsTab: React.FC = () => {
         open={historyModalOpen}
         onOpenChange={setHistoryModalOpen}
         companyId={selectedCompanyId}
+      />
+
+      {/* Create Modal */}
+      <CreateSubscriptionModal
+        open={createModalOpen}
+        onClose={(refresh) => {
+          setCreateModalOpen(false);
+          if (refresh) refetch();
+        }}
       />
     </div>
   );
