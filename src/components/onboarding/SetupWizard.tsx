@@ -72,6 +72,16 @@ export const SetupWizard: React.FC = () => {
   };
 
   const handleSkip = async () => {
+    // Solo permitir skip si ya existe empresa y sucursal
+    if (!companyId || !branchId) {
+      toast({
+        title: 'Acción no disponible',
+        description: 'Debes crear tu empresa antes de omitir la configuración.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     const success = await skipSetup();
     if (success) {
       window.location.reload();
@@ -177,7 +187,7 @@ export const SetupWizard: React.FC = () => {
 
         {/* Step Content */}
         {currentStep === 'welcome' && (
-          <WelcomeStep onStart={handleStart} onSkip={handleSkip} />
+          <WelcomeStep onStart={handleStart} />
         )}
 
         {currentStep === 'plan-selection' && (
