@@ -811,6 +811,163 @@ export type Database = {
           },
         ]
       }
+      standard_invoice_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_amount: number
+          discount_rate: number
+          display_order: number | null
+          id: string
+          invoice_id: string
+          item_name: string
+          product_id: string | null
+          quantity: number
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_amount?: number
+          discount_rate?: number
+          display_order?: number | null
+          id?: string
+          invoice_id: string
+          item_name: string
+          product_id?: string | null
+          quantity?: number
+          subtotal: number
+          tax_amount?: number
+          tax_rate?: number
+          total: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_amount?: number
+          discount_rate?: number
+          display_order?: number | null
+          id?: string
+          invoice_id?: string
+          item_name?: string
+          product_id?: string | null
+          quantity?: number
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "standard_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standard_invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standard_invoices: {
+        Row: {
+          branch_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          customer_id: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          notes: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          status: string
+          subtotal: number
+          terms_conditions: string | null
+          total: number
+          total_discount: number
+          total_tax: number
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          created_by: string
+          currency?: string
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string
+          subtotal?: number
+          terms_conditions?: string | null
+          total?: number
+          total_discount?: number
+          total_tax?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string
+          subtotal?: number
+          terms_conditions?: string | null
+          total?: number
+          total_discount?: number
+          total_tax?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_invoices_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standard_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standard_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tables: {
         Row: {
           area: string | null
