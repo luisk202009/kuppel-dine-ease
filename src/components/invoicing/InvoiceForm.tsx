@@ -64,6 +64,12 @@ interface InvoiceFormProps {
   onClose: () => void;
 }
 
+const CURRENCY_OPTIONS = [
+  { value: 'COP', label: 'COP' },
+  { value: 'USD', label: 'USD' },
+  { value: 'EUR', label: 'EUR' },
+];
+
 export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) => {
   const [items, setItems] = useState<StandardInvoiceItemFormData[]>([]);
   const { posState } = usePOSContext();
@@ -84,6 +90,8 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
       currency: 'COP',
     },
   });
+
+  const watchCurrency = form.watch('currency');
 
   // Load existing invoice data
   useEffect(() => {
@@ -144,6 +152,18 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
   const onSubmit = (data: FormData) => handleSave(data, false);
   const onSubmitAndEmit = () => form.handleSubmit((data) => handleSave(data, true))();
 
+  const getCurrencySymbol = (curr: string) => {
+    switch (curr) {
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      default: return '$';
+    }
+  };
+
+  const formatPrice = (value: number) => {
+    return `${getCurrencySymbol(watchCurrency)}${value.toLocaleString('es-CO')}`;
+  };
+
   if (isLoadingInvoice && invoiceId) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -191,21 +211,21 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <Form {...form}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Información General</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Customer Select */}
+      {/* Full Width Layout */}
+      <div className="space-y-6">
+        <Form {...form}>
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle>Información General</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Row 1: Cliente + Moneda */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <FormField
                   control={form.control}
                   name="customerId"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="sm:col-span-2">
                       <FormLabel>Cliente</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
@@ -230,7 +250,6 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
                   )}
                 />
 
-                {/* Currency */}
                 <FormField
                   control={form.control}
                   name="currency"
@@ -243,14 +262,16 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
                         disabled={isReadOnly}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="COP">COP - Peso Colombiano</SelectItem>
-                          <SelectItem value="USD">USD - Dólar</SelectItem>
-                          <SelectItem value="EUR">EUR - Euro</SelectItem>
+                          {CURRENCY_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -258,91 +279,6 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
                   )}
                 />
 
-                {/* Issue Date */}
-                <FormField
-                  control={form.control}
-                  name="issueDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Emisión</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                              disabled={isReadOnly}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP", { locale: es })
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Due Date */}
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Vencimiento</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                              disabled={isReadOnly}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP", { locale: es })
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Payment Method */}
                 <FormField
                   control={form.control}
                   name="paymentMethod"
@@ -356,7 +292,7 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar método" />
+                            <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -370,83 +306,173 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
                     </FormItem>
                   )}
                 />
-              </CardContent>
-            </Card>
-          </Form>
+              </div>
 
-          {/* Items */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Ítems de la Factura</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InvoiceItemsList
-                items={items}
-                onItemsChange={setItems}
-                isReadOnly={isReadOnly}
+              {/* Row 2: Fechas compactas */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <FormField
+                  control={form.control}
+                  name="issueDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Emisión</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal h-10",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={isReadOnly}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy")
+                              ) : (
+                                <span>dd/mm/yyyy</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Vencimiento</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal h-10",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={isReadOnly}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy")
+                              ) : (
+                                <span>dd/mm/yyyy</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </Form>
+
+        {/* Items */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle>Ítems de la Factura</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvoiceItemsList
+              items={items}
+              onItemsChange={setItems}
+              isReadOnly={isReadOnly}
+              currency={watchCurrency}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle>Notas y Condiciones</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="notes">Notas</Label>
+              <Textarea
+                id="notes"
+                placeholder="Notas adicionales..."
+                {...form.register('notes')}
+                disabled={isReadOnly}
+                className="mt-1.5"
+                rows={3}
               />
-            </CardContent>
-          </Card>
+            </div>
+            <div>
+              <Label htmlFor="terms">Términos y Condiciones</Label>
+              <Textarea
+                id="terms"
+                placeholder="Términos y condiciones de pago..."
+                {...form.register('termsConditions')}
+                disabled={isReadOnly}
+                className="mt-1.5"
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Notas y Condiciones</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="notes">Notas</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Notas adicionales..."
-                  {...form.register('notes')}
-                  disabled={isReadOnly}
-                />
+        {/* Summary at the bottom */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle>Resumen de la Factura</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 text-sm">
+                <div className="flex flex-col items-center sm:items-end">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium text-base">{formatPrice(totals.subtotal)}</span>
+                </div>
+                <div className="flex flex-col items-center sm:items-end">
+                  <span className="text-muted-foreground">Descuentos</span>
+                  <span className="font-medium text-base text-red-600">-{formatPrice(totals.totalDiscount)}</span>
+                </div>
+                <div className="flex flex-col items-center sm:items-end">
+                  <span className="text-muted-foreground">Impuestos</span>
+                  <span className="font-medium text-base">{formatPrice(totals.totalTax)}</span>
+                </div>
+                <div className="flex flex-col items-center sm:items-end border-l-2 border-primary pl-4">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="font-bold text-xl">{formatPrice(totals.total)}</span>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="terms">Términos y Condiciones</Label>
-                <Textarea
-                  id="terms"
-                  placeholder="Términos y condiciones de pago..."
-                  {...form.register('termsConditions')}
-                  disabled={isReadOnly}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Totals Sidebar */}
-        <div>
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Resumen</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>${totals.subtotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Descuentos</span>
-                <span className="text-red-600">-${totals.totalDiscount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Impuestos</span>
-                <span>${totals.totalTax.toLocaleString()}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
-                <span>${totals.total.toLocaleString()}</span>
-              </div>
-
-              <div className="pt-4 text-sm text-muted-foreground">
-                <p>{items.length} ítem(s)</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <div className="text-right mt-4 text-sm text-muted-foreground">
+              {items.length} ítem(s)
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
