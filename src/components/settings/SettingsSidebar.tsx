@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Users, Receipt, BarChart3, CreditCard, DollarSign, Package, Wallet } from 'lucide-react';
+import { Settings, Users, Receipt, BarChart3, CreditCard, DollarSign, Package, Wallet, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled } from '@/config/environment';
@@ -66,6 +66,11 @@ const sidebarItems: SidebarItem[] = [
     label: 'Caja',
     icon: DollarSign,
     permission: 'view_cash',
+  },
+  {
+    id: 'standardInvoicing',
+    label: 'Facturación',
+    icon: FileText,
   },
 ];
 

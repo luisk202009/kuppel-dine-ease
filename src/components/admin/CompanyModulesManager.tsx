@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Settings, Wallet, Package, Users, Receipt, BarChart3, CreditCard, DollarSign, Lock, ShoppingCart } from 'lucide-react';
+import { Loader2, Settings, Wallet, Package, Users, Receipt, BarChart3, CreditCard, DollarSign, Lock, ShoppingCart, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EnabledModules, DEFAULT_ENABLED_MODULES } from '@/types/pos';
@@ -78,6 +78,12 @@ const MODULES_CONFIG: ModuleConfig[] = [
     label: 'Caja',
     description: 'Gestión de caja y arqueos',
     icon: DollarSign,
+  },
+  {
+    id: 'standardInvoicing',
+    label: 'Facturación Estándar',
+    description: 'Emisión de facturas estándar con ítems personalizados',
+    icon: FileText,
   },
 ];
 

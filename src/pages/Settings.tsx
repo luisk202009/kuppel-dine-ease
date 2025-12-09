@@ -1,7 +1,5 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Home } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { usePOS } from '@/contexts/POSContext';
 import { SettingsSidebar } from '@/components/settings/SettingsSidebar';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -13,8 +11,9 @@ import { ExpenseManager } from '@/components/pos/ExpenseManager';
 import { CashManager } from '@/components/pos/CashManager';
 import { ProductsManager } from '@/components/pos/ProductsManager';
 import { SubscriptionsPage } from '@/components/settings/SubscriptionsPage';
+import { InvoicingDashboard } from '@/components/invoicing';
 
-export type SettingsSection = 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash';
+export type SettingsSection = 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -121,6 +120,11 @@ export const Settings: React.FC = () => {
             </div>
             <CashManager />
           </div>
+        );
+      
+      case 'standardInvoicing':
+        return (
+          <InvoicingDashboard branchId={authState.selectedBranch?.id || ''} />
         );
       
       default:
