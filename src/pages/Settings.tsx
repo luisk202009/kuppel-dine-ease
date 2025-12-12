@@ -23,15 +23,6 @@ export const Settings: React.FC = () => {
   // Get active section from URL params or default to 'settings'
   const activeSection = (searchParams.get('section') as SettingsSection) || 'settings';
   
-  // Check if POS module is enabled
-  const isPosEnabled = authState.enabledModules?.pos !== false;
-
-  const handleBackToPOS = () => {
-    if (isPosEnabled) {
-      navigate('/');
-    }
-  };
-
   const handleSectionChange = (section: SettingsSection) => {
     setSearchParams({ section });
   };
@@ -135,7 +126,7 @@ export const Settings: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full">
       {/* Header */}
-      <SettingsHeader onBackToPOS={isPosEnabled ? handleBackToPOS : undefined} />
+      <SettingsHeader />
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden w-full">

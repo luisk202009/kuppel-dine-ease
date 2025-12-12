@@ -1,10 +1,26 @@
-import React from 'react';
-import { Settings, Users, Receipt, BarChart3, CreditCard, DollarSign, Package, Wallet, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Settings, 
+  Users, 
+  Receipt, 
+  BarChart3, 
+  CreditCard, 
+  DollarSign, 
+  Package, 
+  Wallet, 
+  FileText,
+  ShoppingCart,
+  Monitor,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
 import { isFeatureEnabled } from '@/config/environment';
 import { User, EnabledModules } from '@/types/pos';
 import { SettingsSection } from '@/pages/Settings';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
@@ -14,24 +30,45 @@ interface SettingsSidebarProps {
 }
 
 interface SidebarItem {
-  id: SettingsSection;
+  id: SettingsSection | 'pos';
   label: string;
   icon: React.ElementType;
   permission?: string;
   feature?: string;
+  isExternal?: boolean;
+  externalPath?: string;
 }
 
+interface SidebarGroup {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  items: SidebarItem[];
+}
+
+// Grupo desplegable de Ventas
+const salesGroup: SidebarGroup = {
+  id: 'sales',
+  label: 'Ventas',
+  icon: ShoppingCart,
+  items: [
+    {
+      id: 'standardInvoicing',
+      label: 'Facturación',
+      icon: FileText,
+    },
+    {
+      id: 'pos',
+      label: 'POS',
+      icon: Monitor,
+      isExternal: true,
+      externalPath: '/pos',
+    },
+  ],
+};
+
+// Items individuales del menú (en orden solicitado)
 const sidebarItems: SidebarItem[] = [
-  {
-    id: 'settings',
-    label: 'Ajustes',
-    icon: Settings,
-  },
-  {
-    id: 'subscriptions',
-    label: 'Suscripciones',
-    icon: Wallet,
-  },
   {
     id: 'products',
     label: 'Productos',
@@ -43,10 +80,22 @@ const sidebarItems: SidebarItem[] = [
     icon: Users,
   },
   {
+    id: 'expenses',
+    label: 'Gastos',
+    icon: CreditCard,
+    permission: 'view_expenses',
+  },
+  {
     id: 'orders',
     label: 'Órdenes',
     icon: Receipt,
     feature: 'orderHistory',
+  },
+  {
+    id: 'cash',
+    label: 'Caja',
+    icon: DollarSign,
+    permission: 'view_cash',
   },
   {
     id: 'reports',
@@ -56,23 +105,18 @@ const sidebarItems: SidebarItem[] = [
     feature: 'advancedReporting',
   },
   {
-    id: 'expenses',
-    label: 'Gastos',
-    icon: CreditCard,
-    permission: 'view_expenses',
-  },
-  {
-    id: 'cash',
-    label: 'Caja',
-    icon: DollarSign,
-    permission: 'view_cash',
-  },
-  {
-    id: 'standardInvoicing',
-    label: 'Facturación',
-    icon: FileText,
+    id: 'subscriptions',
+    label: 'Suscripciones',
+    icon: Wallet,
   },
 ];
+
+// Item de Ajustes (al final)
+const settingsItem: SidebarItem = {
+  id: 'settings',
+  label: 'Ajustes',
+  icon: Settings,
+};
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeSection,
@@ -80,52 +124,102 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   user,
   enabledModules,
 }) => {
+  const navigate = useNavigate();
+  const [isSalesOpen, setIsSalesOpen] = useState(
+    activeSection === 'standardInvoicing'
+  );
+
   const isItemVisible = (item: SidebarItem): boolean => {
-    // Check permission
     if (item.permission && !hasPermission(user, item.permission as any)) {
       return false;
     }
-    // Check feature flag
     if (item.feature && !isFeatureEnabled(item.feature as any)) {
       return false;
     }
-    // Check if module is enabled for this company
-    if (enabledModules && enabledModules[item.id] === false) {
+    if (enabledModules && enabledModules[item.id as keyof EnabledModules] === false) {
       return false;
     }
     return true;
   };
 
+  const handleItemClick = (item: SidebarItem) => {
+    if (item.isExternal && item.externalPath) {
+      navigate(item.externalPath);
+    } else {
+      onSectionChange(item.id as SettingsSection);
+    }
+  };
+
   const visibleItems = sidebarItems.filter(isItemVisible);
+  const visibleSalesItems = salesGroup.items.filter(isItemVisible);
+
+  const renderMenuItem = (item: SidebarItem, isNested = false) => {
+    const Icon = item.icon;
+    const isActive = !item.isExternal && activeSection === item.id;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleItemClick(item)}
+        className={cn(
+          'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+          isNested && 'pl-9',
+          isActive
+            ? 'bg-primary text-primary-foreground'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        <span>{item.label}</span>
+      </button>
+    );
+  };
 
   return (
     <aside className="w-64 bg-card border-r border-border overflow-y-auto">
       <div className="p-4">
-        <h2 className="text-lg font-semibold text-foreground mb-1">Configuración</h2>
-        <p className="text-xs text-muted-foreground">Gestiona tu sistema POS</p>
+        <h2 className="text-lg font-semibold text-foreground mb-1">Kuppel App</h2>
+        <p className="text-xs text-muted-foreground">Gestiona tu negocio</p>
       </div>
 
-      <nav className="px-2 pb-4">
-        {visibleItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
+      <nav className="px-2 pb-4 space-y-1">
+        {/* Grupo Ventas (desplegable) */}
+        {visibleSalesItems.length > 0 && (
+          <Collapsible open={isSalesOpen} onOpenChange={setIsSalesOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                className={cn(
+                  'w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  activeSection === 'standardInvoicing'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <salesGroup.icon className="h-4 w-4" />
+                  <span>{salesGroup.label}</span>
+                </div>
+                {isSalesOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-1 mt-1">
+              {visibleSalesItems.map((item) => renderMenuItem(item, true))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onSectionChange(item.id)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+        {/* Items individuales */}
+        {visibleItems.map((item) => renderMenuItem(item))}
+
+        {/* Separador */}
+        <div className="my-3 border-t border-border" />
+
+        {/* Ajustes al final */}
+        {renderMenuItem(settingsItem)}
       </nav>
     </aside>
   );
