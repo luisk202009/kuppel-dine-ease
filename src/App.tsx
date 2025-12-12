@@ -8,22 +8,21 @@ import { ThemeProvider } from "next-themes";
 import { POSProvider, usePOS } from "@/contexts/POSContext";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import AuthScreen from "@/components/auth/AuthScreen";
-import { DashboardWrapper } from "@/components/pos/DashboardWrapper";
 import { LoadingScreen } from "@/components/common/LoadingScreen";
 import { isAuthRequired } from "@/config/environment";
 import { SettingsPage } from "./pages/SettingsPage";
+import { POSPage } from "./pages/POSPage";
 import { Admin } from "./pages/Admin";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const POSApp = () => {
+const MainApp = () => {
   const { authState } = usePOS();
   const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
-    // Show loading screen for 2 seconds on initial load
     const timer = setTimeout(() => {
       setShowLoading(false);
     }, 2000);
@@ -43,7 +42,8 @@ const POSApp = () => {
     return <AuthScreen />;
   }
 
-  return <DashboardWrapper />;
+  // Redirigir a Settings como pantalla principal
+  return <SettingsPage />;
 };
 
 const App = () => (
@@ -61,8 +61,8 @@ const App = () => (
           <POSProvider>
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<POSApp />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/" element={<MainApp />} />
+                <Route path="/pos" element={<POSPage />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/demo" element={<Index />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
