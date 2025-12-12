@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, CalendarIcon, Save, Send } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Eye, Save, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -40,6 +40,7 @@ import {
 } from '@/hooks/useStandardInvoices';
 import { usePOSContext } from '@/contexts/POSContext';
 import { InvoiceItemsList } from './InvoiceItemsList';
+import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { 
   StandardInvoiceItemFormData,
   StandardInvoiceFormData,
@@ -72,9 +73,11 @@ const CURRENCY_OPTIONS = [
 
 export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) => {
   const [items, setItems] = useState<StandardInvoiceItemFormData[]>([]);
-  const { posState } = usePOSContext();
+  const [showPreview, setShowPreview] = useState(false);
+  const { posState, authState } = usePOSContext();
   const customers = posState.customers;
-
+  const currentBranch = authState.selectedBranch;
+  const currentCompany = authState.selectedCompany;
   const { data: existingInvoice, isLoading: isLoadingInvoice } = useStandardInvoice(invoiceId || undefined);
   const createInvoice = useCreateStandardInvoice();
   const updateInvoice = useUpdateStandardInvoice();
@@ -190,25 +193,35 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
             <p className="text-muted-foreground">{existingInvoice.invoiceNumber}</p>
           )}
         </div>
-        {!isReadOnly && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={form.handleSubmit(onSubmit)}
-              disabled={createInvoice.isPending || updateInvoice.isPending || items.length === 0}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Guardar Borrador
-            </Button>
-            <Button
-              onClick={onSubmitAndEmit}
-              disabled={createInvoice.isPending || updateInvoice.isPending || items.length === 0}
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Guardar y Emitir
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => setShowPreview(true)}
+            disabled={items.length === 0}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Previsualizar
+          </Button>
+          {!isReadOnly && (
+            <>
+              <Button
+                variant="outline"
+                onClick={form.handleSubmit(onSubmit)}
+                disabled={createInvoice.isPending || updateInvoice.isPending || items.length === 0}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Guardar Borrador
+              </Button>
+              <Button
+                onClick={onSubmitAndEmit}
+                disabled={createInvoice.isPending || updateInvoice.isPending || items.length === 0}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Guardar y Emitir
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Full Width Layout */}
@@ -474,6 +487,36 @@ export const InvoiceForm = ({ branchId, invoiceId, onClose }: InvoiceFormProps) 
           </CardContent>
         </Card>
       </div>
+
+      {/* Preview Modal */}
+      <InvoicePreviewModal
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        data={{
+          invoiceNumber: existingInvoice?.invoiceNumber,
+          issueDate: form.getValues('issueDate'),
+          dueDate: form.getValues('dueDate'),
+          currency: form.getValues('currency'),
+          paymentMethod: form.getValues('paymentMethod'),
+          notes: form.getValues('notes'),
+          termsConditions: form.getValues('termsConditions'),
+          customer: customers.find(c => c.id === form.getValues('customerId')) || null,
+          items,
+          branch: currentBranch ? {
+            name: currentBranch.name,
+            address: currentBranch.address || undefined,
+            phone: undefined,
+            company: {
+              name: currentCompany?.name || '',
+              taxId: undefined,
+              address: currentCompany?.address || undefined,
+              phone: currentCompany?.phone || undefined,
+              email: currentCompany?.email || undefined,
+            }
+          } : undefined,
+          status: existingInvoice?.status || 'draft',
+        }}
+      />
     </div>
   );
 };
