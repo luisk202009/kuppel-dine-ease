@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+// Input validation schema
+const RequestSchema = z.object({
+  invoiceId: z.string().uuid({ message: "Invalid invoice ID format" }),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -263,12 +269,22 @@ serve(async (req) => {
   }
 
   try {
-    const { invoiceId } = await req.json();
+    // Validate input
+    const body = await req.json();
+    const validationResult = RequestSchema.safeParse(body);
     
-    if (!invoiceId) {
-      throw new Error("Invoice ID is required");
+    if (!validationResult.success) {
+      console.error("Validation error:", validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid input", 
+          details: validationResult.error.errors.map(e => e.message) 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
+    
+    const { invoiceId } = validationResult.data;
     console.log(`Generating PDF for invoice: ${invoiceId}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
