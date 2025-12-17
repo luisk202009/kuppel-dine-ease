@@ -91,6 +91,11 @@ export const useProductsByCategory = () => {
   };
 };
 
+// Escape SQL wildcard characters to prevent SQL injection
+const escapeSearchQuery = (input: string): string => {
+  return input.replace(/[%_\\]/g, '\\$&');
+};
+
 // Enhanced search hook with unified API and local search
 export const useProductSearch = (query: string, category?: string) => {
   const { data: allProducts } = useProducts();
@@ -118,6 +123,9 @@ export const useProductSearch = (query: string, category?: string) => {
           });
         }
         
+        // Escape special SQL characters to prevent injection
+        const escapedQuery = escapeSearchQuery(query);
+        
         // Search products with Supabase
         let searchQuery = supabase
           .from('products')
@@ -126,7 +134,7 @@ export const useProductSearch = (query: string, category?: string) => {
             categories(name)
           `)
           .eq('is_active', true)
-          .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+          .or(`name.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%`);
 
         if (category) {
           searchQuery = searchQuery.eq('categories.name', category);
