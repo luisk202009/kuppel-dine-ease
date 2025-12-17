@@ -1,6 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
 import { Resend } from "npm:resend@2.0.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+// Input validation schema
+const RequestSchema = z.object({
+  invoiceId: z.string().uuid({ message: "Invalid invoice ID format" }),
+  recipientEmail: z.string().email({ message: "Invalid email format" }).optional(),
+  subject: z.string().max(200, { message: "Subject must be less than 200 characters" }).optional(),
+  message: z.string().max(1000, { message: "Message must be less than 1000 characters" }).optional(),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,12 +47,22 @@ serve(async (req) => {
   }
 
   try {
-    const { invoiceId, recipientEmail, subject, message }: SendEmailRequest = await req.json();
-
-    if (!invoiceId) {
-      throw new Error("Invoice ID is required");
+    // Validate input
+    const body = await req.json();
+    const validationResult = RequestSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      console.error("Validation error:", validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid input", 
+          details: validationResult.error.errors.map(e => e.message) 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
+    
+    const { invoiceId, recipientEmail, subject, message } = validationResult.data;
     console.log(`Sending email for invoice: ${invoiceId}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
