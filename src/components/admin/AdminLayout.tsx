@@ -9,13 +9,10 @@ import { AdminCompaniesTab } from './AdminCompaniesTab';
 import { AdminUsersTab } from './AdminUsersTab';
 import { AdminPlansTab } from './AdminPlansTab';
 import { AdminSubscriptionsTab } from './AdminSubscriptionsTab';
-
 export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'companies' | 'users' | 'plans' | 'subscriptions'>('companies');
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
@@ -35,7 +32,7 @@ export const AdminLayout: React.FC = () => {
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={() => navigate('/')}>
               <Home className="h-4 w-4 mr-2" />
-              Volver al POS
+              Volver  
             </Button>
           </div>
         </div>
@@ -43,7 +40,7 @@ export const AdminLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="container mx-auto p-6">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'companies' | 'users' | 'plans' | 'subscriptions')}>
+        <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'companies' | 'users' | 'plans' | 'subscriptions')}>
           <TabsList className="grid w-full max-w-3xl grid-cols-4 mb-6">
             <TabsTrigger value="companies" className="flex items-center space-x-2">
               <Building2 className="h-4 w-4" />
@@ -80,6 +77,5 @@ export const AdminLayout: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
