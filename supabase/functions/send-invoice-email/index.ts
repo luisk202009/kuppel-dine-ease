@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
 import { Resend } from "npm:resend@2.0.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts';
 
 // Input validation schema
 const RequestSchema = z.object({
@@ -10,11 +11,6 @@ const RequestSchema = z.object({
   subject: z.string().max(200, { message: "Subject must be less than 200 characters" }).optional(),
   message: z.string().max(1000, { message: "Message must be less than 1000 characters" }).optional(),
 });
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -42,9 +38,11 @@ const formatDate = (dateStr: string) => {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS preflight requests
+  const corsResponse = handleCorsPreflightRequest(req);
+  if (corsResponse) return corsResponse;
+  
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // Validate input
