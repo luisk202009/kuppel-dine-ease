@@ -13,7 +13,8 @@ import {
   ShoppingCart,
   Monitor,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
@@ -118,6 +119,15 @@ const settingsItem: SidebarItem = {
   icon: Settings,
 };
 
+// Item de Administración (solo para admins)
+const adminItem: SidebarItem = {
+  id: 'admin' as any,
+  label: 'Administración',
+  icon: Shield,
+  isExternal: true,
+  externalPath: '/admin',
+};
+
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeSection,
   onSectionChange,
@@ -152,6 +162,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const visibleItems = sidebarItems.filter(isItemVisible);
   const visibleSalesItems = salesGroup.items.filter(isItemVisible);
+  const isAdmin = user?.role === 'admin';
 
   const renderMenuItem = (item: SidebarItem, isNested = false) => {
     const Icon = item.icon;
@@ -220,6 +231,14 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         {/* Ajustes al final */}
         {renderMenuItem(settingsItem)}
+
+        {/* Administración (solo para admins) */}
+        {isAdmin && (
+          <>
+            <div className="my-3 border-t border-border" />
+            {renderMenuItem(adminItem)}
+          </>
+        )}
       </nav>
     </aside>
   );
