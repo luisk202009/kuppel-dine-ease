@@ -26,6 +26,8 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
   const fetchPlans = async () => {
     try {
       setIsLoading(true);
+      console.log('[PlanSelectionStep] Fetching plans with filters: is_active=true, show_in_wizard=true');
+      
       const { data, error } = await supabase
         .from('plans')
         .select('*')
@@ -33,15 +35,30 @@ export const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({ onNext, on
         .eq('show_in_wizard', true)
         .order('price_monthly', { ascending: true, nullsFirst: false });
 
+      console.log('[PlanSelectionStep] Raw query result:', { 
+        count: data?.length || 0,
+        error: error?.message || null 
+      });
+      
+      console.log('[PlanSelectionStep] Plans received for wizard:', data?.map(p => ({
+        id: p.id,
+        name: p.name,
+        code: p.code,
+        is_active: p.is_active,
+        show_in_wizard: p.show_in_wizard,
+        price_monthly: p.price_monthly
+      })));
+
       if (error) throw error;
       setPlans(data || []);
 
       // Auto-seleccionar el primer plan si existe
       if (data && data.length > 0) {
         setSelectedPlanId(data[0].id);
+        console.log('[PlanSelectionStep] Auto-selected plan:', data[0].name);
       }
     } catch (error: any) {
-      console.error('Error fetching plans:', error);
+      console.error('[PlanSelectionStep] Error fetching plans:', error);
       toast.error('Error al cargar los planes disponibles');
     } finally {
       setIsLoading(false);
