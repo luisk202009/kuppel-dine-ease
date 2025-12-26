@@ -11,8 +11,11 @@ export const SettingsPage: React.FC = () => {
     return <LoadingScreen message="Cargando..." />;
   }
 
-  // Mostrar wizard si el usuario necesita completar la configuración inicial
-  if (authState.needsInitialSetup) {
+  // Verificación más robusta: wizard si needsInitialSetup O si no tiene empresas
+  const needsWizard = authState.needsInitialSetup || 
+                      (authState.isAuthenticated && authState.companies.length === 0);
+
+  if (needsWizard) {
     return <SetupWizard />;
   }
 

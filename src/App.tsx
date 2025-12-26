@@ -43,8 +43,13 @@ const MainApp = () => {
     return <AuthScreen />;
   }
 
-  // Mostrar wizard si el usuario necesita completar la configuración inicial
-  if (authState.needsInitialSetup) {
+  // Mostrar wizard si:
+  // 1. needsInitialSetup es true, O
+  // 2. Usuario autenticado pero sin empresas asociadas
+  const needsWizard = authState.needsInitialSetup || 
+                      (authState.isAuthenticated && authState.companies.length === 0);
+  
+  if (needsWizard) {
     return <SetupWizard />;
   }
 
