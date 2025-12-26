@@ -49,6 +49,10 @@ export const ProductsTab: React.FC = () => {
   const { authState } = usePOS();
   const queryClient = useQueryClient();
   const selectedCompanyId = authState.selectedCompany?.id || '';
+
+  // Diagnostic logging
+  console.log('ProductsTab - selectedCompany:', authState.selectedCompany);
+  console.log('ProductsTab - query enabled:', !!authState.selectedCompany?.id);
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -365,6 +369,17 @@ export const ProductsTab: React.FC = () => {
       createMutation.mutate(formData);
     }
   };
+
+  // Check if no company is selected - show informative message instead of infinite loading
+  if (!authState.selectedCompany?.id) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+        <p>No se ha seleccionado una empresa</p>
+        <p className="text-sm mt-1">Recarga la página o verifica tu sesión</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Cargando productos...</div>;
