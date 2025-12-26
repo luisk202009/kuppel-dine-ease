@@ -273,7 +273,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             selectedCompany: null,
             selectedBranch: null,
             needsCompanySelection: false,
-            needsInitialSetup: false,
+            needsInitialSetup: true, // Por seguridad, true hasta que se verifique
             tourCompleted: false,
             enabledModules: null,
           });
@@ -823,19 +823,34 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (result.success && result.data) {
         const needsSelection = result.data.companies.length > 1 || result.data.branches.length > 1;
+        const hasNoCompanyAssociation = result.data.companies.length === 0;
+        
+        // Determinar si necesita el wizard:
+        // 1. Si setup_completed es false en el perfil
+        // 2. O si no tiene empresas asociadas
+        const needsSetup = result.data.user?.setup_completed === false || hasNoCompanyAssociation;
+        
+        console.log('Login result:', {
+          companies: result.data.companies.length,
+          branches: result.data.branches.length,
+          setupCompleted: result.data.user?.setup_completed,
+          needsSetup,
+          hasNoCompanyAssociation
+        });
         
         setAuthState(prev => ({
           ...prev,
           user: result.data!.user,
           companies: result.data!.companies,
           branches: result.data!.branches,
-          isAuthenticated: !needsSelection, // Only authenticated if no selection needed
-          needsCompanySelection: needsSelection,
+          isAuthenticated: !needsSelection || hasNoCompanyAssociation, // Permitir auth para mostrar wizard
+          needsCompanySelection: needsSelection && !hasNoCompanyAssociation,
+          needsInitialSetup: needsSetup,
           isLoading: false,
         }));
         
         // If only one company/branch, auto-select them
-        if (!needsSelection && result.data.companies[0] && result.data.branches[0]) {
+        if (!needsSelection && !hasNoCompanyAssociation && result.data.companies[0] && result.data.branches[0]) {
           selectCompanyAndBranch(result.data.companies[0], result.data.branches[0]);
         }
         
