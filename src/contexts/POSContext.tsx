@@ -223,7 +223,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     selectedCompany: null,
     selectedBranch: null,
     needsCompanySelection: false,
-    needsInitialSetup: false,
+    needsInitialSetup: true,  // Por defecto true hasta que se verifique
     tourCompleted: false,
     enabledModules: null,
   });
