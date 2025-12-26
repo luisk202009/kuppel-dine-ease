@@ -16,12 +16,15 @@ import { Admin } from "./pages/Admin";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { SetupWizard } from "@/components/onboarding/SetupWizard";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 const MainApp = () => {
   const { authState } = usePOS();
   const [showLoading, setShowLoading] = useState(true);
+  const [directCheckComplete, setDirectCheckComplete] = useState(false);
+  const [forceWizard, setForceWizard] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -31,11 +34,80 @@ const MainApp = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Verificación directa de user_companies cuando el usuario está autenticado
+  useEffect(() => {
+    const checkUserCompanies = async () => {
+      if (!authState.isAuthenticated || !authState.user?.id) {
+        setDirectCheckComplete(true);
+        return;
+      }
+
+      console.log('[App] Direct check - User ID:', authState.user.id);
+      console.log('[App] Auth state:', {
+        isAuthenticated: authState.isAuthenticated,
+        needsInitialSetup: authState.needsInitialSetup,
+        companiesFromContext: authState.companies.length,
+        userId: authState.user?.id
+      });
+
+      try {
+        // Consulta directa a user_companies
+        const { data: userCompanies, error } = await supabase
+          .from('user_companies')
+          .select('id, company_id')
+          .eq('user_id', authState.user.id);
+
+        if (error) {
+          console.error('[App] Error checking user_companies:', error);
+          setDirectCheckComplete(true);
+          return;
+        }
+
+        console.log('[App] Direct user_companies query result:', userCompanies);
+
+        // Si no tiene empresas asociadas, forzar el wizard
+        if (!userCompanies || userCompanies.length === 0) {
+          console.log('[App] No companies found - forcing wizard');
+          setForceWizard(true);
+        } else {
+          console.log('[App] User has companies:', userCompanies.length);
+          
+          // Verificar también setup_completed
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('setup_completed')
+            .eq('id', authState.user.id)
+            .maybeSingle();
+
+          if (userError) {
+            console.error('[App] Error checking user setup_completed:', userError);
+          } else {
+            console.log('[App] User setup_completed:', userData?.setup_completed);
+            if (userData?.setup_completed === false) {
+              console.log('[App] setup_completed is false - forcing wizard');
+              setForceWizard(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[App] Unexpected error in direct check:', err);
+      } finally {
+        setDirectCheckComplete(true);
+      }
+    };
+
+    if (!authState.isLoading && authState.isAuthenticated) {
+      checkUserCompanies();
+    } else if (!authState.isLoading && !authState.isAuthenticated) {
+      setDirectCheckComplete(true);
+    }
+  }, [authState.isAuthenticated, authState.isLoading, authState.user?.id]);
+
   if (showLoading) {
     return <LoadingScreen message="Cargando Sistema Kuppel..." />;
   }
 
-  if (authState.isLoading) {
+  if (authState.isLoading || !directCheckComplete) {
     return <LoadingScreen message="Verificando credenciales..." />;
   }
 
@@ -44,11 +116,20 @@ const MainApp = () => {
   }
 
   // Mostrar wizard si:
-  // 1. needsInitialSetup es true, O
-  // 2. Usuario autenticado pero sin empresas asociadas
+  // 1. needsInitialSetup es true desde el contexto, O
+  // 2. Usuario autenticado pero sin empresas (desde contexto), O
+  // 3. forceWizard es true (desde la verificación directa)
   const needsWizard = authState.needsInitialSetup || 
-                      (authState.isAuthenticated && authState.companies.length === 0);
+                      (authState.isAuthenticated && authState.companies.length === 0) ||
+                      forceWizard;
   
+  console.log('[App] Render decision:', {
+    needsInitialSetup: authState.needsInitialSetup,
+    companiesLength: authState.companies.length,
+    forceWizard,
+    needsWizard
+  });
+
   if (needsWizard) {
     return <SetupWizard />;
   }

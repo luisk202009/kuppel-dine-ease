@@ -1,5 +1,8 @@
 project_id = "efvynopreyliagayqabt"
 
+[functions.admin-reset-user-setup]
+verify_jwt = true
+
 [functions.reset-user-setup]
 verify_jwt = true
 
