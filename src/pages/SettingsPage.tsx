@@ -2,6 +2,7 @@ import React from 'react';
 import { usePOS } from '@/contexts/POSContext';
 import { Settings } from './Settings';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
+import { SetupWizard } from '@/components/onboarding/SetupWizard';
 
 export const SettingsPage: React.FC = () => {
   const { authState } = usePOS();
@@ -10,6 +11,10 @@ export const SettingsPage: React.FC = () => {
     return <LoadingScreen message="Cargando..." />;
   }
 
-  // La autenticación se maneja en App.tsx, aquí solo renderizamos Settings
+  // Mostrar wizard si el usuario necesita completar la configuración inicial
+  if (authState.needsInitialSetup) {
+    return <SetupWizard />;
+  }
+
   return <Settings />;
 };
