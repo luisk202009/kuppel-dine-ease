@@ -8,6 +8,32 @@ Deno.serve(async (req) => {
   
   const corsHeaders = getCorsHeaders(req);
 
+  // Validate API key authentication
+  const apiKey = req.headers.get('X-API-Key');
+  const expectedKey = Deno.env.get('AUTO_RENEW_API_KEY');
+
+  if (!expectedKey) {
+    console.error('AUTO_RENEW_API_KEY environment variable is not set');
+    return new Response(
+      JSON.stringify({ error: 'Server configuration error' }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
+  }
+
+  if (!apiKey || apiKey !== expectedKey) {
+    console.warn('Unauthorized access attempt to auto-renew-subscriptions');
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized: Invalid API key' }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401 
+      }
+    );
+  }
+
   try {
     console.log('Starting auto-renewal process...');
 
