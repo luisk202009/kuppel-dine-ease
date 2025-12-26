@@ -15,6 +15,7 @@ import { POSPage } from "./pages/POSPage";
 import { Admin } from "./pages/Admin";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { SetupWizard } from "@/components/onboarding/SetupWizard";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,11 @@ const MainApp = () => {
 
   if (isAuthRequired() && !authState.isAuthenticated) {
     return <AuthScreen />;
+  }
+
+  // Mostrar wizard si el usuario necesita completar la configuración inicial
+  if (authState.needsInitialSetup) {
+    return <SetupWizard />;
   }
 
   // Redirigir a Settings como pantalla principal
