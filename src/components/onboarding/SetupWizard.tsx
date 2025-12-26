@@ -31,8 +31,8 @@ export const SetupWizard: React.FC = () => {
     tables: [],
   });
 
-  // Solo necesitamos seedData y skipSetup del hook
-  const { seedData, skipSetup, isSeeding } = useInitialSetup(
+  // Solo necesitamos seedData del hook
+  const { seedData, isSeeding } = useInitialSetup(
     companyId || '',
     branchId || '',
     authState.user?.id || ''
@@ -69,24 +69,6 @@ export const SetupWizard: React.FC = () => {
     if (success) {
       setCurrentStep('categories');
     }
-  };
-
-  const handleSkip = async () => {
-    // Solo permitir skip si ya existe empresa y sucursal
-    if (!companyId || !branchId) {
-      toast({
-        title: 'Acción no disponible',
-        description: 'Debes crear tu empresa antes de omitir la configuración.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    const success = await skipSetup();
-    if (success) {
-      window.location.reload();
-    }
-    // Si falla, el toast ya se mostró en skipSetup
   };
 
   const handleCategoriesComplete = (categories: SetupData['categories']) => {

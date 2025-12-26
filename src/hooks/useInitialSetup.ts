@@ -346,48 +346,9 @@ export const useInitialSetup = (companyId: string, branchId: string, userId: str
     }
   };
 
-  const skipSetup = async () => {
-    try {
-      // Solo validar userId - el usuario está saltando ANTES de crear company/branch
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!userId || !uuidRegex.test(userId)) {
-        console.error('Cannot skip setup: invalid user ID');
-        toast({
-          title: 'Error',
-          description: 'No se pudo identificar al usuario. Intenta recargar la página.',
-          variant: 'destructive',
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .update({ setup_completed: true })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Configuración omitida',
-        description: 'Puedes configurar tu negocio más tarde desde Ajustes.',
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error skipping setup:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo omitir la configuración. Intenta nuevamente.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  };
-
   return {
     seedData,
     completeSetup,
-    skipSetup,
     isCompleting,
     isSeeding,
   };
