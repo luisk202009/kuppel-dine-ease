@@ -75,7 +75,7 @@ export const useLogin = () => {
         return {
           success: true,
           data: {
-            user: profile || { ...authData.user, role: 'demo' },
+            user: profile || { ...authData.user, role: 'demo', setup_completed: false },
             session: authData.session,
             companies,
             branches
