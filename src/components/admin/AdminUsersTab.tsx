@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Search, Users, ShieldCheck, Edit } from 'lucide-react';
+import { Search, Users, ShieldCheck, Edit, RotateCcw, Building2, CheckCircle2, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -22,6 +22,8 @@ interface UserProfile {
   role: 'admin' | 'cashier' | 'company_owner' | 'demo' | 'platform_admin' | 'staff' | 'viewer';
   is_active: boolean;
   created_at: string;
+  setup_completed: boolean;
+  companies_count: number;
 }
 
 export const AdminUsersTab: React.FC = () => {
@@ -39,6 +41,7 @@ export const AdminUsersTab: React.FC = () => {
   }>({ role: 'cashier', is_active: true });
   const [isSaving, setIsSaving] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
 
   // Get current user ID
   useEffect(() => {
@@ -79,15 +82,38 @@ export const AdminUsersTab: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      // Get users with setup_completed field
+      const { data: usersData, error: fetchError } = await supabase
         .from('users')
-        .select('id, email, name, role, is_active, created_at')
+        .select('id, email, name, role, is_active, created_at, setup_completed')
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
-      setUsers(data || []);
-      setFilteredUsers(data || []);
+      // Get company counts for all users
+      const { data: companyCounts, error: countError } = await supabase
+        .from('user_companies')
+        .select('user_id');
+
+      if (countError) {
+        console.error('Error fetching company counts:', countError);
+      }
+
+      // Count companies per user
+      const countMap: Record<string, number> = {};
+      companyCounts?.forEach((uc) => {
+        countMap[uc.user_id] = (countMap[uc.user_id] || 0) + 1;
+      });
+
+      // Merge users with company counts
+      const usersWithCounts: UserProfile[] = (usersData || []).map((user) => ({
+        ...user,
+        setup_completed: user.setup_completed ?? false,
+        companies_count: countMap[user.id] || 0,
+      }));
+
+      setUsers(usersWithCounts);
+      setFilteredUsers(usersWithCounts);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('No se pudieron cargar los usuarios. Intenta de nuevo más tarde.');
@@ -121,6 +147,51 @@ export const AdminUsersTab: React.FC = () => {
       role: user.role,
       is_active: user.is_active,
     });
+  };
+
+  const handleResetSetup = async (user: UserProfile) => {
+    if (resettingUserId) return; // Prevent double clicks
+    
+    const confirmed = window.confirm(
+      `¿Estás seguro de reiniciar el setup de ${user.email}?\n\nEsto:\n- Eliminará sus asociaciones de empresa\n- Forzará el wizard de configuración en su próximo inicio de sesión`
+    );
+    
+    if (!confirmed) return;
+    
+    setResettingUserId(user.id);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      const response = await supabase.functions.invoke('admin-reset-user-setup', {
+        body: { target_user_id: user.id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Error al resetear setup');
+      }
+
+      toast({
+        title: 'Setup reiniciado',
+        description: `El usuario ${user.email} verá el wizard de configuración en su próximo inicio de sesión.`,
+      });
+
+      // Refresh the user list
+      await fetchUsers();
+    } catch (err: any) {
+      console.error('Error resetting user setup:', err);
+      toast({
+        title: 'Error',
+        description: err.message || 'No se pudo reiniciar el setup del usuario.',
+        variant: 'destructive',
+      });
+    } finally {
+      setResettingUserId(null);
+    }
   };
 
   const handleSaveUser = async () => {
@@ -231,7 +302,7 @@ export const AdminUsersTab: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -239,14 +310,26 @@ export const AdminUsersTab: React.FC = () => {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Fecha de Registro</TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Setup
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Building2 className="h-4 w-4" />
+                      Empresas
+                    </div>
+                  </TableHead>
+                  <TableHead>Registro</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       {searchQuery || roleFilter !== 'all'
                         ? 'No se encontraron usuarios con ese criterio'
                         : 'No hay usuarios registrados'}
@@ -272,18 +355,42 @@ export const AdminUsersTab: React.FC = () => {
                           {user.is_active ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center">
+                        {user.setup_completed ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-amber-500 mx-auto" />
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={user.companies_count > 0 ? 'default' : 'destructive'}>
+                          {user.companies_count}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(user.created_at), 'PP', { locale: es })}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResetSetup(user)}
+                            disabled={resettingUserId === user.id}
+                            className="text-amber-600 hover:text-amber-700 border-amber-300 hover:border-amber-400"
+                          >
+                            <RotateCcw className={`h-4 w-4 mr-1 ${resettingUserId === user.id ? 'animate-spin' : ''}`} />
+                            {resettingUserId === user.id ? 'Reiniciando...' : 'Forzar Wizard'}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
