@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { createBankTransactionForCashClosure } from '@/hooks/useBankTransactions';
 
 export const useOpenCash = () => {
   const { toast } = useToast();
@@ -49,11 +50,11 @@ export const useCloseCash = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { sessionId: string; finalAmount: number; notes?: string }) => {
+    mutationFn: async (data: { sessionId: string; finalAmount: number; notes?: string; companyId?: string; branchId?: string }) => {
       // Obtener el registro de caja actual
       const { data: currentRegister } = await supabase
         .from('cash_registers')
-        .select('initial_amount, opened_at')
+        .select('initial_amount, opened_at, branch_id')
         .eq('id', data.sessionId)
         .single();
 
@@ -90,15 +91,46 @@ export const useCloseCash = () => {
         .single();
 
       if (error) throw error;
+
+      // Intentar crear transacción bancaria si hay configuración
+      if (data.companyId && data.branchId && data.finalAmount > 0) {
+        const bankResult = await createBankTransactionForCashClosure(
+          data.companyId,
+          data.branchId,
+          data.sessionId,
+          data.finalAmount,
+          new Date().toISOString().split('T')[0]
+        );
+        
+        // Retornar info de banco junto con el cierre
+        return { ...cashRegister, bankDeposit: bankResult };
+      }
+
       return cashRegister;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['cash'] });
       queryClient.invalidateQueries({ queryKey: ['cash', 'current-session'] });
-      toast({
-        title: "Caja cerrada",
-        description: "La caja se ha cerrado exitosamente",
-      });
+      queryClient.invalidateQueries({ queryKey: ['bank-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      
+      const bankInfo = (result as any)?.bankDeposit;
+      if (bankInfo?.success) {
+        toast({
+          title: "Caja cerrada",
+          description: "Cierre completado y depósito bancario registrado",
+        });
+      } else if (bankInfo?.error) {
+        toast({
+          title: "Caja cerrada",
+          description: `Cierre completado. Nota: ${bankInfo.error}`,
+        });
+      } else {
+        toast({
+          title: "Caja cerrada",
+          description: "La caja se ha cerrado exitosamente",
+        });
+      }
     },
     onError: (error: any) => {
       toast({

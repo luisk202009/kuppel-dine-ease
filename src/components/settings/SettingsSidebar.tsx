@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   Shield,
-  LayoutDashboard
+  LayoutDashboard,
+  Landmark
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
@@ -105,6 +106,11 @@ const sidebarItems: SidebarItem[] = [
     label: 'Caja',
     icon: DollarSign,
     permission: 'view_cash',
+  },
+  {
+    id: 'treasury',
+    label: 'Tesorería',
+    icon: Landmark,
   },
   {
     id: 'reports',
