@@ -131,7 +131,7 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 <Bar 
                   dataKey="expense" 
                   name={yearFilter === 'compare' ? `Gastos ${currentYear}` : 'Gastos'} 
-                  fill="hsl(38, 92%, 50%)" 
+                  fill="hsl(0, 84%, 60%)" 
                   radius={[4, 4, 0, 0]}
                 />
                 {yearFilter === 'compare' && (
@@ -146,7 +146,7 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                     <Bar 
                       dataKey="expenseCompare" 
                       name={`Gastos ${currentYear - 1}`} 
-                      fill="hsl(38, 92%, 50%)" 
+                      fill="hsl(0, 84%, 60%)" 
                       fillOpacity={0.4}
                       radius={[4, 4, 0, 0]}
                     />
@@ -168,9 +168,9 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               </p>
             )}
           </div>
-          <div className="p-3 bg-warning/10 rounded-lg border border-warning/20">
+          <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
             <p className="text-xs text-muted-foreground mb-1">Total Gastos</p>
-            <p className="text-lg font-bold text-warning">{formatCurrency(totalExpense)}</p>
+            <p className="text-lg font-bold text-destructive">{formatCurrency(totalExpense)}</p>
             {yearFilter === 'compare' && (
               <p className="text-xs text-muted-foreground mt-1">
                 Año ant: {formatCurrency(totalExpenseCompare)}
