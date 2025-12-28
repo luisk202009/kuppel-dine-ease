@@ -55,6 +55,181 @@ export type Database = {
           },
         ]
       }
+      bank_accounts: {
+        Row: {
+          account_number: string | null
+          account_type: string | null
+          bank_name: string | null
+          company_id: string
+          created_at: string | null
+          currency: string | null
+          current_balance: number | null
+          id: string
+          initial_balance: number | null
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          account_type?: string | null
+          bank_name?: string | null
+          company_id: string
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number | null
+          id?: string
+          initial_balance?: number | null
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          account_type?: string | null
+          bank_name?: string | null
+          company_id?: string
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number | null
+          id?: string
+          initial_balance?: number | null
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          date: string
+          description: string | null
+          id: string
+          reference_number: string | null
+          source_id: string | null
+          source_module: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id: string
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          reference_number?: string | null
+          source_id?: string | null
+          source_module?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          reference_number?: string | null
+          source_id?: string | null
+          source_module?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_usage_rules: {
+        Row: {
+          bank_account_id: string
+          branch_id: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          updated_at: string | null
+          usage_type: string
+        }
+        Insert: {
+          bank_account_id: string
+          branch_id?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          updated_at?: string | null
+          usage_type: string
+        }
+        Update: {
+          bank_account_id?: string
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          updated_at?: string | null
+          usage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_usage_rules_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_usage_rules_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_usage_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -368,6 +543,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          payment_method: string | null
           receipt_url: string | null
           user_id: string
         }
@@ -379,6 +555,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          payment_method?: string | null
           receipt_url?: string | null
           user_id: string
         }
@@ -390,6 +567,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          payment_method?: string | null
           receipt_url?: string | null
           user_id?: string
         }
@@ -1224,6 +1402,14 @@ export type Database = {
         Returns: Json
       }
       check_company_limits: { Args: { p_company_id: string }; Returns: Json }
+      get_bank_account_for_usage: {
+        Args: {
+          p_branch_id: string
+          p_company_id: string
+          p_usage_type: string
+        }
+        Returns: string
+      }
       get_company_monthly_sales_stats: {
         Args: never
         Returns: {

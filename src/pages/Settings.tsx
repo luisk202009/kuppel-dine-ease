@@ -13,8 +13,9 @@ import { ProductsManager } from '@/components/pos/ProductsManager';
 import { SubscriptionsPage } from '@/components/settings/SubscriptionsPage';
 import { InvoicingDashboard } from '@/components/invoicing';
 import { DashboardPage } from '@/components/dashboard';
+import { TreasurySettings } from '@/components/settings/TreasurySettings';
 
-export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing';
+export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -121,6 +122,9 @@ export const Settings: React.FC = () => {
         return (
           <InvoicingDashboard branchId={authState.selectedBranch?.id || ''} />
         );
+      
+      case 'treasury':
+        return <TreasurySettings />;
       
       default:
         return null;
