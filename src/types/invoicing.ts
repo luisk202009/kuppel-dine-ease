@@ -2,11 +2,34 @@
 
 export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled' | 'overdue';
 
+export type PrintFormat = 'ticket_58mm' | 'ticket_80mm' | 'half_letter' | 'letter';
+
+export type InvoiceSource = 'pos' | 'manual';
+
+export interface InvoiceType {
+  id: string;
+  companyId: string;
+  code: string;
+  name: string;
+  description?: string;
+  prefix: string;
+  printFormat: PrintFormat;
+  isPosDefault: boolean;
+  isStandardDefault: boolean;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface StandardInvoice {
   id: string;
   branchId: string;
   customerId?: string;
   invoiceNumber: string;
+  invoiceTypeId?: string;
+  source?: InvoiceSource;
+  tableId?: string;
   
   // Dates
   issueDate: Date;
@@ -49,6 +72,7 @@ export interface StandardInvoice {
     address?: string;
     city?: string;
   };
+  invoiceType?: InvoiceType;
 }
 
 export interface StandardInvoiceItem {
@@ -77,6 +101,7 @@ export interface StandardInvoiceItem {
 // Form types for creating/editing
 export interface StandardInvoiceFormData {
   customerId?: string;
+  invoiceTypeId?: string;
   issueDate: Date;
   dueDate?: Date;
   currency: string;
@@ -98,11 +123,30 @@ export interface StandardInvoiceItemFormData {
 }
 
 // Database row types (snake_case from Supabase)
+export interface InvoiceTypeRow {
+  id: string;
+  company_id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  prefix: string;
+  print_format: string;
+  is_pos_default: boolean;
+  is_standard_default: boolean;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StandardInvoiceRow {
   id: string;
   branch_id: string;
   customer_id: string | null;
   invoice_number: string;
+  invoice_type_id: string | null;
+  source: string | null;
+  table_id: string | null;
   issue_date: string;
   due_date: string | null;
   currency: string;
@@ -139,11 +183,30 @@ export interface StandardInvoiceItemRow {
 }
 
 // Helper functions to map between DB and app types
+export const mapInvoiceTypeRowToInvoiceType = (row: InvoiceTypeRow): InvoiceType => ({
+  id: row.id,
+  companyId: row.company_id,
+  code: row.code,
+  name: row.name,
+  description: row.description || undefined,
+  prefix: row.prefix,
+  printFormat: row.print_format as PrintFormat,
+  isPosDefault: row.is_pos_default,
+  isStandardDefault: row.is_standard_default,
+  isActive: row.is_active,
+  displayOrder: row.display_order,
+  createdAt: new Date(row.created_at),
+  updatedAt: new Date(row.updated_at),
+});
+
 export const mapInvoiceRowToInvoice = (row: StandardInvoiceRow): StandardInvoice => ({
   id: row.id,
   branchId: row.branch_id,
   customerId: row.customer_id || undefined,
   invoiceNumber: row.invoice_number,
+  invoiceTypeId: row.invoice_type_id || undefined,
+  source: (row.source as InvoiceSource) || undefined,
+  tableId: row.table_id || undefined,
   issueDate: new Date(row.issue_date),
   dueDate: row.due_date ? new Date(row.due_date) : undefined,
   currency: row.currency,
