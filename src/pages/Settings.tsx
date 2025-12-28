@@ -12,16 +12,17 @@ import { CashManager } from '@/components/pos/CashManager';
 import { ProductsManager } from '@/components/pos/ProductsManager';
 import { SubscriptionsPage } from '@/components/settings/SubscriptionsPage';
 import { InvoicingDashboard } from '@/components/invoicing';
+import { DashboardPage } from '@/components/dashboard';
 
-export type SettingsSection = 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing';
+export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = usePOS();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Get active section from URL params or default to 'settings'
-  const activeSection = (searchParams.get('section') as SettingsSection) || 'settings';
+  // Get active section from URL params or default to 'dashboard'
+  const activeSection = (searchParams.get('section') as SettingsSection) || 'dashboard';
   
   const handleSectionChange = (section: SettingsSection) => {
     setSearchParams({ section });
@@ -29,6 +30,9 @@ export const Settings: React.FC = () => {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'dashboard':
+        return <DashboardPage />;
+      
       case 'settings':
         return (
           <div>

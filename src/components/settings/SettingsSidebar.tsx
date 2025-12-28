@@ -14,7 +14,8 @@ import {
   Monitor,
   ChevronDown,
   ChevronRight,
-  Shield
+  Shield,
+  LayoutDashboard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
@@ -66,6 +67,13 @@ const salesGroup: SidebarGroup = {
       externalPath: '/pos',
     },
   ],
+};
+
+// Dashboard item (first item)
+const dashboardItem: SidebarItem = {
+  id: 'dashboard',
+  label: 'Dashboard',
+  icon: LayoutDashboard,
 };
 
 // Items individuales del menú (en orden solicitado)
@@ -194,6 +202,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       </div>
 
       <nav className="px-2 pb-4 space-y-1">
+        {/* Dashboard (first item) */}
+        {renderMenuItem(dashboardItem)}
+
         {/* Grupo Ventas (desplegable) */}
         {visibleSalesItems.length > 0 && (
           <Collapsible open={isSalesOpen} onOpenChange={setIsSalesOpen}>
