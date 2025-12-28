@@ -9,7 +9,9 @@ import {
   Send, 
   CheckCircle,
   XCircle,
-  FileText 
+  FileText,
+  Store,
+  Printer
 } from 'lucide-react';
 import {
   Table,
@@ -41,13 +43,16 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   useStandardInvoices, 
+  useStandardInvoice,
   useUpdateInvoiceStatus, 
   useDeleteStandardInvoice 
 } from '@/hooks/useStandardInvoices';
-import { InvoiceStatus, StandardInvoice } from '@/types/invoicing';
+import { InvoiceStatus, InvoiceSource, StandardInvoice } from '@/types/invoicing';
+import { PrintPreviewModal } from './print';
 
 interface InvoiceListProps {
   statusFilter?: InvoiceStatus;
+  sourceFilter?: InvoiceSource;
   onEdit: (invoiceId: string) => void;
   isLoading?: boolean;
 }
@@ -60,13 +65,16 @@ const statusConfig: Record<InvoiceStatus, { label: string; variant: 'default' | 
   overdue: { label: 'Vencida', variant: 'destructive' },
 };
 
-export const InvoiceList = ({ statusFilter, onEdit, isLoading }: InvoiceListProps) => {
+export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: InvoiceListProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<StandardInvoice | null>(null);
+  const [printInvoiceId, setPrintInvoiceId] = useState<string | null>(null);
 
-  const { data: invoices = [] } = useStandardInvoices(
-    statusFilter ? { status: statusFilter } : undefined
-  );
+  const { data: invoices = [] } = useStandardInvoices({
+    status: statusFilter,
+    source: sourceFilter,
+  });
+  const { data: printInvoice } = useStandardInvoice(printInvoiceId || undefined);
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteStandardInvoice();
 
@@ -85,6 +93,10 @@ export const InvoiceList = ({ statusFilter, onEdit, isLoading }: InvoiceListProp
       setDeleteDialogOpen(false);
       setSelectedInvoice(null);
     }
+  };
+
+  const handlePrint = (invoiceId: string) => {
+    setPrintInvoiceId(invoiceId);
   };
 
   if (isLoading) {
@@ -121,9 +133,9 @@ export const InvoiceList = ({ statusFilter, onEdit, isLoading }: InvoiceListProp
           <TableHeader>
             <TableRow>
               <TableHead>Número</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Fecha</TableHead>
-              <TableHead>Vencimiento</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -136,19 +148,26 @@ export const InvoiceList = ({ statusFilter, onEdit, isLoading }: InvoiceListProp
                   {invoice.invoiceNumber}
                 </TableCell>
                 <TableCell>
+                  {invoice.source === 'pos' ? (
+                    <Badge variant="outline" className="gap-1 text-blue-600 border-blue-200 bg-blue-50">
+                      <Store className="h-3 w-3" />
+                      POS
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="gap-1 text-purple-600 border-purple-200 bg-purple-50">
+                      <FileText className="h-3 w-3" />
+                      Factura
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
                   {invoice.customer 
                     ? `${invoice.customer.name} ${invoice.customer.lastName || ''}`.trim()
-                    : <span className="text-muted-foreground">Sin cliente</span>
+                    : <span className="text-muted-foreground">Mostrador</span>
                   }
                 </TableCell>
                 <TableCell>
                   {format(invoice.issueDate, 'dd MMM yyyy', { locale: es })}
-                </TableCell>
-                <TableCell>
-                  {invoice.dueDate 
-                    ? format(invoice.dueDate, 'dd MMM yyyy', { locale: es })
-                    : '-'
-                  }
                 </TableCell>
                 <TableCell>
                   <Badge variant={statusConfig[invoice.status].variant}>
@@ -166,6 +185,10 @@ export const InvoiceList = ({ statusFilter, onEdit, isLoading }: InvoiceListProp
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handlePrint(invoice.id)}>
+                        <Printer className="h-4 w-4 mr-2" />
+                        Imprimir
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(invoice.id)}>
                         <Eye className="h-4 w-4 mr-2" />
                         Ver detalle
@@ -246,6 +269,13 @@ export const InvoiceList = ({ statusFilter, onEdit, isLoading }: InvoiceListProp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Print Preview Modal */}
+      <PrintPreviewModal
+        invoice={printInvoice || null}
+        isOpen={!!printInvoiceId && !!printInvoice}
+        onClose={() => setPrintInvoiceId(null)}
+      />
     </>
   );
 };

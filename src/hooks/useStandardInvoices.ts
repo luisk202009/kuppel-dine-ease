@@ -5,8 +5,10 @@ import {
   StandardInvoice,
   StandardInvoiceFormData,
   InvoiceStatus,
+  InvoiceSource,
   mapInvoiceRowToInvoice,
   mapInvoiceItemRowToItem,
+  mapInvoiceTypeRowToInvoiceType,
   calculateItemTotals,
   calculateInvoiceTotals,
 } from '@/types/invoicing';
@@ -17,6 +19,8 @@ export const useStandardInvoices = (filters?: {
   startDate?: Date;
   endDate?: Date;
   customerId?: string;
+  source?: InvoiceSource;
+  invoiceTypeCode?: string;
 }) => {
   return useQuery({
     queryKey: ['standard-invoices', filters],
@@ -34,6 +38,20 @@ export const useStandardInvoices = (filters?: {
             phone,
             address,
             city
+          ),
+          invoice_types (
+            id,
+            company_id,
+            code,
+            name,
+            prefix,
+            print_format,
+            is_pos_default,
+            is_standard_default,
+            is_active,
+            display_order,
+            created_at,
+            updated_at
           )
         `)
         .order('created_at', { ascending: false });
@@ -50,12 +68,15 @@ export const useStandardInvoices = (filters?: {
       if (filters?.customerId) {
         query = query.eq('customer_id', filters.customerId);
       }
+      if (filters?.source) {
+        query = query.eq('source', filters.source);
+      }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      return (data || []).map((row: any) => ({
+      let results = (data || []).map((row: any) => ({
         ...mapInvoiceRowToInvoice(row),
         customer: row.customers ? {
           id: row.customers.id,
@@ -67,7 +88,15 @@ export const useStandardInvoices = (filters?: {
           address: row.customers.address,
           city: row.customers.city,
         } : undefined,
+        invoiceType: row.invoice_types ? mapInvoiceTypeRowToInvoiceType(row.invoice_types) : undefined,
       }));
+
+      // Filter by invoice type code if specified
+      if (filters?.invoiceTypeCode) {
+        results = results.filter(inv => inv.invoiceType?.code === filters.invoiceTypeCode);
+      }
+
+      return results;
     },
     staleTime: 30 * 1000,
   });
@@ -93,6 +122,20 @@ export const useStandardInvoice = (invoiceId: string | undefined) => {
             phone,
             address,
             city
+          ),
+          invoice_types (
+            id,
+            company_id,
+            code,
+            name,
+            prefix,
+            print_format,
+            is_pos_default,
+            is_standard_default,
+            is_active,
+            display_order,
+            created_at,
+            updated_at
           )
         `)
         .eq('id', invoiceId)
@@ -121,13 +164,14 @@ export const useStandardInvoice = (invoiceId: string | undefined) => {
           address: invoice.customers.address,
           city: invoice.customers.city,
         } : undefined,
+        invoiceType: invoice.invoice_types ? mapInvoiceTypeRowToInvoiceType(invoice.invoice_types) : undefined,
       };
     },
     enabled: !!invoiceId,
   });
 };
 
-// Generate unique invoice number
+// Generate unique invoice number (legacy - kept for backward compatibility)
 export const useGenerateInvoiceNumber = () => {
   return useMutation({
     mutationFn: async (branchId: string): Promise<string> => {
@@ -165,31 +209,46 @@ export const useCreateStandardInvoice = () => {
     mutationFn: async ({
       branchId,
       formData,
+      invoiceTypeId,
     }: {
       branchId: string;
       formData: StandardInvoiceFormData;
+      invoiceTypeId?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Generate invoice number
-      const today = new Date();
-      const prefix = `FE-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-
-      const { data: existingInvoices } = await supabase
-        .from('standard_invoices')
-        .select('invoice_number')
-        .eq('branch_id', branchId)
-        .like('invoice_number', `${prefix}%`)
-        .order('invoice_number', { ascending: false })
-        .limit(1);
-
-      let nextNumber = 1;
-      if (existingInvoices && existingInvoices.length > 0) {
-        const numPart = parseInt(existingInvoices[0].invoice_number.split('-').pop() || '0', 10);
-        nextNumber = numPart + 1;
+      // Get invoice type to determine prefix
+      let prefix = 'FE';
+      if (invoiceTypeId || formData.invoiceTypeId) {
+        const { data: invoiceType } = await supabase
+          .from('invoice_types')
+          .select('prefix')
+          .eq('id', invoiceTypeId || formData.invoiceTypeId)
+          .single();
+        
+        if (invoiceType) {
+          prefix = invoiceType.prefix;
+        }
+      } else {
+        // Use standard default
+        const { data: defaultType } = await supabase
+          .from('invoice_types')
+          .select('id, prefix')
+          .eq('is_standard_default', true)
+          .maybeSingle();
+        
+        if (defaultType) {
+          invoiceTypeId = defaultType.id;
+          prefix = defaultType.prefix;
+        }
       }
-      const invoiceNumber = `${prefix}-${String(nextNumber).padStart(5, '0')}`;
+
+      // Generate invoice number with prefix
+      const { data: invoiceNumber } = await supabase.rpc('generate_invoice_number_with_prefix', {
+        p_branch_id: branchId,
+        p_prefix: prefix,
+      });
 
       // Calculate totals
       const totals = calculateInvoiceTotals(formData.items);
@@ -200,7 +259,9 @@ export const useCreateStandardInvoice = () => {
         .insert({
           branch_id: branchId,
           customer_id: formData.customerId || null,
+          invoice_type_id: invoiceTypeId || formData.invoiceTypeId || null,
           invoice_number: invoiceNumber,
+          source: 'manual',
           issue_date: formData.issueDate.toISOString().split('T')[0],
           due_date: formData.dueDate?.toISOString().split('T')[0] || null,
           currency: formData.currency,

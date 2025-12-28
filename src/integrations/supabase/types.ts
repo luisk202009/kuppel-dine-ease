@@ -595,6 +595,62 @@ export type Database = {
           },
         ]
       }
+      invoice_types: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          is_pos_default: boolean | null
+          is_standard_default: boolean | null
+          name: string
+          prefix: string
+          print_format: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_pos_default?: boolean | null
+          is_standard_default?: boolean | null
+          name: string
+          prefix: string
+          print_format?: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_pos_default?: boolean | null
+          is_standard_default?: boolean | null
+          name?: string
+          prefix?: string
+          print_format?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_types_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logs: {
         Row: {
           action: Database["public"]["Enums"]["log_action"]
@@ -1068,12 +1124,15 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_number: string
+          invoice_type_id: string | null
           issue_date: string
           notes: string | null
           payment_method: string | null
           payment_reference: string | null
+          source: string | null
           status: string
           subtotal: number
+          table_id: string | null
           terms_conditions: string | null
           total: number
           total_discount: number
@@ -1089,12 +1148,15 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number: string
+          invoice_type_id?: string | null
           issue_date?: string
           notes?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          source?: string | null
           status?: string
           subtotal?: number
+          table_id?: string | null
           terms_conditions?: string | null
           total?: number
           total_discount?: number
@@ -1110,12 +1172,15 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number?: string
+          invoice_type_id?: string | null
           issue_date?: string
           notes?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          source?: string | null
           status?: string
           subtotal?: number
+          table_id?: string | null
           terms_conditions?: string | null
           total?: number
           total_discount?: number
@@ -1142,6 +1207,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standard_invoices_invoice_type_id_fkey"
+            columns: ["invoice_type_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standard_invoices_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
             referencedColumns: ["id"]
           },
         ]
@@ -1402,6 +1481,10 @@ export type Database = {
         Returns: Json
       }
       check_company_limits: { Args: { p_company_id: string }; Returns: Json }
+      generate_invoice_number_with_prefix: {
+        Args: { p_branch_id: string; p_prefix: string }
+        Returns: string
+      }
       get_bank_account_for_usage: {
         Args: {
           p_branch_id: string
