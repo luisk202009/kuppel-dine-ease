@@ -67,6 +67,12 @@ const salesGroup: SidebarGroup = {
       isExternal: true,
       externalPath: '/pos',
     },
+    {
+      id: 'cash',
+      label: 'Caja',
+      icon: DollarSign,
+      permission: 'view_cash',
+    },
   ],
 };
 
@@ -100,12 +106,6 @@ const sidebarItems: SidebarItem[] = [
     label: 'Órdenes',
     icon: Receipt,
     feature: 'orderHistory',
-  },
-  {
-    id: 'cash',
-    label: 'Caja',
-    icon: DollarSign,
-    permission: 'view_cash',
   },
   {
     id: 'treasury',
@@ -150,7 +150,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isSalesOpen, setIsSalesOpen] = useState(
-    activeSection === 'standardInvoicing'
+    activeSection === 'standardInvoicing' || activeSection === 'cash'
   );
 
   const isItemVisible = (item: SidebarItem): boolean => {
@@ -218,7 +218,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <button
                 className={cn(
                   'w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                  activeSection === 'standardInvoicing'
+                  activeSection === 'standardInvoicing' || activeSection === 'cash'
                     ? 'bg-muted text-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
