@@ -61,6 +61,11 @@ const salesGroup: SidebarGroup = {
       icon: FileText,
     },
     {
+      id: 'paymentReceipts',
+      label: 'Pagos Recibidos',
+      icon: Wallet,
+    },
+    {
       id: 'pos',
       label: 'POS',
       icon: Monitor,
@@ -72,6 +77,26 @@ const salesGroup: SidebarGroup = {
       label: 'Caja',
       icon: DollarSign,
       permission: 'view_cash',
+    },
+  ],
+};
+
+// Grupo desplegable de Gastos
+const expensesGroup: SidebarGroup = {
+  id: 'expensesGroup',
+  label: 'Gastos',
+  icon: CreditCard,
+  items: [
+    {
+      id: 'expenses',
+      label: 'Gastos',
+      icon: Receipt,
+      permission: 'view_expenses',
+    },
+    {
+      id: 'expensePayments',
+      label: 'Pagos Realizados',
+      icon: Wallet,
     },
   ],
 };
@@ -94,18 +119,6 @@ const sidebarItems: SidebarItem[] = [
     id: 'customers',
     label: 'Clientes',
     icon: Users,
-  },
-  {
-    id: 'expenses',
-    label: 'Gastos',
-    icon: CreditCard,
-    permission: 'view_expenses',
-  },
-  {
-    id: 'orders',
-    label: 'Órdenes',
-    icon: Receipt,
-    feature: 'orderHistory',
   },
   {
     id: 'treasury',
@@ -150,7 +163,10 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isSalesOpen, setIsSalesOpen] = useState(
-    activeSection === 'standardInvoicing' || activeSection === 'cash'
+    activeSection === 'standardInvoicing' || activeSection === 'cash' || activeSection === 'paymentReceipts'
+  );
+  const [isExpensesOpen, setIsExpensesOpen] = useState(
+    activeSection === 'expenses' || activeSection === 'expensePayments'
   );
 
   const isItemVisible = (item: SidebarItem): boolean => {
@@ -176,6 +192,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const visibleItems = sidebarItems.filter(isItemVisible);
   const visibleSalesItems = salesGroup.items.filter(isItemVisible);
+  const visibleExpenseItems = expensesGroup.items.filter(isItemVisible);
   const isAdmin = user?.role === 'admin';
 
   const renderMenuItem = (item: SidebarItem, isNested = false) => {
@@ -218,7 +235,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <button
                 className={cn(
                   'w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                  activeSection === 'standardInvoicing' || activeSection === 'cash'
+                  activeSection === 'standardInvoicing' || activeSection === 'cash' || activeSection === 'paymentReceipts'
                     ? 'bg-muted text-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
@@ -242,6 +259,35 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         {/* Items individuales */}
         {visibleItems.map((item) => renderMenuItem(item))}
+
+        {/* Grupo Gastos (desplegable) */}
+        {visibleExpenseItems.length > 0 && (
+          <Collapsible open={isExpensesOpen} onOpenChange={setIsExpensesOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                className={cn(
+                  'w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  activeSection === 'expenses' || activeSection === 'expensePayments'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <expensesGroup.icon className="h-4 w-4" />
+                  <span>{expensesGroup.label}</span>
+                </div>
+                {isExpensesOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-1 mt-1">
+              {visibleExpenseItems.map((item) => renderMenuItem(item, true))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         {/* Separador */}
         <div className="my-3 border-t border-border" />
