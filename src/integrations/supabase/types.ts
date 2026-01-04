@@ -534,16 +534,101 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_payments: {
+        Row: {
+          amount: number
+          bank_account_id: string
+          branch_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          expense_id: string
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          payment_number: string
+          prefix: string | null
+          reference: string | null
+          sequence_number: number
+        }
+        Insert: {
+          amount: number
+          bank_account_id: string
+          branch_id: string
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          expense_id: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_number: string
+          prefix?: string | null
+          reference?: string | null
+          sequence_number: number
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string
+          branch_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          expense_id?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_number?: string
+          prefix?: string | null
+          reference?: string | null
+          sequence_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_payments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_payments_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_payments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
           branch_id: string
           cash_register_id: string | null
           category: string | null
+          company_id: string | null
           created_at: string
           description: string
           id: string
           payment_method: string | null
+          payment_status: string | null
           receipt_url: string | null
           user_id: string
         }
@@ -552,10 +637,12 @@ export type Database = {
           branch_id: string
           cash_register_id?: string | null
           category?: string | null
+          company_id?: string | null
           created_at?: string
           description: string
           id?: string
           payment_method?: string | null
+          payment_status?: string | null
           receipt_url?: string | null
           user_id: string
         }
@@ -564,10 +651,12 @@ export type Database = {
           branch_id?: string
           cash_register_id?: string | null
           category?: string | null
+          company_id?: string | null
           created_at?: string
           description?: string
           id?: string
           payment_method?: string | null
+          payment_status?: string | null
           receipt_url?: string | null
           user_id?: string
         }
@@ -584,6 +673,13 @@ export type Database = {
             columns: ["cash_register_id"]
             isOneToOne: false
             referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -851,6 +947,89 @@ export type Database = {
             columns: ["waiter_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_receipts: {
+        Row: {
+          amount: number
+          bank_account_id: string
+          branch_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          prefix: string | null
+          receipt_number: string
+          reference: string | null
+          sequence_number: number
+        }
+        Insert: {
+          amount: number
+          bank_account_id: string
+          branch_id: string
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          prefix?: string | null
+          receipt_number: string
+          reference?: string | null
+          sequence_number: number
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string
+          branch_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          prefix?: string | null
+          receipt_number?: string
+          reference?: string | null
+          sequence_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "standard_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -1481,9 +1660,23 @@ export type Database = {
         Returns: Json
       }
       check_company_limits: { Args: { p_company_id: string }; Returns: Json }
+      generate_expense_payment_number: {
+        Args: { p_company_id: string; p_prefix?: string }
+        Returns: {
+          payment_number: string
+          sequence_number: number
+        }[]
+      }
       generate_invoice_number_with_prefix: {
         Args: { p_branch_id: string; p_prefix: string }
         Returns: string
+      }
+      generate_receipt_number: {
+        Args: { p_company_id: string; p_prefix?: string }
+        Returns: {
+          receipt_number: string
+          sequence_number: number
+        }[]
       }
       get_bank_account_for_usage: {
         Args: {
