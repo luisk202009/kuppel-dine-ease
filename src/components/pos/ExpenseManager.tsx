@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Receipt, Calendar, DollarSign, Paperclip, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Receipt, Calendar, DollarSign, Paperclip, Edit, Trash2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useExpenses, useCreateExpense } from '@/hooks/useExpenses';
 import { usePOSContext } from '@/contexts/POSContext';
+import { RecordExpensePaymentModal } from '@/components/expenses/RecordExpensePaymentModal';
 
 interface Expense {
   id: string;
@@ -42,6 +43,13 @@ export const ExpenseManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedExpenseForPayment, setSelectedExpenseForPayment] = useState<{
+    id: string;
+    description: string;
+    amount: number;
+    category: string | null;
+  } | null>(null);
   const [newExpense, setNewExpense] = useState({
     category: '',
     description: '',
@@ -49,6 +57,16 @@ export const ExpenseManager: React.FC = () => {
     vendor: '',
     receipt: null as File | null
   });
+
+  const handlePayExpense = (expense: any) => {
+    setSelectedExpenseForPayment({
+      id: expense.id,
+      description: expense.description,
+      amount: expense.amount,
+      category: expense.category || null,
+    });
+    setPaymentModalOpen(true);
+  };
 
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = expense.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -311,6 +329,15 @@ export const ExpenseManager: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 ml-4">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => handlePayExpense(expense)}
+                    className="gap-1"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Pagar
+                  </Button>
                   <Button variant="ghost" size="sm">
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -333,6 +360,15 @@ export const ExpenseManager: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Payment Modal */}
+      <RecordExpensePaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        expense={selectedExpenseForPayment}
+        companyId={authState.selectedCompany?.id || ''}
+        branchId={authState.selectedBranch?.id || ''}
+      />
     </div>
   );
 };

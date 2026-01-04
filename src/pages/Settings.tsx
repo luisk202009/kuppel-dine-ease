@@ -14,8 +14,10 @@ import { SubscriptionsPage } from '@/components/settings/SubscriptionsPage';
 import { InvoicingDashboard } from '@/components/invoicing';
 import { DashboardPage } from '@/components/dashboard';
 import { TreasurySettings } from '@/components/settings/TreasurySettings';
+import { PaymentReceiptsList } from '@/components/invoicing/PaymentReceiptsList';
+import { ExpensePaymentsList } from '@/components/expenses/ExpensePaymentsList';
 
-export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury';
+export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury' | 'paymentReceipts' | 'expensePayments';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -122,6 +124,12 @@ export const Settings: React.FC = () => {
         return (
           <InvoicingDashboard branchId={authState.selectedBranch?.id || ''} />
         );
+      
+      case 'paymentReceipts':
+        return <PaymentReceiptsList />;
+      
+      case 'expensePayments':
+        return <ExpensePaymentsList />;
       
       case 'treasury':
         return <TreasurySettings />;

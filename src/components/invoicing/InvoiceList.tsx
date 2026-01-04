@@ -11,7 +11,8 @@ import {
   XCircle,
   FileText,
   Store,
-  Printer
+  Printer,
+  Banknote
 } from 'lucide-react';
 import {
   Table,
@@ -49,6 +50,8 @@ import {
 } from '@/hooks/useStandardInvoices';
 import { InvoiceStatus, InvoiceSource, StandardInvoice } from '@/types/invoicing';
 import { PrintPreviewModal } from './print';
+import { RecordPaymentModal } from './RecordPaymentModal';
+import { usePOS } from '@/contexts/POSContext';
 
 interface InvoiceListProps {
   statusFilter?: InvoiceStatus;
@@ -66,9 +69,12 @@ const statusConfig: Record<InvoiceStatus, { label: string; variant: 'default' | 
 };
 
 export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: InvoiceListProps) => {
+  const { authState } = usePOS();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<StandardInvoice | null>(null);
   const [printInvoiceId, setPrintInvoiceId] = useState<string | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<StandardInvoice | null>(null);
 
   const { data: invoices = [] } = useStandardInvoices({
     status: statusFilter,
@@ -97,6 +103,11 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
 
   const handlePrint = (invoiceId: string) => {
     setPrintInvoiceId(invoiceId);
+  };
+
+  const handleRecordPayment = (invoice: StandardInvoice) => {
+    setPaymentInvoice(invoice);
+    setPaymentModalOpen(true);
   };
 
   if (isLoading) {
@@ -210,12 +221,20 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
                       )}
                       
                       {invoice.status === 'issued' && (
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(invoice.id, 'paid')}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Marcar como pagada
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem 
+                            onClick={() => handleRecordPayment(invoice)}
+                          >
+                            <Banknote className="h-4 w-4 mr-2" />
+                            Registrar Cobro
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(invoice.id, 'paid')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Marcar como pagada
+                          </DropdownMenuItem>
+                        </>
                       )}
                       
                       {(invoice.status === 'draft' || invoice.status === 'issued') && (
@@ -275,6 +294,15 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
         invoice={printInvoice || null}
         isOpen={!!printInvoiceId && !!printInvoice}
         onClose={() => setPrintInvoiceId(null)}
+      />
+
+      {/* Record Payment Modal */}
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        invoice={paymentInvoice}
+        companyId={authState.selectedCompany?.id || ''}
+        branchId={authState.selectedBranch?.id || ''}
       />
     </>
   );
