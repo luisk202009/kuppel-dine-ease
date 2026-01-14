@@ -3,21 +3,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { InvoiceType, mapInvoiceTypeRowToInvoiceType, PrintFormat } from '@/types/invoicing';
 
-// Fetch all invoice types for user's companies
-export const useInvoiceTypes = () => {
+// Fetch all invoice types for user's companies (optionally filtered by companyId)
+export const useInvoiceTypes = (companyId?: string) => {
   return useQuery({
-    queryKey: ['invoice-types'],
+    queryKey: ['invoice-types', companyId],
     queryFn: async (): Promise<InvoiceType[]> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('invoice_types')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
+      if (companyId) {
+        query = query.eq('company_id', companyId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
       return (data || []).map((row: any) => mapInvoiceTypeRowToInvoiceType(row));
     },
+    enabled: companyId ? true : true, // Always enabled, but filtered when companyId provided
     staleTime: 60 * 1000,
   });
 };
