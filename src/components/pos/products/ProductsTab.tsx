@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff, Upload, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductImportModal } from './ProductImportModal';
 import { ProductVariantsManager } from './ProductVariantsManager';
@@ -91,7 +91,7 @@ export const ProductsTab: React.FC = () => {
   });
 
   // Fetch products with variants
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading, isFetching } = useQuery({
     queryKey: ['products', authState.selectedCompany?.id, selectedCategoryFilter],
     queryFn: async () => {
       let query = supabase
@@ -128,6 +128,35 @@ export const ProductsTab: React.FC = () => {
     },
     enabled: !!authState.selectedCompany?.id
   });
+
+  // Timeout de seguridad para detectar carga infinita
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTimeout(false);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 8000); // 8 segundos
+    
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  // Log de diagnóstico mejorado
+  useEffect(() => {
+    console.log('ProductsTab state:', {
+      selectedCompanyId,
+      selectedCompanyName: authState.selectedCompany?.name,
+      isLoading,
+      isFetching,
+      productsCount: products.length,
+      queryEnabled: !!selectedCompanyId,
+      loadingTimeout
+    });
+  }, [selectedCompanyId, isLoading, isFetching, products.length, loadingTimeout]);
 
   // Filter by search
   const filteredProducts = products.filter(product => {
@@ -377,11 +406,40 @@ export const ProductsTab: React.FC = () => {
         <AlertCircle className="h-8 w-8 mx-auto mb-2" />
         <p>No se ha seleccionado una empresa</p>
         <p className="text-sm mt-1">Recarga la página o verifica tu sesión</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.reload()}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Recargar página
+        </Button>
       </div>
     );
   }
 
-  if (isLoading) {
+  // Si la carga está tardando demasiado, mostrar opción de recarga
+  if (loadingTimeout) {
+    return (
+      <div className="text-center py-8">
+        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+        <p className="font-medium">La carga está tardando más de lo esperado</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Puede haber un problema de conexión o con la sesión
+        </p>
+        <Button 
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Recargar página
+        </Button>
+      </div>
+    );
+  }
+
+  // Solo mostrar loading si realmente está cargando datos (query habilitada y ejecutándose)
+  if (isLoading && isFetching) {
     return <div className="text-center py-8 text-muted-foreground">Cargando productos...</div>;
   }
 
