@@ -117,19 +117,14 @@ const sidebarItems: SidebarItem[] = [
     icon: Package,
   },
   {
-    id: 'customers',
-    label: 'Clientes',
-    icon: Users,
-  },
-  {
     id: 'treasury',
     label: 'Tesorería',
     icon: Landmark,
   },
   {
-    id: 'onlineStore',
-    label: 'Tienda Online',
-    icon: Store,
+    id: 'customers',
+    label: 'Clientes',
+    icon: Users,
   },
   {
     id: 'reports',
@@ -139,9 +134,9 @@ const sidebarItems: SidebarItem[] = [
     feature: 'advancedReporting',
   },
   {
-    id: 'subscriptions',
-    label: 'Suscripciones',
-    icon: Wallet,
+    id: 'onlineStore',
+    label: 'Tienda Online',
+    icon: Store,
   },
 ];
 
@@ -231,10 +226,10 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       </div>
 
       <nav className="px-2 pb-4 space-y-1">
-        {/* Dashboard (first item) */}
+        {/* 1. Dashboard */}
         {renderMenuItem(dashboardItem)}
 
-        {/* Grupo Ventas (desplegable) */}
+        {/* 2. Grupo Ventas (desplegable) */}
         {visibleSalesItems.length > 0 && (
           <Collapsible open={isSalesOpen} onOpenChange={setIsSalesOpen}>
             <CollapsibleTrigger asChild>
@@ -263,10 +258,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </Collapsible>
         )}
 
-        {/* Items individuales */}
-        {visibleItems.map((item) => renderMenuItem(item))}
-
-        {/* Grupo Gastos (desplegable) */}
+        {/* 3. Grupo Gastos (desplegable) */}
         {visibleExpenseItems.length > 0 && (
           <Collapsible open={isExpensesOpen} onOpenChange={setIsExpensesOpen}>
             <CollapsibleTrigger asChild>
@@ -295,13 +287,19 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </Collapsible>
         )}
 
+        {/* 4-8. Items individuales (Productos, Tesorería, Clientes, Reportes, Tienda Online) */}
+        {visibleItems.map((item) => renderMenuItem(item))}
+
         {/* Separador */}
         <div className="my-3 border-t border-border" />
 
-        {/* Ajustes al final */}
+        {/* 9. Ajustes */}
         {renderMenuItem(settingsItem)}
 
-        {/* Administración (solo para admins) */}
+        {/* 10. Suscripciones */}
+        {renderMenuItem({ id: 'subscriptions', label: 'Suscripciones', icon: Wallet })}
+
+        {/* 11. Administración (solo para admins) */}
         {isAdmin && (
           <>
             <div className="my-3 border-t border-border" />
