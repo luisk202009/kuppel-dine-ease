@@ -32,7 +32,7 @@ export const ConvertToInvoiceModal: React.FC<ConvertToInvoiceModalProps> = ({
   const companyId = authState.selectedCompany?.id;
   const queryClient = useQueryClient();
 
-  const { data: invoiceTypes = [], isLoading: loadingTypes } = useInvoiceTypes();
+const { data: invoiceTypes = [], isLoading: loadingTypes } = useInvoiceTypes(companyId);
   const activeTypes = invoiceTypes.filter(t => t.isActive);
 
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
