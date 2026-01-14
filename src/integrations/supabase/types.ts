@@ -375,10 +375,14 @@ export type Database = {
           owner_id: string | null
           phone: string | null
           plan_id: string | null
+          public_slug: string | null
+          public_store_enabled: boolean | null
+          store_banner_url: string | null
           subscription_status: string | null
           tax_id: string | null
           trial_end_at: string | null
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           address?: string | null
@@ -393,10 +397,14 @@ export type Database = {
           owner_id?: string | null
           phone?: string | null
           plan_id?: string | null
+          public_slug?: string | null
+          public_store_enabled?: boolean | null
+          store_banner_url?: string | null
           subscription_status?: string | null
           tax_id?: string | null
           trial_end_at?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           address?: string | null
@@ -411,10 +419,14 @@ export type Database = {
           owner_id?: string | null
           phone?: string | null
           plan_id?: string | null
+          public_slug?: string | null
+          public_store_enabled?: boolean | null
+          store_banner_url?: string | null
           subscription_status?: string | null
           tax_id?: string | null
           trial_end_at?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: [
           {
@@ -1174,9 +1186,11 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           is_alcoholic: boolean
+          is_public: boolean | null
           min_stock: number
           name: string
           price: number
+          public_description: string | null
           stock: number
           updated_at: string
         }
@@ -1191,9 +1205,11 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_alcoholic?: boolean
+          is_public?: boolean | null
           min_stock?: number
           name: string
           price: number
+          public_description?: string | null
           stock?: number
           updated_at?: string
         }
@@ -1208,9 +1224,11 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_alcoholic?: boolean
+          is_public?: boolean | null
           min_stock?: number
           name?: string
           price?: number
+          public_description?: string | null
           stock?: number
           updated_at?: string
         }

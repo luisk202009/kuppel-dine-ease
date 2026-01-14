@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Shield,
   LayoutDashboard,
-  Landmark
+  Landmark,
+  Store
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
@@ -124,6 +125,11 @@ const sidebarItems: SidebarItem[] = [
     id: 'treasury',
     label: 'Tesorería',
     icon: Landmark,
+  },
+  {
+    id: 'onlineStore',
+    label: 'Tienda Online',
+    icon: Store,
   },
   {
     id: 'reports',
