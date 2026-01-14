@@ -160,7 +160,7 @@ const App = () => (
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/demo" element={<Index />} />
                 {/* Public Store Route */}
-                <Route path="/s/:slug" element={<PublicStoreLayout />}>
+                <Route path="/tienda/:slug" element={<PublicStoreLayout />}>
                   <Route index element={<PublicStorePage />} />
                 </Route>
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
