@@ -16,8 +16,9 @@ import { DashboardPage } from '@/components/dashboard';
 import { TreasurySettings } from '@/components/settings/TreasurySettings';
 import { PaymentReceiptsList } from '@/components/invoicing/PaymentReceiptsList';
 import { ExpensePaymentsList } from '@/components/expenses/ExpensePaymentsList';
+import { OnlineStoreSettings } from '@/components/settings/OnlineStoreSettings';
 
-export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury' | 'paymentReceipts' | 'expensePayments';
+export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury' | 'paymentReceipts' | 'expensePayments' | 'onlineStore';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -133,6 +134,9 @@ export const Settings: React.FC = () => {
       
       case 'treasury':
         return <TreasurySettings />;
+      
+      case 'onlineStore':
+        return <OnlineStoreSettings />;
       
       default:
         return null;
