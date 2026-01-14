@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,8 @@ interface ProductFormData {
   stock: string;
   is_active: boolean;
   is_alcoholic: boolean;
+  is_public: boolean;
+  public_description: string;
 }
 
 export const ProductManager: React.FC = () => {
@@ -42,7 +45,9 @@ export const ProductManager: React.FC = () => {
     cost: '',
     stock: '0',
     is_active: true,
-    is_alcoholic: false
+    is_alcoholic: false,
+    is_public: true,
+    public_description: ''
   });
 
   // Fetch categories
@@ -91,7 +96,9 @@ export const ProductManager: React.FC = () => {
         cost: parseFloat(data.cost),
         stock: parseInt(data.stock),
         is_active: data.is_active,
-        is_alcoholic: data.is_alcoholic
+        is_alcoholic: data.is_alcoholic,
+        is_public: data.is_public,
+        public_description: data.public_description || null
       };
 
       if (editingProduct) {
@@ -163,7 +170,9 @@ export const ProductManager: React.FC = () => {
         cost: product.cost?.toString() || '0',
         stock: product.stock.toString(),
         is_active: product.is_active,
-        is_alcoholic: product.is_alcoholic || false
+        is_alcoholic: product.is_alcoholic || false,
+        is_public: product.is_public ?? true,
+        public_description: product.public_description || ''
       });
     } else {
       setEditingProduct(null);
@@ -175,7 +184,9 @@ export const ProductManager: React.FC = () => {
         cost: '',
         stock: '0',
         is_active: true,
-        is_alcoholic: false
+        is_alcoholic: false,
+        is_public: true,
+        public_description: ''
       });
     }
     setIsDialogOpen(true);
@@ -422,6 +433,31 @@ export const ProductManager: React.FC = () => {
                 checked={formData.is_alcoholic}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_alcoholic: checked })}
               />
+            </div>
+
+            <div className="border-t border-border pt-4 mt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Tienda Online</p>
+              
+              <div className="flex items-center justify-between mb-4">
+                <Label htmlFor="is_public">Visible en Tienda Online</Label>
+                <Switch
+                  id="is_public"
+                  checked={formData.is_public}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="public_description">Descripción Pública</Label>
+                <Textarea
+                  id="public_description"
+                  placeholder="Descripción que verán los clientes en la tienda online..."
+                  value={formData.public_description}
+                  onChange={(e) => setFormData({ ...formData, public_description: e.target.value })}
+                  className="mt-1"
+                  rows={3}
+                />
+              </div>
             </div>
 
             <DialogFooter>
