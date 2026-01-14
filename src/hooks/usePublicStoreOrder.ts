@@ -28,7 +28,7 @@ interface CreateOrderParams {
 
 interface CreateOrderResult {
   success: boolean;
-  invoiceNumber?: string;
+  orderNumber?: string;
   error?: string;
 }
 
@@ -41,120 +41,74 @@ export const usePublicStoreOrder = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Get the first branch for this company (needed for invoice creation)
-      const { data: branches, error: branchError } = await supabase
-        .from('branches')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('is_active', true)
-        .limit(1);
-
-      if (branchError || !branches || branches.length === 0) {
-        throw new Error('No se encontró una sucursal activa para esta empresa');
-      }
-
-      const branchId = branches[0].id;
-
-      // 2. Get or create a default invoice type for online orders
-      let invoiceTypeId: string | null = null;
-      
-      const { data: invoiceTypes } = await supabase
-        .from('invoice_types')
-        .select('id, prefix')
-        .eq('company_id', companyId)
-        .eq('is_active', true)
-        .limit(1);
-
-      if (invoiceTypes && invoiceTypes.length > 0) {
-        invoiceTypeId = invoiceTypes[0].id;
-      }
-
-      // 3. Generate invoice number
-      const prefix = invoiceTypes?.[0]?.prefix || 'WEB';
-      const { data: invoiceNumber, error: numberError } = await supabase
-        .rpc('generate_invoice_number_with_prefix', {
-          p_branch_id: branchId,
-          p_prefix: prefix,
+      // 1. Generate order number using the database function
+      const { data: orderNumber, error: numberError } = await supabase
+        .rpc('generate_online_order_number', {
+          p_company_id: companyId,
         });
 
       if (numberError) {
-        console.error('Error generating invoice number:', numberError);
-        throw new Error('Error al generar el número de factura');
+        console.error('Error generating order number:', numberError);
+        throw new Error('Error al generar el número de pedido');
       }
 
-      // 4. Create customer info JSON for notes
-      const customerData = {
-        customer_name: customerInfo.name,
-        customer_phone: customerInfo.phone,
-        customer_address: customerInfo.address,
-        origin: 'online_store',
-      };
-
-      // 5. Create the invoice - use a system user approach for public orders
-      // Since this is a public store, we need to insert without authentication
-      // We'll use the notes field to store customer info
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('standard_invoices')
+      // 2. Create the online order
+      const { data: order, error: orderError } = await supabase
+        .from('online_orders')
         .insert({
-          branch_id: branchId,
-          invoice_number: invoiceNumber,
-          invoice_type_id: invoiceTypeId,
+          company_id: companyId,
+          order_number: orderNumber,
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_address: customerInfo.address,
           status: 'pending',
-          source: 'online_store',
           subtotal: total,
           total: total,
-          total_tax: 0,
-          total_discount: 0,
-          notes: JSON.stringify(customerData),
-          issue_date: new Date().toISOString().split('T')[0],
-          created_by: '00000000-0000-0000-0000-000000000000', // Placeholder for public orders
         })
-        .select('id, invoice_number')
+        .select('id, order_number')
         .single();
 
-      if (invoiceError) {
-        console.error('Error creating invoice:', invoiceError);
-        throw new Error('Error al crear el pedido: ' + invoiceError.message);
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw new Error('Error al crear el pedido: ' + orderError.message);
       }
 
-      // 6. Create invoice items
-      const invoiceItems = cart.map((item, index) => ({
-        invoice_id: invoice.id,
+      // 3. Create order items
+      const orderItems = cart.map((item) => ({
+        order_id: order.id,
         product_id: item.product.id,
-        item_name: item.product.name,
+        product_name: item.product.name,
         quantity: item.quantity,
         unit_price: item.product.price,
-        subtotal: item.product.price * item.quantity,
         total: item.product.price * item.quantity,
-        display_order: index,
       }));
 
       const { error: itemsError } = await supabase
-        .from('standard_invoice_items')
-        .insert(invoiceItems);
+        .from('online_order_items')
+        .insert(orderItems);
 
       if (itemsError) {
-        console.error('Error creating invoice items:', itemsError);
-        // Try to delete the invoice if items failed
-        await supabase.from('standard_invoices').delete().eq('id', invoice.id);
+        console.error('Error creating order items:', itemsError);
+        // Try to delete the order if items failed
+        await supabase.from('online_orders').delete().eq('id', order.id);
         throw new Error('Error al guardar los productos del pedido');
       }
 
-      // 7. Generate WhatsApp message with invoice number
+      // 4. Generate WhatsApp message with order number
       const cleanNumber = whatsappNumber.replace(/\D/g, '');
-      const message = `Hola, soy ${customerInfo.name}. Acabo de hacer el pedido online *#${invoice.invoice_number}* por valor de *$${total.toLocaleString()}*. Mi dirección es: ${customerInfo.address}`;
+      const message = `Hola, soy ${customerInfo.name}. Acabo de hacer el pedido online *#${order.order_number}* por valor de *$${total.toLocaleString()}*. Mi dirección es: ${customerInfo.address}`;
       const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
 
-      // 8. Open WhatsApp in new tab
+      // 5. Open WhatsApp in new tab
       window.open(whatsappUrl, '_blank');
 
       toast.success('¡Pedido enviado correctamente!', {
-        description: `Tu pedido #${invoice.invoice_number} ha sido registrado`,
+        description: `Tu pedido #${order.order_number} ha sido registrado`,
       });
 
       return {
         success: true,
-        invoiceNumber: invoice.invoice_number,
+        orderNumber: order.order_number,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
