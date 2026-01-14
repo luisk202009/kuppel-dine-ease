@@ -17,6 +17,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { SetupWizard } from "@/components/onboarding/SetupWizard";
 import { supabase } from "@/integrations/supabase/client";
+import { PublicStoreLayout } from "@/components/public-store/PublicStoreLayout";
+import { PublicStorePage } from "@/pages/PublicStorePage";
 
 const queryClient = new QueryClient();
 
@@ -157,6 +159,10 @@ const App = () => (
                 <Route path="/pos" element={<POSPage />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/demo" element={<Index />} />
+                {/* Public Store Route */}
+                <Route path="/s/:slug" element={<PublicStoreLayout />}>
+                  <Route index element={<PublicStorePage />} />
+                </Route>
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
