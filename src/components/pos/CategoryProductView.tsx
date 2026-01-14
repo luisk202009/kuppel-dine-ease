@@ -86,7 +86,7 @@ export const CategoryProductView: React.FC = () => {
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Fetch products
+  // Fetch products - using explicit FK to avoid PGRST201 ambiguous relationship error
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products', authState.selectedCompany?.id],
     queryFn: async () => {
@@ -95,7 +95,7 @@ export const CategoryProductView: React.FC = () => {
         .select(`
           *,
           categories(name),
-          product_variants(
+          product_variants!product_variants_product_id_fkey(
             id,
             variant_type_id,
             variant_value,
@@ -112,7 +112,10 @@ export const CategoryProductView: React.FC = () => {
         .eq('is_active', true)
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
       
       // Map products and filter active variants
       return (data || []).map(product => ({
@@ -120,7 +123,8 @@ export const CategoryProductView: React.FC = () => {
         variants: product.product_variants?.filter((v: any) => v.is_active && v.stock > 0) || []
       }));
     },
-    enabled: !!authState.selectedCompany?.id
+    enabled: !!authState.selectedCompany?.id,
+    retry: 2
   });
 
   // Set first category as selected by default

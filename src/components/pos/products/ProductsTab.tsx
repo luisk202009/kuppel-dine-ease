@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff, Upload, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertCircle, Search, Power, PowerOff, Upload, RefreshCw, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductImportModal } from './ProductImportModal';
 import { ProductVariantsManager } from './ProductVariantsManager';
@@ -31,6 +31,8 @@ interface Product {
   is_active: boolean;
   is_alcoholic: boolean;
   has_variants?: boolean;
+  is_public?: boolean;
+  public_description?: string | null;
   categories?: {
     id: string;
     name: string;
@@ -71,6 +73,8 @@ export const ProductsTab: React.FC = () => {
     min_stock: 0,
     is_alcoholic: false,
     has_variants: false,
+    is_public: true,
+    public_description: '',
   });
 
   // Fetch categories for dropdown
@@ -90,8 +94,8 @@ export const ProductsTab: React.FC = () => {
     enabled: !!authState.selectedCompany?.id
   });
 
-  // Fetch products with variants
-  const { data: products = [], isLoading, isFetching } = useQuery({
+  // Fetch products with variants - using explicit FK to avoid PGRST201 ambiguous relationship error
+  const { data: products = [], isLoading, isFetching, isError, error: queryError, refetch } = useQuery({
     queryKey: ['products', authState.selectedCompany?.id, selectedCategoryFilter],
     queryFn: async () => {
       let query = supabase
@@ -99,7 +103,7 @@ export const ProductsTab: React.FC = () => {
         .select(`
           *,
           categories(id, name, color),
-          product_variants(
+          product_variants!product_variants_product_id_fkey(
             id,
             variant_value,
             price,
@@ -115,7 +119,10 @@ export const ProductsTab: React.FC = () => {
       }
       
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
       
       // Calculate total stock and price range for products with variants
       return (data || []).map(product => ({
@@ -126,7 +133,8 @@ export const ProductsTab: React.FC = () => {
           : product.stock
       }));
     },
-    enabled: !!authState.selectedCompany?.id
+    enabled: !!authState.selectedCompany?.id,
+    retry: 2
   });
 
   // Timeout de seguridad para detectar carga infinita
@@ -181,6 +189,8 @@ export const ProductsTab: React.FC = () => {
           min_stock: data.min_stock,
           is_alcoholic: data.is_alcoholic,
           has_variants: data.has_variants,
+          is_public: data.is_public,
+          public_description: data.public_description || null,
           company_id: authState.selectedCompany?.id,
           is_active: true
         })
@@ -214,6 +224,8 @@ export const ProductsTab: React.FC = () => {
             min_stock: newProduct.min_stock,
             is_alcoholic: newProduct.is_alcoholic,
             has_variants: newProduct.has_variants || false,
+            is_public: newProduct.is_public ?? true,
+            public_description: newProduct.public_description || ''
           });
           setShowCreateModal(true);
         }, 100);
@@ -246,7 +258,9 @@ export const ProductsTab: React.FC = () => {
           stock: data.stock,
           min_stock: data.min_stock,
           is_alcoholic: data.is_alcoholic,
-          has_variants: data.has_variants
+          has_variants: data.has_variants,
+          is_public: data.is_public,
+          public_description: data.public_description || null
         })
         .eq('id', id);
       
@@ -344,6 +358,8 @@ export const ProductsTab: React.FC = () => {
       min_stock: 0,
       is_alcoholic: false,
       has_variants: false,
+      is_public: true,
+      public_description: '',
     });
   };
 
@@ -358,7 +374,9 @@ export const ProductsTab: React.FC = () => {
       stock: product.stock,
       min_stock: product.min_stock,
       is_alcoholic: product.is_alcoholic,
-      has_variants: product.has_variants || false
+      has_variants: product.has_variants || false,
+      is_public: product.is_public ?? true,
+      public_description: product.public_description || ''
     });
     setShowCreateModal(true);
   };
@@ -433,6 +451,27 @@ export const ProductsTab: React.FC = () => {
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           Recargar página
+        </Button>
+      </div>
+    );
+  }
+
+  // Mostrar error si la consulta falló
+  if (isError) {
+    return (
+      <div className="text-center py-8">
+        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
+        <p className="font-medium">Error cargando productos</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {(queryError as Error)?.message || 'No se pudieron cargar los productos'}
+        </p>
+        <Button 
+          onClick={() => refetch()}
+          className="mt-4"
+          variant="outline"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Reintentar
         </Button>
       </div>
     );
@@ -737,6 +776,40 @@ export const ProductsTab: React.FC = () => {
                 <Label htmlFor="is_alcoholic" className="cursor-pointer">
                   Producto alcohólico (requiere verificación de edad)
                 </Label>
+              </div>
+
+              {/* Sección Tienda Online */}
+              <div className="col-span-2 border-t pt-4 mt-2">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Tienda Online
+                </h4>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="is_public"
+                      checked={formData.is_public}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked as boolean })}
+                    />
+                    <Label htmlFor="is_public" className="cursor-pointer">
+                      Visible en tienda online pública
+                    </Label>
+                  </div>
+
+                  {formData.is_public && (
+                    <div className="space-y-2">
+                      <Label htmlFor="public_description">Descripción pública (opcional)</Label>
+                      <Textarea
+                        id="public_description"
+                        value={formData.public_description}
+                        onChange={(e) => setFormData({ ...formData, public_description: e.target.value })}
+                        placeholder="Descripción que verán los clientes en la tienda online"
+                        rows={2}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Mensaje informativo para productos con variantes */}
