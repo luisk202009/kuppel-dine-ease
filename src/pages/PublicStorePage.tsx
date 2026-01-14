@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePublicStore } from '@/contexts/PublicStoreContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Package, Plus, ShoppingCart } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface PublicProduct {
   id: string;
@@ -21,8 +24,15 @@ interface PublicProduct {
   } | null;
 }
 
+interface CartItem {
+  product: PublicProduct;
+  quantity: number;
+}
+
 export const PublicStorePage: React.FC = () => {
   const { company } = usePublicStore();
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['public-products', company?.id],
@@ -85,6 +95,53 @@ export const PublicStorePage: React.FC = () => {
     enabled: !!company?.id
   });
 
+  const addToCart = (product: PublicProduct) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    toast.success(`${product.name} agregado`, {
+      duration: 1500,
+      position: 'bottom-center'
+    });
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  };
+
+  const getCartItemsCount = () => {
+    return cart.reduce((count, item) => count + item.quantity, 0);
+  };
+
+  // Filter categories that have products
+  const categoriesWithProducts = categories.filter(cat =>
+    products.some(p => p.category?.id === cat.id)
+  );
+
+  // Filter products by selected category
+  const filteredProducts = selectedCategory
+    ? products.filter(p => p.category?.id === selectedCategory)
+    : products;
+
+  // Group products by category
+  const productsByCategory = filteredProducts.reduce((acc, product) => {
+    const categoryId = product.category?.id || 'uncategorized';
+    const categoryName = product.category?.name || 'Sin categoría';
+    if (!acc[categoryId]) {
+      acc[categoryId] = { name: categoryName, products: [] };
+    }
+    acc[categoryId].products.push(product);
+    return acc;
+  }, {} as Record<string, { name: string; products: PublicProduct[] }>);
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
@@ -105,65 +162,134 @@ export const PublicStorePage: React.FC = () => {
     );
   }
 
-  // Group products by category
-  const productsByCategory = products.reduce((acc, product) => {
-    const categoryName = product.category?.name || 'Sin categoría';
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
-    acc[categoryName].push(product);
-    return acc;
-  }, {} as Record<string, PublicProduct[]>);
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-2">Nuestros Productos</h2>
-        <p className="text-muted-foreground">
-          Explora nuestro catálogo de productos
-        </p>
-      </div>
-
-      {Object.entries(productsByCategory).map(([categoryName, categoryProducts]) => (
-        <div key={categoryName} className="mb-10">
-          <h3 className="text-lg font-semibold text-foreground mb-4 border-b border-border pb-2">
-            {categoryName}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {categoryProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {product.image_url && (
-                  <div className="aspect-video bg-muted overflow-hidden">
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <CardContent className={product.image_url ? 'pt-4' : 'pt-6'}>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-semibold text-foreground">{product.name}</h4>
-                    {product.is_alcoholic && (
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        +18
-                      </Badge>
-                    )}
-                  </div>
-                  {(product.public_description || product.description) && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {product.public_description || product.description}
-                    </p>
-                  )}
-                  <p className="text-xl font-bold text-primary">
-                    ${product.price.toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+    <div className="min-h-screen bg-background pb-24">
+      {/* Category Filter - Horizontal scroll */}
+      {categoriesWithProducts.length > 1 && (
+        <div className="sticky top-[73px] z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <Button
+                variant={selectedCategory === null ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory(null)}
+                className="shrink-0"
+              >
+                Todos
+              </Button>
+              {categoriesWithProducts.map(cat => (
+                <Button
+                  key={cat.id}
+                  variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className="shrink-0"
+                >
+                  {cat.name}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Products List */}
+      <div className="container mx-auto px-4 py-4">
+        {Object.entries(productsByCategory).map(([categoryId, { name, products: categoryProducts }]) => (
+          <div key={categoryId} className="mb-6">
+            <h3 className="text-lg font-semibold text-foreground mb-3 px-1">
+              {name}
+            </h3>
+            <div className="space-y-3">
+              {categoryProducts.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAdd={() => addToCart(product)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Floating Cart Button */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-50">
+          <Button
+            className="w-full h-14 text-base shadow-lg"
+            size="lg"
+          >
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            Ver pedido ({getCartItemsCount()}) - ${getCartTotal().toLocaleString()}
+          </Button>
+        </div>
+      )}
     </div>
+  );
+};
+
+interface ProductCardProps {
+  product: PublicProduct;
+  onAdd: () => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
+  const displayDescription = product.public_description || product.description;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex">
+        {/* Image */}
+        <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 bg-muted">
+          {product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Package className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-start gap-2">
+              <h4 className="font-medium text-foreground text-sm sm:text-base line-clamp-1 flex-1">
+                {product.name}
+              </h4>
+              {product.is_alcoholic && (
+                <Badge variant="outline" className="text-[10px] shrink-0 px-1.5 py-0">
+                  +18
+                </Badge>
+              )}
+            </div>
+            {displayDescription && (
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                {displayDescription}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <span className="font-bold text-primary text-sm sm:text-base">
+              ${product.price.toLocaleString()}
+            </span>
+            <Button
+              size="icon"
+              variant="default"
+              className="h-8 w-8 rounded-full"
+              onClick={onAdd}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 };
