@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePOS } from '@/contexts/POSContext';
 import { useOnlineOrders, ORDER_STATUS_CONFIG, OrderStatus, OnlineOrder } from '@/hooks/useOnlineOrders';
+import { ConvertToInvoiceModal } from './ConvertToInvoiceModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, MessageCircle, Eye, Package, Phone, MapPin, Calendar, RefreshCw } from 'lucide-react';
+import { Loader2, MessageCircle, Eye, Package, Phone, MapPin, Calendar, RefreshCw, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -29,6 +30,7 @@ export const OnlineOrdersList: React.FC = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrder | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
 
   const handleViewDetails = (order: OnlineOrder) => {
     setSelectedOrder(order);
@@ -37,6 +39,16 @@ export const OnlineOrdersList: React.FC = () => {
 
   const handleWhatsApp = (order: OnlineOrder) => {
     window.open(getWhatsAppLink(order), '_blank');
+  };
+
+  const handleConvertToInvoice = (order: OnlineOrder) => {
+    setSelectedOrder(order);
+    setIsConvertModalOpen(true);
+  };
+
+  const handleConvertSuccess = () => {
+    refetch();
+    setIsDetailOpen(false);
   };
 
   const formatCurrency = (amount: number) => {
@@ -151,6 +163,14 @@ export const OnlineOrdersList: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => handleConvertToInvoice(order)}
+                            title="Convertir a factura"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleWhatsApp(order)}
                             title="Contactar por WhatsApp"
                           >
@@ -251,17 +271,35 @@ export const OnlineOrdersList: React.FC = () => {
               {/* Actions */}
               <div className="flex gap-2 pt-2">
                 <Button 
+                  variant="outline"
                   className="flex-1" 
                   onClick={() => handleWhatsApp(selectedOrder)}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Contactar por WhatsApp
+                  WhatsApp
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={() => handleConvertToInvoice(selectedOrder)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Convertir a Factura
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Convert to Invoice Modal */}
+      {selectedOrder && (
+        <ConvertToInvoiceModal
+          isOpen={isConvertModalOpen}
+          onClose={() => setIsConvertModalOpen(false)}
+          order={selectedOrder}
+          onSuccess={handleConvertSuccess}
+        />
+      )}
     </div>
   );
 };
