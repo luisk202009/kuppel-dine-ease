@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Store, Globe, MessageCircle, Save, Loader2 } from 'lucide-react';
+import { Store, Globe, MessageCircle, Save, Loader2, ShoppingBag, Settings } from 'lucide-react';
+import { OnlineOrdersList } from './OnlineOrdersList';
 
 export const OnlineStoreSettings: React.FC = () => {
   const { authState } = usePOS();
@@ -116,98 +118,117 @@ export const OnlineStoreSettings: React.FC = () => {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-foreground mb-2">Tienda Online</h2>
         <p className="text-muted-foreground">
-          Configura tu tienda pública para que tus clientes puedan ver tu catálogo
+          Gestiona pedidos y configura tu tienda pública
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Store className="h-5 w-5" />
-            Configuración de la Tienda
-          </CardTitle>
-          <CardDescription>
-            Personaliza cómo se verá tu tienda pública
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Store Enabled Switch */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="store-enabled" className="text-base">Tienda Activa</Label>
-              <p className="text-sm text-muted-foreground">
-                Habilita o deshabilita tu tienda pública
-              </p>
-            </div>
-            <Switch
-              id="store-enabled"
-              checked={publicStoreEnabled}
-              onCheckedChange={setPublicStoreEnabled}
-            />
-          </div>
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4" />
+            Pedidos
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Configuración
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="orders" className="mt-6">
+          <OnlineOrdersList />
+        </TabsContent>
+        
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Store className="h-5 w-5" />
+                Configuración de la Tienda
+              </CardTitle>
+              <CardDescription>
+                Personaliza cómo se verá tu tienda pública
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Store Enabled Switch */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="store-enabled" className="text-base">Tienda Activa</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Habilita o deshabilita tu tienda pública
+                  </p>
+                </div>
+                <Switch
+                  id="store-enabled"
+                  checked={publicStoreEnabled}
+                  onCheckedChange={setPublicStoreEnabled}
+                />
+              </div>
 
-          <div className="border-t border-border pt-6" />
+              <div className="border-t border-border pt-6" />
 
-          {/* Public Slug */}
-          <div className="space-y-2">
-            <Label htmlFor="public-slug" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              URL de tu Tienda (Slug)
-            </Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {window.location.origin}/tienda/
-              </span>
-              <Input
-                id="public-slug"
-                placeholder="mi-tienda"
-                value={publicSlug}
-                onChange={handleSlugChange}
-                className={slugError ? 'border-destructive' : ''}
-              />
-            </div>
-            {slugError && (
-              <p className="text-sm text-destructive">{slugError}</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Este será el enlace único de tu tienda. Solo letras, números, guiones y guiones bajos.
-            </p>
-          </div>
+              {/* Public Slug */}
+              <div className="space-y-2">
+                <Label htmlFor="public-slug" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  URL de tu Tienda (Slug)
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {window.location.origin}/tienda/
+                  </span>
+                  <Input
+                    id="public-slug"
+                    placeholder="mi-tienda"
+                    value={publicSlug}
+                    onChange={handleSlugChange}
+                    className={slugError ? 'border-destructive' : ''}
+                  />
+                </div>
+                {slugError && (
+                  <p className="text-sm text-destructive">{slugError}</p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Este será el enlace único de tu tienda. Solo letras, números, guiones y guiones bajos.
+                </p>
+              </div>
 
-          {/* WhatsApp Number */}
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Número de WhatsApp
-            </Label>
-            <Input
-              id="whatsapp"
-              placeholder="+57 300 123 4567"
-              value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-            />
-            <p className="text-sm text-muted-foreground">
-              Los clientes podrán contactarte directamente por WhatsApp desde tu tienda
-            </p>
-          </div>
+              {/* WhatsApp Number */}
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Número de WhatsApp
+                </Label>
+                <Input
+                  id="whatsapp"
+                  placeholder="+57 300 123 4567"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Los clientes podrán contactarte directamente por WhatsApp desde tu tienda
+                </p>
+              </div>
 
-          <div className="border-t border-border pt-6">
-            <Button onClick={handleSave} disabled={isSaving || !!slugError}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar Cambios
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="border-t border-border pt-6">
+                <Button onClick={handleSave} disabled={isSaving || !!slugError}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar Cambios
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
