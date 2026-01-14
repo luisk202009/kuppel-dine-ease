@@ -5,8 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Package, Plus, ShoppingCart } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
+import { Loader2, Package, Plus, ShoppingCart, Minus, Trash2, MessageCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PublicProduct {
@@ -33,6 +33,7 @@ export const PublicStorePage: React.FC = () => {
   const { company } = usePublicStore();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['public-products', company?.id],
@@ -113,12 +114,52 @@ export const PublicStorePage: React.FC = () => {
     });
   };
 
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart(prev => {
+      return prev.map(item => {
+        if (item.product.id === productId) {
+          const newQuantity = item.quantity + delta;
+          if (newQuantity <= 0) return item;
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      });
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(item => item.product.id !== productId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setIsCartOpen(false);
+  };
+
   const getCartTotal = () => {
     return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   };
 
   const getCartItemsCount = () => {
     return cart.reduce((count, item) => count + item.quantity, 0);
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!company?.whatsapp_number || cart.length === 0) return;
+
+    // Build product list
+    const productList = cart
+      .map(item => `• ${item.quantity}x ${item.product.name} ($${(item.product.price * item.quantity).toLocaleString()})`)
+      .join('\n');
+
+    const total = getCartTotal();
+    const message = `Hola ${company.name}, quiero pedir:\n\n${productList}\n\n*Total: $${total.toLocaleString()}*`;
+
+    // Clean WhatsApp number (remove spaces, dashes, etc.)
+    const cleanNumber = company.whatsapp_number.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappUrl, '_blank');
   };
 
   // Filter categories that have products
@@ -219,12 +260,147 @@ export const PublicStorePage: React.FC = () => {
           <Button
             className="w-full h-14 text-base shadow-lg"
             size="lg"
+            onClick={() => setIsCartOpen(true)}
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            Ver pedido ({getCartItemsCount()}) - ${getCartTotal().toLocaleString()}
+            Ver Pedido ({getCartItemsCount()}) - ${getCartTotal().toLocaleString()}
           </Button>
         </div>
       )}
+
+      {/* Cart Drawer */}
+      <Drawer open={isCartOpen} onOpenChange={setIsCartOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="border-b border-border">
+            <div className="flex items-center justify-between">
+              <DrawerTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Tu Pedido
+              </DrawerTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsCartOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DrawerHeader>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {cart.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Tu carrito está vacío
+              </div>
+            ) : (
+              <>
+                {cart.map(item => (
+                  <div
+                    key={item.product.id}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                  >
+                    {/* Product Image */}
+                    <div className="w-14 h-14 shrink-0 bg-muted rounded-md overflow-hidden">
+                      {item.product.image_url ? (
+                        <img
+                          src={item.product.image_url}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-5 w-5 text-muted-foreground/50" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm text-foreground line-clamp-1">
+                        {item.product.name}
+                      </h4>
+                      <p className="text-sm text-primary font-semibold">
+                        ${(item.product.price * item.quantity).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          if (item.quantity === 1) {
+                            removeFromCart(item.product.id);
+                          } else {
+                            updateQuantity(item.product.id, -1);
+                          }
+                        }}
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 className="h-3 w-3" />
+                        ) : (
+                          <Minus className="h-3 w-3" />
+                        )}
+                      </Button>
+                      <span className="w-8 text-center font-medium text-sm">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(item.product.id, 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Clear Cart Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-muted-foreground"
+                  onClick={clearCart}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Vaciar carrito
+                </Button>
+              </>
+            )}
+          </div>
+
+          {cart.length > 0 && (
+            <DrawerFooter className="border-t border-border bg-background">
+              {/* Total */}
+              <div className="flex items-center justify-between py-2">
+                <span className="text-lg font-semibold">Total</span>
+                <span className="text-xl font-bold text-primary">
+                  ${getCartTotal().toLocaleString()}
+                </span>
+              </div>
+
+              {/* WhatsApp Button */}
+              {company?.whatsapp_number ? (
+                <Button
+                  className="w-full h-12 text-base gap-2"
+                  onClick={handleSendWhatsApp}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Enviar Pedido por WhatsApp
+                </Button>
+              ) : (
+                <p className="text-center text-sm text-muted-foreground">
+                  Esta tienda no tiene WhatsApp configurado
+                </p>
+              )}
+            </DrawerFooter>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
