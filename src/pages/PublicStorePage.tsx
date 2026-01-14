@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
 import { Loader2, Package, Plus, ShoppingCart, Minus, Trash2, MessageCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { CheckoutModal, CustomerInfo } from '@/components/public-store/CheckoutModal';
+import { usePublicStoreOrder } from '@/hooks/usePublicStoreOrder';
 
 interface PublicProduct {
   id: string;
@@ -34,6 +36,8 @@ export const PublicStorePage: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const { createOrder, isSubmitting } = usePublicStoreOrder();
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['public-products', company?.id],
@@ -144,22 +148,35 @@ export const PublicStorePage: React.FC = () => {
     return cart.reduce((count, item) => count + item.quantity, 0);
   };
 
-  const handleSendWhatsApp = () => {
-    if (!company?.whatsapp_number || cart.length === 0) return;
+  const handleOpenCheckout = () => {
+    setIsCheckoutOpen(true);
+  };
 
-    // Build product list
-    const productList = cart
-      .map(item => `• ${item.quantity}x ${item.product.name} ($${(item.product.price * item.quantity).toLocaleString()})`)
-      .join('\n');
+  const handleCheckoutSubmit = async (customerInfo: CustomerInfo) => {
+    if (!company?.id || !company.whatsapp_number || cart.length === 0) return;
 
-    const total = getCartTotal();
-    const message = `Hola ${company.name}, quiero pedir:\n\n${productList}\n\n*Total: $${total.toLocaleString()}*`;
+    const result = await createOrder({
+      companyId: company.id,
+      companyName: company.name,
+      whatsappNumber: company.whatsapp_number,
+      cart: cart.map(item => ({
+        product: {
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+        },
+        quantity: item.quantity,
+      })),
+      customerInfo,
+      total: getCartTotal(),
+    });
 
-    // Clean WhatsApp number (remove spaces, dashes, etc.)
-    const cleanNumber = company.whatsapp_number.replace(/\D/g, '');
-    const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
-
-    window.open(whatsappUrl, '_blank');
+    if (result.success) {
+      // Clear cart and close modals
+      setCart([]);
+      setIsCheckoutOpen(false);
+      setIsCartOpen(false);
+    }
   };
 
   // Filter categories that have products
@@ -387,7 +404,7 @@ export const PublicStorePage: React.FC = () => {
               {company?.whatsapp_number ? (
                 <Button
                   className="w-full h-12 text-base gap-2"
-                  onClick={handleSendWhatsApp}
+                  onClick={handleOpenCheckout}
                 >
                   <MessageCircle className="h-5 w-5" />
                   Enviar Pedido por WhatsApp
@@ -401,6 +418,15 @@ export const PublicStorePage: React.FC = () => {
           )}
         </DrawerContent>
       </Drawer>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        open={isCheckoutOpen}
+        onOpenChange={setIsCheckoutOpen}
+        onSubmit={handleCheckoutSubmit}
+        isSubmitting={isSubmitting}
+        total={getCartTotal()}
+      />
     </div>
   );
 };
