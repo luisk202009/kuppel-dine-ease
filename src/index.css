@@ -293,7 +293,7 @@
 
   /* Sidebar Navigation Item */
   .nav-item {
-    @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150;
+    @apply w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150;
   }
 
   .nav-item-default {
@@ -305,12 +305,11 @@
   }
 
   .nav-item-active {
-    background: linear-gradient(135deg, rgba(192, 216, 96, 0.15), rgba(74, 183, 198, 0.15));
-    @apply text-zinc-900 border border-[#4AB7C6]/20;
+    @apply bg-zinc-100 text-zinc-900;
   }
 
   .dark .nav-item-active {
-    @apply text-zinc-100;
+    @apply bg-zinc-800 text-zinc-100;
   }
 }
 

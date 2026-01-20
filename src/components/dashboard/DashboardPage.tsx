@@ -76,7 +76,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* KPI Cards - Bento Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Saldo Inicial"
           value={formatCurrency(metrics.summary.openingBalance)}
