@@ -221,11 +221,6 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   return (
     <aside className="w-64 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto flex flex-col">
-      {/* Logo Section */}
-      <div className="h-14 flex items-center px-4 border-b border-zinc-200 dark:border-zinc-800">
-        <Logo width={100} height={32} />
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {/* 1. Dashboard */}
