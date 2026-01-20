@@ -2,37 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Kuppel POS Design System - Professional restaurant management interface */
+/* Kuppel OS Design System - Midday/Qonto Style */
+/* Philosophy: Radical Simplicity - Clean interfaces, subtle borders, generous whitespace */
 
 @layer base {
   :root {
-    /* Kuppel Brand Colors */
+    /* Base Colors - Strict Zinc Scale */
     --background: 0 0% 98%;
-    --foreground: 220 13% 18%;
+    --foreground: 240 10% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 13% 18%;
+    --card-foreground: 240 10% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 13% 18%;
+    --popover-foreground: 240 10% 4%;
 
-    /* Kuppel Primary - Teal/Turquoise */
-    --primary: 180 100% 40%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 180 100% 35%;
+    /* Kuppel Gradient Accent */
+    --primary: 168 78% 42%;
+    --primary-foreground: 240 10% 4%;
+    --primary-hover: 168 78% 38%;
 
-    /* Kuppel Secondary - Purple */
-    --secondary: 263 100% 40%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary - Neutral */
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
 
-    --muted: 210 17% 95%;
-    --muted-foreground: 220 9% 46%;
+    /* Muted - Zinc tones */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 150 50% 50%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Subtle highlight */
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
 
-    /* Status Colors */
-    --success: 142 76% 36%;
+    /* Status Colors - Pastel Tones */
+    --success: 142 72% 29%;
     --success-foreground: 0 0% 100%;
     
     --warning: 38 92% 50%;
@@ -41,80 +44,72 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* UI Elements */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 180 100% 40%;
+    /* UI Elements - Ultra Subtle */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 168 78% 42%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* POS Specific Colors - Kuppel */
-    --pos-sidebar: 220 13% 15%;
+    /* Kuppel Gradient */
+    --kuppel-from: 72 64% 55%;
+    --kuppel-to: 185 52% 53%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #C0D860, #4AB7C6);
+    --gradient-success: linear-gradient(135deg, hsl(142 72% 29%), hsl(142 70% 40%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(240 5% 98%));
+    --gradient-kuppel: linear-gradient(135deg, #C0D860 0%, #4AB7C6 100%);
+
+    /* Shadows - Minimal */
+    --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow-medium: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+    --shadow-large: 0 10px 15px -3px rgb(0 0 0 / 0.05);
+
+    /* POS Specific Colors */
+    --pos-sidebar: 240 10% 4%;
     --pos-sidebar-foreground: 0 0% 98%;
-    --pos-active: 180 100% 40%;
+    --pos-active: 168 78% 42%;
     --pos-pending: 38 92% 50%;
     --pos-occupied: 0 84% 60%;
-    --pos-available: 142 76% 36%;
+    --pos-available: 142 72% 29%;
 
-    /* Kuppel Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(180 100% 40%), hsl(180 100% 50%));
-    --gradient-secondary: linear-gradient(135deg, hsl(263 100% 40%), hsl(263 100% 50%));
-    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 70% 45%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 13% 97%));
-    --gradient-kuppel: linear-gradient(135deg, hsl(180 100% 40%) 0%, hsl(150 50% 50%) 100%);
-
-    /* Shadows */
-    --shadow-soft: 0 1px 3px 0 hsl(220 13% 18% / 0.1), 0 1px 2px -1px hsl(220 13% 18% / 0.1);
-    --shadow-medium: 0 4px 6px -1px hsl(220 13% 18% / 0.1), 0 2px 4px -2px hsl(220 13% 18% / 0.1);
-    --shadow-large: 0 10px 15px -3px hsl(220 13% 18% / 0.1), 0 4px 6px -4px hsl(220 13% 18% / 0.1);
-
-    /* Animations */
-    --animation-fast: 150ms ease;
-    --animation-normal: 250ms ease;
-    --animation-slow: 350ms ease;
-
+    /* Sidebar - Zinc-50 style */
     --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-foreground: 240 4% 46%;
+    --sidebar-primary: 240 10% 4%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 10% 4%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 168 78% 42%;
   }
 
   .dark {
-    /* Dark Mode - Kuppel POS */
-    --background: 220 13% 9%;
-    --foreground: 0 0% 95%;
+    /* Dark Mode - Zinc Scale */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
 
-    --card: 220 13% 12%;
-    --card-foreground: 0 0% 95%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 220 13% 12%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 180 100% 45%;
-    --primary-foreground: 220 13% 9%;
-    --primary-hover: 180 100% 40%;
+    --primary: 168 78% 48%;
+    --primary-foreground: 240 10% 4%;
+    --primary-hover: 168 78% 43%;
 
-    --secondary: 263 100% 50%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 13% 18%;
-    --muted-foreground: 220 9% 65%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 217 91% 20%;
-    --accent-foreground: 217 91% 85%;
+    --accent: 240 5% 15%;
+    --accent-foreground: 0 0% 98%;
 
-    --success: 142 76% 45%;
+    --success: 142 72% 40%;
     --success-foreground: 0 0% 100%;
     
     --warning: 38 92% 55%;
@@ -123,87 +118,199 @@
     --destructive: 0 84% 65%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 20%;
-    --input: 220 13% 18%;
-    --ring: 180 100% 45%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 168 78% 48%;
 
-    --pos-sidebar: 220 13% 7%;
+    --pos-sidebar: 240 10% 3%;
     --pos-sidebar-foreground: 0 0% 98%;
-    --pos-active: 180 100% 45%;
+    --pos-active: 168 78% 48%;
     --pos-pending: 38 92% 55%;
     --pos-occupied: 0 84% 65%;
-    --pos-available: 142 76% 45%;
+    --pos-available: 142 72% 40%;
 
-    /* Dark Mode Gradients - Kuppel */
-    --gradient-primary: linear-gradient(135deg, hsl(180 100% 45%), hsl(180 100% 55%));
-    --gradient-secondary: linear-gradient(135deg, hsl(263 100% 50%), hsl(263 100% 60%));
-    --gradient-success: linear-gradient(135deg, hsl(142 76% 45%), hsl(142 70% 55%));
-    --gradient-card: linear-gradient(145deg, hsl(220 13% 12%), hsl(220 13% 15%));
-    --gradient-kuppel: linear-gradient(135deg, hsl(180 100% 45%) 0%, hsl(150 50% 50%) 100%);
+    /* Dark Gradients */
+    --gradient-primary: linear-gradient(135deg, #C0D860, #4AB7C6);
+    --gradient-success: linear-gradient(135deg, hsl(142 72% 40%), hsl(142 70% 50%));
+    --gradient-card: linear-gradient(145deg, hsl(240 10% 6%), hsl(240 10% 8%));
 
-    --sidebar-background: 220 13% 7%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 217 91% 65%;
-    --sidebar-primary-foreground: 220 13% 9%;
-    --sidebar-accent: 220 13% 15%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 220 13% 20%;
-    --sidebar-ring: 217 91% 65%;
+    --sidebar-background: 240 10% 4%;
+    --sidebar-foreground: 240 5% 65%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 5% 18%;
+    --sidebar-ring: 168 78% 48%;
   }
 }
 
 @layer components {
-  /* Kuppel POS Button Variants */
-  .btn-kuppel-primary {
-    @apply bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
+  /* Typography - Mono for Numbers */
+  .font-mono-numbers {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
   }
 
-  .btn-kuppel-secondary {
-    @apply bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
-  }
-
-  .btn-kuppel-success {
-    @apply bg-accent hover:bg-accent/90 text-accent-foreground font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
-  }
-
+  /* Kuppel Gradient Button */
   .btn-kuppel-gradient {
-    background: var(--gradient-kuppel);
-    @apply text-white font-medium px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105;
+    background: linear-gradient(135deg, #C0D860, #4AB7C6);
+    @apply text-zinc-900 font-medium px-4 py-2 rounded-lg transition-all duration-200;
   }
 
-  /* POS Card Styles */
+  .btn-kuppel-gradient:hover {
+    opacity: 0.9;
+    @apply shadow-md;
+  }
+
+  /* Midday-style Cards */
+  .card-midday {
+    @apply bg-white border border-zinc-200 rounded-xl shadow-soft;
+  }
+
+  .dark .card-midday {
+    @apply bg-zinc-900 border-zinc-800;
+  }
+
+  /* Financial Table Row */
+  .table-row-financial {
+    @apply h-12 border-b border-zinc-100 transition-colors hover:bg-zinc-50/50;
+  }
+
+  .dark .table-row-financial {
+    @apply border-zinc-800 hover:bg-zinc-800/50;
+  }
+
+  /* Badge Pill Variants */
+  .badge-pill-success {
+    @apply bg-emerald-50 text-emerald-700 border-0 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-pill-warning {
+    @apply bg-amber-50 text-amber-700 border-0 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-pill-error {
+    @apply bg-red-50 text-red-700 border-0 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-pill-info {
+    @apply bg-blue-50 text-blue-700 border-0 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-pill-purple {
+    @apply bg-purple-50 text-purple-700 border-0 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-pill-neutral {
+    @apply bg-zinc-100 text-zinc-700 border-0 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .dark .badge-pill-success {
+    @apply bg-emerald-950/50 text-emerald-400;
+  }
+
+  .dark .badge-pill-warning {
+    @apply bg-amber-950/50 text-amber-400;
+  }
+
+  .dark .badge-pill-error {
+    @apply bg-red-950/50 text-red-400;
+  }
+
+  .dark .badge-pill-info {
+    @apply bg-blue-950/50 text-blue-400;
+  }
+
+  .dark .badge-pill-purple {
+    @apply bg-purple-950/50 text-purple-400;
+  }
+
+  .dark .badge-pill-neutral {
+    @apply bg-zinc-800 text-zinc-400;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply bg-white border border-zinc-200 rounded-xl p-5 transition-all duration-200;
+  }
+
+  .kpi-card:hover {
+    @apply border-zinc-300;
+  }
+
+  .dark .kpi-card {
+    @apply bg-zinc-900 border-zinc-800;
+  }
+
+  .dark .kpi-card:hover {
+    @apply border-zinc-700;
+  }
+
+  .kpi-card-highlight {
+    background: linear-gradient(135deg, rgba(192, 216, 96, 0.08), rgba(74, 183, 198, 0.08));
+    @apply border-[#4AB7C6]/30;
+  }
+
+  /* POS Card Styles - Updated */
   .pos-card {
-    @apply bg-card rounded-xl border shadow-md hover:shadow-lg transition-all duration-normal;
+    @apply bg-card rounded-xl border shadow-soft transition-all duration-normal;
   }
 
   .pos-card-interactive {
-    @apply pos-card hover:scale-105 cursor-pointer;
+    @apply pos-card hover:border-zinc-300 cursor-pointer;
   }
 
-  /* Table Status Colors */
+  .dark .pos-card-interactive:hover {
+    @apply border-zinc-600;
+  }
+
+  /* Table Status Colors - Pastel */
   .table-available {
-    @apply bg-gradient-to-br from-green-50 to-green-100 border-green-200 text-green-800;
+    @apply bg-emerald-50 border-emerald-200 text-emerald-700;
   }
 
   .table-occupied {
-    @apply bg-gradient-to-br from-red-50 to-red-100 border-red-200 text-red-800;
+    @apply bg-red-50 border-red-200 text-red-700;
   }
 
   .table-pending {
-    @apply bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 text-yellow-800;
+    @apply bg-amber-50 border-amber-200 text-amber-700;
   }
 
-  /* Dark mode table statuses */
   .dark .table-available {
-    @apply bg-gradient-to-br from-green-900/20 to-green-800/30 border-green-700/50 text-green-300;
+    @apply bg-emerald-950/30 border-emerald-800/50 text-emerald-400;
   }
 
   .dark .table-occupied {
-    @apply bg-gradient-to-br from-red-900/20 to-red-800/30 border-red-700/50 text-red-300;
+    @apply bg-red-950/30 border-red-800/50 text-red-400;
   }
 
   .dark .table-pending {
-    @apply bg-gradient-to-br from-yellow-900/20 to-yellow-800/30 border-yellow-700/50 text-yellow-300;
+    @apply bg-amber-950/30 border-amber-800/50 text-amber-400;
+  }
+
+  /* Sidebar Navigation Item */
+  .nav-item {
+    @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150;
+  }
+
+  .nav-item-default {
+    @apply text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100;
+  }
+
+  .dark .nav-item-default {
+    @apply text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800;
+  }
+
+  .nav-item-active {
+    background: linear-gradient(135deg, rgba(192, 216, 96, 0.15), rgba(74, 183, 198, 0.15));
+    @apply text-zinc-900 border border-[#4AB7C6]/20;
+  }
+
+  .dark .nav-item-active {
+    @apply text-zinc-100;
   }
 }
 
@@ -213,44 +320,63 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Scrollbar Styling */
+  /* Scrollbar Styling - Minimal */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-secondary;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/40 rounded-full;
+    @apply bg-zinc-300 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/60;
+    @apply bg-zinc-400;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-700;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
   }
 }
 
-/* Driver.js Tour Customization */
+/* Driver.js Tour Customization - Minimal */
 .dashboard-tour-popover {
-  @apply rounded-lg shadow-2xl border-2 border-primary/20;
+  @apply rounded-xl border border-zinc-200;
 }
 
 .driver-popover {
-  @apply bg-background text-foreground;
-  max-width: 400px;
+  @apply bg-white text-zinc-900;
+  max-width: 360px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+.dark .driver-popover {
+  @apply bg-zinc-900 text-zinc-100;
 }
 
 .driver-popover-title {
-  @apply text-xl font-bold mb-2;
+  @apply text-base font-semibold mb-2;
 }
 
 .driver-popover-description {
-  @apply text-sm text-muted-foreground leading-relaxed;
+  @apply text-sm text-zinc-500 leading-relaxed;
+}
+
+.dark .driver-popover-description {
+  @apply text-zinc-400;
 }
 
 .driver-popover-footer {
@@ -258,7 +384,7 @@
 }
 
 .driver-popover-progress-text {
-  @apply text-xs text-muted-foreground;
+  @apply text-xs text-zinc-400;
 }
 
 .driver-popover-navigation-btns {
@@ -266,22 +392,26 @@
 }
 
 .driver-popover-btn {
-  @apply px-4 py-2 rounded-md font-medium transition-colors;
+  @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-colors;
 }
 
 .driver-popover-next-btn {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  background: linear-gradient(135deg, #C0D860, #4AB7C6);
+  @apply text-zinc-900;
 }
 
 .driver-popover-prev-btn {
-  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  @apply bg-zinc-100 text-zinc-700 hover:bg-zinc-200;
+}
+
+.dark .driver-popover-prev-btn {
+  @apply bg-zinc-800 text-zinc-300 hover:bg-zinc-700;
 }
 
 .driver-popover-close-btn {
-  @apply text-muted-foreground hover:text-foreground;
+  @apply text-zinc-400 hover:text-zinc-600;
 }
 
-/* Override driver.js default styles */
 .driver-active-element {
   @apply rounded-lg;
 }

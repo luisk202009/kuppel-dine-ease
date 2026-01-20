@@ -25,6 +25,7 @@ import { isFeatureEnabled } from '@/config/environment';
 import { User, EnabledModules } from '@/types/pos';
 import { SettingsSection } from '@/pages/Settings';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Logo } from '@/components/ui/logo';
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
@@ -205,27 +206,28 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         key={item.id}
         onClick={() => handleItemClick(item)}
         className={cn(
-          'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+          'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
           isNested && 'pl-9',
           isActive
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            ? 'bg-gradient-to-r from-[#C0D860]/15 to-[#4AB7C6]/15 text-zinc-900 dark:text-zinc-100'
+            : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800'
         )}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className={cn("h-4 w-4", isActive && "text-[#4AB7C6]")} />
         <span>{item.label}</span>
       </button>
     );
   };
 
   return (
-    <aside className="w-64 bg-card border-r border-border overflow-y-auto">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-foreground mb-1">Kuppel App</h2>
-        <p className="text-xs text-muted-foreground">Gestiona tu negocio</p>
+    <aside className="w-64 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto flex flex-col">
+      {/* Logo Section */}
+      <div className="h-14 flex items-center px-4 border-b border-zinc-200 dark:border-zinc-800">
+        <Logo width={100} height={32} />
       </div>
 
-      <nav className="px-2 pb-4 space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
         {/* 1. Dashboard */}
         {renderMenuItem(dashboardItem)}
 
@@ -235,10 +237,10 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             <CollapsibleTrigger asChild>
               <button
                 className={cn(
-                  'w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
                   activeSection === 'standardInvoicing' || activeSection === 'cash' || activeSection === 'paymentReceipts'
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'text-zinc-900 dark:text-zinc-100'
+                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -246,13 +248,13 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   <span>{salesGroup.label}</span>
                 </div>
                 {isSalesOpen ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4 text-zinc-400" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 text-zinc-400" />
                 )}
               </button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-1 mt-1">
+            <CollapsibleContent className="space-y-0.5 mt-1">
               {visibleSalesItems.map((item) => renderMenuItem(item, true))}
             </CollapsibleContent>
           </Collapsible>
@@ -264,10 +266,10 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             <CollapsibleTrigger asChild>
               <button
                 className={cn(
-                  'w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
                   activeSection === 'expenses' || activeSection === 'expensePayments'
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'text-zinc-900 dark:text-zinc-100'
+                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -275,13 +277,13 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   <span>{expensesGroup.label}</span>
                 </div>
                 {isExpensesOpen ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4 text-zinc-400" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 text-zinc-400" />
                 )}
               </button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-1 mt-1">
+            <CollapsibleContent className="space-y-0.5 mt-1">
               {visibleExpenseItems.map((item) => renderMenuItem(item, true))}
             </CollapsibleContent>
           </Collapsible>
@@ -291,7 +293,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         {visibleItems.map((item) => renderMenuItem(item))}
 
         {/* Separador */}
-        <div className="my-3 border-t border-border" />
+        <div className="my-4 border-t border-zinc-200 dark:border-zinc-700" />
 
         {/* 9. Ajustes */}
         {renderMenuItem(settingsItem)}
@@ -302,11 +304,18 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         {/* 11. Administración (solo para admins) */}
         {isAdmin && (
           <>
-            <div className="my-3 border-t border-border" />
+            <div className="my-4 border-t border-zinc-200 dark:border-zinc-700" />
             {renderMenuItem(adminItem)}
           </>
         )}
       </nav>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+        <p className="text-xs text-zinc-400">
+          Gestiona tu negocio
+        </p>
+      </div>
     </aside>
   );
 };
