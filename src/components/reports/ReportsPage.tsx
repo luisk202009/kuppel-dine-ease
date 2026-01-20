@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { DateRange } from 'react-day-picker';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { Download, RefreshCw } from 'lucide-react';
 import Papa from 'papaparse';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { SalesReportTab } from '@/components/reports/tabs/SalesReportTab';
-import { ExpensesReportTab } from '@/components/reports/tabs/ExpensesReportTab';
-import { ProductPerformanceTab } from '@/components/reports/tabs/ProductPerformanceTab';
-import { TransactionLogsTab } from '@/components/reports/tabs/TransactionLogsTab';
+import { SalesReportTab } from './tabs/SalesReportTab';
+import { ExpensesReportTab } from './tabs/ExpensesReportTab';
+import { ProductPerformanceTab } from './tabs/ProductPerformanceTab';
+import { TransactionLogsTab } from './tabs/TransactionLogsTab';
 import { useQueryClient } from '@tanstack/react-query';
 
-export const SalesReports: React.FC = () => {
+export const ReportsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('sales');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -31,7 +31,7 @@ export const SalesReports: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    // Placeholder - in production, export the current tab's data
+    // This is a placeholder - in production you'd export the current tab's data
     const data = [
       { fecha: new Date().toISOString(), tipo: 'Ejemplo', monto: 0 }
     ];

@@ -83,17 +83,7 @@ export const Settings: React.FC = () => {
         );
       
       case 'reports':
-        return (
-          <div>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Reportes de Ventas</h2>
-              <p className="text-muted-foreground">
-                Analiza el rendimiento y estadísticas del negocio
-              </p>
-            </div>
-            <SalesReports />
-          </div>
-        );
+        return <SalesReports />;
       
       case 'expenses':
         return (
