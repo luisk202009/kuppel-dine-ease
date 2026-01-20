@@ -206,10 +206,10 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         key={item.id}
         onClick={() => handleItemClick(item)}
         className={cn(
-          'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+          'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150',
           isNested && 'pl-9',
           isActive
-            ? 'bg-gradient-to-r from-[#C0D860]/15 to-[#4AB7C6]/15 text-zinc-900 dark:text-zinc-100'
+            ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
             : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800'
         )}
       >
