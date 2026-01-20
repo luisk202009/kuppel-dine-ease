@@ -2,80 +2,102 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, Building2, Users, Package, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Logo } from '@/components/ui/logo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { AdminCompaniesTab } from './AdminCompaniesTab';
 import { AdminUsersTab } from './AdminUsersTab';
 import { AdminPlansTab } from './AdminPlansTab';
 import { AdminSubscriptionsTab } from './AdminSubscriptionsTab';
+import { cn } from '@/lib/utils';
+
+const tabs = [
+  { id: 'companies', label: 'Empresas', icon: Building2 },
+  { id: 'users', label: 'Usuarios', icon: Users },
+  { id: 'plans', label: 'Planes', icon: Package },
+  { id: 'subscriptions', label: 'Suscripciones', icon: CreditCard },
+] as const;
+
+type TabId = typeof tabs[number]['id'];
+
 export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'companies' | 'users' | 'plans' | 'subscriptions'>('companies');
-  return <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Logo width={120} height={40} />
-            <div className="hidden md:block border-l border-border pl-4">
-              <h1 className="text-lg font-bold text-foreground">
-                Panel de Administración
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Herramientas internas para gestionar empresas y usuarios de Kuppel POS
-              </p>
-            </div>
-          </div>
+  const [activeTab, setActiveTab] = useState<TabId>('companies');
 
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={() => navigate('/')}>
-              <Home className="h-4 w-4 mr-2" />
-              Volver  
-            </Button>
-          </div>
+  const getTabTitle = () => {
+    switch (activeTab) {
+      case 'companies': return 'Empresas';
+      case 'users': return 'Usuarios';
+      case 'plans': return 'Planes';
+      case 'subscriptions': return 'Suscripciones';
+      default: return 'Administración';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col">
+        {/* Logo */}
+        <div className="h-14 flex items-center gap-3 px-4 border-b border-zinc-200 dark:border-zinc-800">
+          <Logo width={100} height={32} />
+          <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Admin</span>
         </div>
-      </header>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                  isActive
+                    ? 'bg-gradient-to-r from-[#C0D860]/15 to-[#4AB7C6]/15 text-zinc-900 dark:text-zinc-100'
+                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800'
+                )}
+              >
+                <Icon className={cn("h-4 w-4", isActive && "text-[#4AB7C6]")} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="w-full justify-start"
+            onClick={() => navigate('/')}
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Volver al inicio
+          </Button>
+        </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="container mx-auto p-6">
-        <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'companies' | 'users' | 'plans' | 'subscriptions')}>
-          <TabsList className="grid w-full max-w-3xl grid-cols-4 mb-6">
-            <TabsTrigger value="companies" className="flex items-center space-x-2">
-              <Building2 className="h-4 w-4" />
-              <span>Empresas</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Usuarios</span>
-            </TabsTrigger>
-            <TabsTrigger value="plans" className="flex items-center space-x-2">
-              <Package className="h-4 w-4" />
-              <span>Planes</span>
-            </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="flex items-center space-x-2">
-              <CreditCard className="h-4 w-4" />
-              <span>Suscripciones</span>
-            </TabsTrigger>
-          </TabsList>
+      <main className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between px-6 sticky top-0 z-10">
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {getTabTitle()}
+          </h1>
+          <ThemeToggle />
+        </header>
 
-          <TabsContent value="companies">
-            <AdminCompaniesTab />
-          </TabsContent>
-
-          <TabsContent value="users">
-            <AdminUsersTab />
-          </TabsContent>
-
-          <TabsContent value="plans">
-            <AdminPlansTab />
-          </TabsContent>
-
-          <TabsContent value="subscriptions">
-            <AdminSubscriptionsTab />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>;
+        {/* Tab Content */}
+        <div className="p-6">
+          {activeTab === 'companies' && <AdminCompaniesTab />}
+          {activeTab === 'users' && <AdminUsersTab />}
+          {activeTab === 'plans' && <AdminPlansTab />}
+          {activeTab === 'subscriptions' && <AdminSubscriptionsTab />}
+        </div>
+      </main>
+    </div>
+  );
 };
