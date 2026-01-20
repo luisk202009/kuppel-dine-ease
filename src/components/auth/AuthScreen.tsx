@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Lock, User, Zap, Mail, UserPlus, Sparkles, LayoutDashboard, FileText, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Lock, User, Zap, Mail, UserPlus, Sparkles, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,97 +19,67 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
 import { cn } from '@/lib/utils';
 
-// Brand slides data
-const brandSlides = [
-  {
-    id: 'dashboard',
-    title: 'Tu negocio, bajo control',
-    description: 'Gestiona ventas, gastos y facturación desde un único panel de control inteligente.',
-    illustration: 'dashboard'
-  },
-  {
-    id: 'invoice',
-    title: 'Facturación sin fricción',
-    description: 'Emite facturas profesionales en segundos y automatiza tus cobros recurrentes.',
-    illustration: 'invoice'
-  },
-  {
-    id: 'security',
-    title: 'Seguridad de clase mundial',
-    description: 'Tus datos protegidos con los estándares más altos de encriptación y seguridad.',
-    illustration: 'shield'
-  }
-];
+// Glass Card Components for the Ecosystem
 
-// Dashboard Illustration Component
-const DashboardIllustration = () => (
-  <div className="relative w-72 h-52 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-5 animate-float shadow-2xl">
-    {/* Mini chart bars */}
-    <div className="flex items-end gap-2 mb-4 h-16">
-      <div className="w-6 bg-kuppel-from/60 rounded-t-sm h-8 animate-pulse-slow" />
-      <div className="w-6 bg-kuppel-from/80 rounded-t-sm h-12" />
-      <div className="w-6 bg-kuppel-to/60 rounded-t-sm h-10 animate-pulse-slow" />
-      <div className="w-6 bg-kuppel-to/80 rounded-t-sm h-16" />
-      <div className="w-6 bg-kuppel-from rounded-t-sm h-14" />
+// Smart Receipt - Central floating receipt
+const SmartReceipt = () => (
+  <div className="absolute z-20 w-72 bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl p-5 animate-float">
+    {/* Header */}
+    <div className="flex items-center justify-between mb-4">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-kuppel-from to-kuppel-to" />
+      <span className="text-xs text-zinc-500 font-mono">23 Ene 2026</span>
     </div>
-    {/* Stats row */}
-    <div className="flex gap-3 mb-4">
-      <div className="h-2 w-16 bg-kuppel-from rounded-full" />
-      <div className="h-2 w-10 bg-kuppel-to rounded-full" />
+    
+    {/* Items (simulated bars) */}
+    <div className="space-y-3 mb-6">
+      <div className="flex justify-between items-center">
+        <div className="h-2 w-24 bg-white/20 rounded-full" />
+        <div className="h-2 w-12 bg-white/10 rounded-full" />
+      </div>
+      <div className="flex justify-between items-center">
+        <div className="h-2 w-20 bg-white/20 rounded-full" />
+        <div className="h-2 w-10 bg-white/10 rounded-full" />
+      </div>
+      <div className="flex justify-between items-center">
+        <div className="h-2 w-28 bg-white/20 rounded-full" />
+        <div className="h-2 w-14 bg-white/10 rounded-full" />
+      </div>
     </div>
-    {/* Big number */}
-    <div className="text-4xl font-mono font-bold text-white tracking-tight">
-      $12,450
-    </div>
-    <div className="text-xs text-zinc-400 mt-1 font-medium">Ventas del mes</div>
-  </div>
-);
-
-// Invoice Illustration Component
-const InvoiceIllustration = () => (
-  <div className="relative animate-float">
-    {/* Glow effect */}
-    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-kuppel-from/30 to-kuppel-to/30 blur-2xl scale-150" />
-    {/* Main circle */}
-    <div className="relative w-36 h-36 rounded-full bg-gradient-to-br from-kuppel-from to-kuppel-to flex items-center justify-center shadow-2xl">
-      <FileText className="h-16 w-16 text-white animate-pulse-slow" />
+    
+    {/* Footer - Paid Button */}
+    <div className="w-full py-3 bg-[#C0D860] text-black font-semibold rounded-xl text-sm text-center">
+      Paid €124.50
     </div>
   </div>
 );
 
-// Shield Illustration Component
-const ShieldIllustration = () => (
-  <div className="relative animate-float">
-    {/* Glow effect */}
-    <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl scale-150" />
-    {/* Main circle */}
-    <div className="relative w-36 h-36 rounded-full bg-white/5 border-2 border-emerald-500/40 flex items-center justify-center shadow-2xl backdrop-blur-sm">
-      <ShieldCheck className="h-16 w-16 text-emerald-400 animate-pulse-slow" />
+// Income Card - Floating top-left with bar chart
+const IncomeCard = () => (
+  <div 
+    className="absolute z-10 -top-8 -left-8 w-40 h-32 bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl p-4 -rotate-6 opacity-80 animate-float"
+    style={{ animationDelay: '-2s' }}
+  >
+    {/* Mini chart */}
+    <div className="flex items-end gap-1 h-16">
+      <div className="w-4 bg-white/20 rounded-t h-6" />
+      <div className="w-4 bg-white/30 rounded-t h-10" />
+      <div className="w-4 bg-kuppel-to rounded-t h-14" />
     </div>
+    <div className="mt-2 text-xs text-zinc-400">Ingresos</div>
   </div>
 );
 
-// Slide Illustration Selector
-const SlideIllustration = ({ type }: { type: string }) => {
-  switch (type) {
-    case 'dashboard':
-      return <DashboardIllustration />;
-    case 'invoice':
-      return <InvoiceIllustration />;
-    case 'shield':
-      return <ShieldIllustration />;
-    default:
-      return <DashboardIllustration />;
-  }
-};
+// Security Shield - Floating bottom-right
+const SecurityShield = () => (
+  <div 
+    className="absolute z-10 -bottom-4 -right-8 w-28 h-28 bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl flex items-center justify-center rotate-6 opacity-80 animate-float"
+    style={{ animationDelay: '-4s' }}
+  >
+    <ShieldCheck className="h-12 w-12 text-white/80" />
+  </div>
+);
 
 export const AuthScreen: React.FC = () => {
   const [loginEmail, setLoginEmail] = useState('');
@@ -124,10 +94,6 @@ export const AuthScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('login');
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [showResetDialog, setShowResetDialog] = useState(false);
-  
-  // Carousel state
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const {
     authState,
@@ -138,30 +104,6 @@ export const AuthScreen: React.FC = () => {
   const resetPasswordMutation = useResetPassword();
   const magicLinkMutation = useMagicLink();
   const { toast } = useToast();
-
-  // Carousel autoplay
-  useEffect(() => {
-    if (!carouselApi) return;
-
-    const onSelect = () => {
-      setCurrentSlide(carouselApi.selectedScrollSnap());
-    };
-
-    carouselApi.on('select', onSelect);
-
-    const interval = setInterval(() => {
-      if (carouselApi.canScrollNext()) {
-        carouselApi.scrollNext();
-      } else {
-        carouselApi.scrollTo(0);
-      }
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
-      carouselApi.off('select', onSelect);
-    };
-  }, [carouselApi]);
 
   // Show company selection if needed
   if (authState.needsCompanySelection) {
@@ -601,11 +543,10 @@ export const AuthScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Panel - Brand Showcase (Desktop Only) */}
-      <div className="hidden lg:flex flex-col justify-center items-center bg-zinc-900 relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(192,216,96,0.15),_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(74,183,198,0.10),_transparent_50%)]" />
+      {/* Right Panel - Glass Ecosystem (Desktop Only) */}
+      <div className="hidden lg:flex flex-col justify-center items-center bg-[#09090B] relative overflow-hidden">
+        {/* Central Aurora Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,_rgba(192,216,96,0.25)_0%,_rgba(74,183,198,0.15)_40%,_transparent_70%)] blur-3xl" />
         
         {/* Noise texture */}
         <div 
@@ -615,47 +556,26 @@ export const AuthScreen: React.FC = () => {
           }}
         />
 
-        {/* Carousel */}
-        <div className="relative z-10 w-full max-w-lg px-8">
-          <Carousel setApi={setCarouselApi} opts={{ loop: true }}>
-            <CarouselContent>
-              {brandSlides.map((slide) => (
-                <CarouselItem key={slide.id}>
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    {/* Illustration */}
-                    <div className="relative mb-10 h-56 flex items-center justify-center">
-                      <SlideIllustration type={slide.illustration} />
-                    </div>
-                    
-                    {/* Text */}
-                    <h2 className="text-2xl font-bold text-white mb-3">
-                      {slide.title}
-                    </h2>
-                    <p className="text-zinc-400 text-sm max-w-sm leading-relaxed">
-                      {slide.description}
-                    </p>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
+        {/* Glass Ecosystem Container */}
+        <div className="relative z-10 w-full h-[500px] flex items-center justify-center">
+          {/* Income Card - Top Left */}
+          <IncomeCard />
+          
+          {/* Smart Receipt - Center */}
+          <SmartReceipt />
+          
+          {/* Security Shield - Bottom Right */}
+          <SecurityShield />
+        </div>
 
-          {/* Dots indicator */}
-          <div className="flex justify-center gap-2 mt-6">
-            {brandSlides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => carouselApi?.scrollTo(index)}
-                className={cn(
-                  "h-2 rounded-full transition-all duration-300",
-                  currentSlide === index 
-                    ? "w-6 bg-white" 
-                    : "w-2 bg-white/30 hover:bg-white/50"
-                )}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
+        {/* Inspirational Text */}
+        <div className="absolute bottom-16 left-0 right-0 px-12 z-20 text-left">
+          <h2 className="text-3xl font-bold text-white mb-3">
+            El sistema operativo para tu negocio.
+          </h2>
+          <p className="text-zinc-400 text-base max-w-md">
+            Ventas, gastos y facturación en perfecta sincronía.
+          </p>
         </div>
       </div>
     </div>
