@@ -17,8 +17,7 @@ import {
   Shield,
   LayoutDashboard,
   Landmark,
-  Store,
-  UserPlus
+  Store
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasPermission } from '@/utils/permissions';
@@ -147,14 +146,6 @@ const settingsItem: SidebarItem = {
   id: 'settings',
   label: 'Ajustes',
   icon: Settings,
-};
-
-// Item de Equipo (solo para company_owner)
-const teamItem: SidebarItem = {
-  id: 'team',
-  label: 'Equipo',
-  icon: UserPlus,
-  permission: 'manage_team',
 };
 
 // Item de Administración (solo para admins)
@@ -302,13 +293,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         {/* 9. Ajustes */}
         {renderMenuItem(settingsItem)}
 
-        {/* 10. Equipo (solo para company_owner) */}
-        {isItemVisible(teamItem) && renderMenuItem(teamItem)}
-
-        {/* 11. Suscripciones */}
-        {renderMenuItem({ id: 'subscriptions', label: 'Suscripciones', icon: Wallet })}
-
-        {/* 12. Administración (solo para admins) */}
+        {/* 10. Administración (solo para admins) */}
         {isAdmin && (
           <>
             <div className="my-4 border-t border-zinc-200 dark:border-zinc-700" />
