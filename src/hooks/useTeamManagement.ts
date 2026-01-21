@@ -21,6 +21,7 @@ interface Invitation {
   expires_at: string;
   created_at: string;
   invited_by: string;
+  token: string;
 }
 
 export const useTeamManagement = () => {
@@ -73,7 +74,7 @@ export const useTeamManagement = () => {
 
       const { data, error } = await supabase
         .from('company_invitations')
-        .select('*')
+        .select('id, email, role, status, expires_at, created_at, invited_by, token')
         .eq('company_id', companyId)
         .eq('status', 'pending')
         .gt('expires_at', new Date().toISOString())
@@ -122,7 +123,7 @@ export const useTeamManagement = () => {
       if (error) throw error;
 
       // Enviar email de invitación via edge function
-      const { error: emailError } = await supabase.functions.invoke('send-team-invitation', {
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-team-invitation', {
         body: {
           invitationId: data.id,
           email: email.toLowerCase(),
@@ -134,14 +135,20 @@ export const useTeamManagement = () => {
 
       if (emailError) {
         console.error('Error sending invitation email:', emailError);
-        // No lanzar error, la invitación ya fue creada
       }
 
-      return data;
+      // Check if email was actually sent
+      const emailSent = emailResult?.emailSent === true;
+      
+      return { ...data, emailSent };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['team-invitations', companyId] });
-      toast.success('Invitación enviada correctamente');
+      if (result.emailSent) {
+        toast.success('Invitación enviada correctamente');
+      } else {
+        toast.warning('Invitación creada. El email no pudo enviarse - puedes copiar el link manualmente.');
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Error al enviar la invitación');
