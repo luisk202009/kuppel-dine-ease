@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Mail, UserPlus, MoreVertical, Crown, RefreshCw, X, UserMinus } from 'lucide-react';
+import { Users, Mail, UserPlus, MoreVertical, Crown, RefreshCw, X, UserMinus, Link, Copy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,7 @@ import { getRoleLabel, TEAM_ROLES } from '@/utils/permissions';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 export const TeamManagement: React.FC = () => {
   const { authState } = usePOS();
@@ -278,10 +279,23 @@ export const TeamManagement: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <Badge variant="outline">
                         {getRoleLabel(invitation.role)}
                       </Badge>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const inviteUrl = `${window.location.origin}/invite/${invitation.token}`;
+                          navigator.clipboard.writeText(inviteUrl);
+                          toast.success('Link de invitación copiado al portapapeles');
+                        }}
+                        title="Copiar link de invitación"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       
                       <Button
                         variant="ghost"
