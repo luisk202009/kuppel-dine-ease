@@ -79,7 +79,7 @@ serve(async (req) => {
       console.log('Attempting to send email via Resend...');
       
       const emailPayload = {
-        from: 'Kuppel <noreply@kuppel.co>',
+        from: 'Kuppel <noreply@notifications.kuppel.co>',
         to: [email],
         subject: `Has sido invitado a unirte a ${companyName} en Kuppel`,
         html: `
