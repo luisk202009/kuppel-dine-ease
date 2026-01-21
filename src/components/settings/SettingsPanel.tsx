@@ -1,17 +1,30 @@
 import React, { useState } from 'react';
-import { Settings, Monitor, Smartphone, Layout, RotateCw, MapPin } from 'lucide-react';
+import { 
+  Settings, 
+  Monitor, 
+  Smartphone, 
+  Layout, 
+  RotateCw, 
+  MapPin, 
+  Building2, 
+  Palette, 
+  Users, 
+  CreditCard,
+  ArrowLeft
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { useLayoutConfig } from '@/hooks/useLayoutConfig';
 import { AreaManager } from '@/components/pos/AreaManager';
 import { TableManager } from '@/components/pos/TableManager';
 import { CompanyAndPlanSettings } from './CompanyAndPlanSettings';
+import { TeamManagement } from './TeamManagement';
+import { SubscriptionsPage } from './SubscriptionsPage';
 
 interface LayoutSettings {
   catalogPosition: 'left' | 'right';
@@ -23,10 +36,73 @@ interface LayoutSettings {
   tablesEnabled: boolean;
 }
 
+type SettingsSubSection = 
+  | 'company' 
+  | 'layout' 
+  | 'display' 
+  | 'touch' 
+  | 'admin' 
+  | 'team' 
+  | 'subscriptions' 
+  | null;
+
+interface SettingsCard {
+  id: SettingsSubSection;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+}
+
+const settingsCards: SettingsCard[] = [
+  {
+    id: 'company',
+    label: 'Empresa',
+    description: 'Datos de la empresa y configuración general',
+    icon: Building2,
+  },
+  {
+    id: 'layout',
+    label: 'Diseño',
+    description: 'Distribución y layout del POS',
+    icon: Layout,
+  },
+  {
+    id: 'display',
+    label: 'Pantalla',
+    description: 'Tema de color y visualización',
+    icon: Palette,
+  },
+  {
+    id: 'touch',
+    label: 'Táctil',
+    description: 'Optimización para pantallas táctiles',
+    icon: Smartphone,
+  },
+  {
+    id: 'admin',
+    label: 'Administración',
+    description: 'Áreas y gestión de mesas',
+    icon: Settings,
+  },
+  {
+    id: 'team',
+    label: 'Equipo',
+    description: 'Miembros y permisos del equipo',
+    icon: Users,
+  },
+  {
+    id: 'subscriptions',
+    label: 'Suscripciones',
+    description: 'Planes y datos de facturación',
+    icon: CreditCard,
+  },
+];
+
 export const SettingsPanel: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { config, updateConfig } = useLayoutConfig();
+  const [activeSubSection, setActiveSubSection] = useState<SettingsSubSection>(null);
   
   const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>({
     catalogPosition: 'left',
@@ -84,22 +160,13 @@ export const SettingsPanel: React.FC = () => {
     }));
   };
 
-  return (
-    <div className="space-y-6">
-      <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="company">Empresa</TabsTrigger>
-          <TabsTrigger value="layout">Diseño</TabsTrigger>
-          <TabsTrigger value="display">Pantalla</TabsTrigger>
-          <TabsTrigger value="touch">Táctil</TabsTrigger>
-          <TabsTrigger value="admin">Administración</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="company" className="space-y-6 mt-6">
-          <CompanyAndPlanSettings />
-        </TabsContent>
-
-        <TabsContent value="layout" className="space-y-6 mt-6">
+  const renderSubSectionContent = () => {
+    switch (activeSubSection) {
+      case 'company':
+        return <CompanyAndPlanSettings />;
+      
+      case 'layout':
+        return (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -176,11 +243,21 @@ export const SettingsPanel: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex gap-3 pt-4 border-t">
+                <Button onClick={handleSaveSettings} className="flex-1">
+                  Guardar
+                </Button>
+                <Button onClick={handleResetSettings} variant="outline">
+                  Restaurar
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="display" className="space-y-6 mt-6">
+        );
+      
+      case 'display':
+        return (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -228,11 +305,21 @@ export const SettingsPanel: React.FC = () => {
                 />
                 <Label htmlFor="compact-mode">Modo Compacto</Label>
               </div>
+
+              <div className="flex gap-3 pt-4 border-t">
+                <Button onClick={handleSaveSettings} className="flex-1">
+                  Guardar
+                </Button>
+                <Button onClick={handleResetSettings} variant="outline">
+                  Restaurar
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="touch" className="space-y-6 mt-6">
+        );
+      
+      case 'touch':
+        return (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -272,74 +359,152 @@ export const SettingsPanel: React.FC = () => {
                   <p className="text-xs text-muted-foreground">Toque ampliado</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="admin" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Gestión de Áreas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Configura las áreas de tu establecimiento. Las áreas te permiten organizar las mesas por zonas (jardín, terraza, salón principal, etc.).
-              </p>
-              <AreaManager />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Sistema de Mesas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="tables-enabled">Habilitar gestión de mesas</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Activa o desactiva el sistema de mesas. Si se desactiva, solo se mostrarán ventas de mostrador.
-                  </p>
-                </div>
-                <Switch
-                  id="tables-enabled"
-                  checked={layoutSettings.tablesEnabled}
-                  onCheckedChange={(checked) => handleSettingChange('tablesEnabled', checked)}
-                />
+              <div className="flex gap-3 pt-4 border-t">
+                <Button onClick={handleSaveSettings} className="flex-1">
+                  Guardar
+                </Button>
+                <Button onClick={handleResetSettings} variant="outline">
+                  Restaurar
+                </Button>
               </div>
+            </CardContent>
+          </Card>
+        );
+      
+      case 'admin':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Gestión de Áreas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configura las áreas de tu establecimiento. Las áreas te permiten organizar las mesas por zonas (jardín, terraza, salón principal, etc.).
+                </p>
+                <AreaManager />
+              </CardContent>
+            </Card>
 
-              {layoutSettings.tablesEnabled ? (
-                <div className="space-y-4 pt-4 border-t">
-                  <div>
-                    <h4 className="font-medium mb-2">Gestionar Mesas</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Agrega mesas a tus áreas existentes. Las mesas se mostrarán en el POS para gestionar pedidos.
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Sistema de Mesas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="tables-enabled">Habilitar gestión de mesas</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Activa o desactiva el sistema de mesas. Si se desactiva, solo se mostrarán ventas de mostrador.
                     </p>
                   </div>
-                  <TableManager />
+                  <Switch
+                    id="tables-enabled"
+                    checked={layoutSettings.tablesEnabled}
+                    onCheckedChange={(checked) => handleSettingChange('tablesEnabled', checked)}
+                  />
                 </div>
-              ) : (
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Con el sistema de mesas desactivado, todas las ventas se registrarán como ventas de mostrador.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
-      <div className="flex gap-3 pt-6 border-t">
-        <Button onClick={handleSaveSettings} className="btn-kuppel-primary flex-1">
-          Guardar Configuración
+                {layoutSettings.tablesEnabled ? (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div>
+                      <h4 className="font-medium mb-2">Gestionar Mesas</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Agrega mesas a tus áreas existentes. Las mesas se mostrarán en el POS para gestionar pedidos.
+                      </p>
+                    </div>
+                    <TableManager />
+                  </div>
+                ) : (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Con el sistema de mesas desactivado, todas las ventas se registrarán como ventas de mostrador.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button onClick={handleSaveSettings} className="flex-1">
+                    Guardar
+                  </Button>
+                  <Button onClick={handleResetSettings} variant="outline">
+                    Restaurar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      
+      case 'team':
+        return <TeamManagement />;
+      
+      case 'subscriptions':
+        return <SubscriptionsPage />;
+      
+      default:
+        return null;
+    }
+  };
+
+  const getSubSectionTitle = () => {
+    const card = settingsCards.find(c => c.id === activeSubSection);
+    return card?.label || 'Ajustes';
+  };
+
+  // If a sub-section is active, show its content with a back button
+  if (activeSubSection) {
+    return (
+      <div className="space-y-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => setActiveSubSection(null)}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver a Ajustes
         </Button>
-        <Button onClick={handleResetSettings} variant="outline">
-          Restaurar
-        </Button>
+        
+        <div>
+          <h3 className="text-xl font-semibold text-foreground mb-4">{getSubSectionTitle()}</h3>
+          {renderSubSectionContent()}
+        </div>
+      </div>
+    );
+  }
+
+  // Main settings grid view
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {settingsCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Card 
+              key={card.id}
+              className="cursor-pointer transition-all duration-200 hover:border-[#4AB7C6]/50 hover:shadow-sm group"
+              onClick={() => setActiveSubSection(card.id)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 group-hover:bg-[#4AB7C6]/10 transition-colors">
+                    <Icon className="h-5 w-5 text-zinc-600 dark:text-zinc-400 group-hover:text-[#4AB7C6] transition-colors" />
+                  </div>
+                  <CardTitle className="text-base font-medium">{card.label}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <CardDescription className="text-sm">
+                  {card.description}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

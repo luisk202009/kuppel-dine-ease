@@ -10,16 +10,14 @@ import { SalesReports } from '@/components/pos/SalesReports';
 import { ExpenseManager } from '@/components/pos/ExpenseManager';
 import { CashManager } from '@/components/pos/CashManager';
 import { ProductsManager } from '@/components/pos/ProductsManager';
-import { SubscriptionsPage } from '@/components/settings/SubscriptionsPage';
 import { InvoicingDashboard } from '@/components/invoicing';
 import { DashboardPage } from '@/components/dashboard';
 import { TreasurySettings } from '@/components/settings/TreasurySettings';
 import { PaymentReceiptsList } from '@/components/invoicing/PaymentReceiptsList';
 import { ExpensePaymentsList } from '@/components/expenses/ExpensePaymentsList';
 import { OnlineStoreSettings } from '@/components/settings/OnlineStoreSettings';
-import { TeamManagement } from '@/components/settings/TeamManagement';
 
-export type SettingsSection = 'dashboard' | 'settings' | 'subscriptions' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury' | 'paymentReceipts' | 'expensePayments' | 'onlineStore' | 'team';
+export type SettingsSection = 'dashboard' | 'settings' | 'products' | 'customers' | 'orders' | 'reports' | 'expenses' | 'cash' | 'standardInvoicing' | 'treasury' | 'paymentReceipts' | 'expensePayments' | 'onlineStore';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -50,9 +48,6 @@ export const Settings: React.FC = () => {
             <SettingsPanel />
           </div>
         );
-      
-      case 'subscriptions':
-        return <SubscriptionsPage />;
       
       case 'products':
         return <ProductsManager />;
@@ -128,9 +123,6 @@ export const Settings: React.FC = () => {
       
       case 'onlineStore':
         return <OnlineStoreSettings />;
-      
-      case 'team':
-        return <TeamManagement />;
       
       default:
         return null;
