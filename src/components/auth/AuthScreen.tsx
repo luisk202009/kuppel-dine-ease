@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, User, Zap, Mail, UserPlus, Sparkles, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Zap, Mail, UserPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Logo } from '@/components/ui/logo';
 import { CompanySelection } from '@/components/auth/CompanySelection';
@@ -19,68 +20,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { cn } from '@/lib/utils';
-
-// Glass Card Components for the Ecosystem
-
-// Smart Receipt - Central floating receipt
-const SmartReceipt = () => (
-  <div className="absolute z-20 w-72 bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl p-5 animate-float">
-    {/* Header */}
-    <div className="flex items-center justify-between mb-4">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-kuppel-from to-kuppel-to" />
-      <span className="text-xs text-zinc-500 font-mono">23 Ene 2026</span>
-    </div>
-    
-    {/* Items (simulated bars) */}
-    <div className="space-y-3 mb-6">
-      <div className="flex justify-between items-center">
-        <div className="h-2 w-24 bg-white/20 rounded-full" />
-        <div className="h-2 w-12 bg-white/10 rounded-full" />
-      </div>
-      <div className="flex justify-between items-center">
-        <div className="h-2 w-20 bg-white/20 rounded-full" />
-        <div className="h-2 w-10 bg-white/10 rounded-full" />
-      </div>
-      <div className="flex justify-between items-center">
-        <div className="h-2 w-28 bg-white/20 rounded-full" />
-        <div className="h-2 w-14 bg-white/10 rounded-full" />
-      </div>
-    </div>
-    
-    {/* Footer - Paid Button */}
-    <div className="w-full py-3 bg-[#C0D860] text-black font-semibold rounded-xl text-sm text-center">
-      Paid €124.50
-    </div>
-  </div>
-);
-
-// Income Card - Floating top-left with bar chart
-const IncomeCard = () => (
-  <div 
-    className="absolute z-10 -top-8 -left-8 w-40 h-32 bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl p-4 -rotate-6 opacity-80 animate-float"
-    style={{ animationDelay: '-2s' }}
-  >
-    {/* Mini chart */}
-    <div className="flex items-end gap-1 h-16">
-      <div className="w-4 bg-white/20 rounded-t h-6" />
-      <div className="w-4 bg-white/30 rounded-t h-10" />
-      <div className="w-4 bg-kuppel-to rounded-t h-14" />
-    </div>
-    <div className="mt-2 text-xs text-zinc-400">Ingresos</div>
-  </div>
-);
-
-// Security Shield - Floating bottom-right
-const SecurityShield = () => (
-  <div 
-    className="absolute z-10 -bottom-4 -right-8 w-28 h-28 bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl flex items-center justify-center rotate-6 opacity-80 animate-float"
-    style={{ animationDelay: '-4s' }}
-  >
-    <ShieldCheck className="h-12 w-12 text-white/80" />
-  </div>
-);
-
 export const AuthScreen: React.FC = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -94,7 +33,6 @@ export const AuthScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('login');
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [showResetDialog, setShowResetDialog] = useState(false);
-
   const {
     authState,
     login,
@@ -103,13 +41,14 @@ export const AuthScreen: React.FC = () => {
   const signUpMutation = useSignUp();
   const resetPasswordMutation = useResetPassword();
   const magicLinkMutation = useMagicLink();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Show company selection if needed
   if (authState.needsCompanySelection) {
     return <CompanySelection companies={authState.companies} branches={authState.branches} onSelect={selectCompanyAndBranch} />;
   }
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
@@ -146,7 +85,6 @@ export const AuthScreen: React.FC = () => {
       setIsLoading(false);
     }
   };
-
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) {
@@ -187,7 +125,6 @@ export const AuthScreen: React.FC = () => {
       console.error('Magic link error:', error);
     }
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signupEmail || !signupPassword || !signupName) {
@@ -213,6 +150,8 @@ export const AuthScreen: React.FC = () => {
         password: signupPassword,
         name: signupName
       });
+
+      // Switch to login tab after successful signup
       setActiveTab('login');
       setSignupEmail('');
       setSignupPassword('');
@@ -223,7 +162,6 @@ export const AuthScreen: React.FC = () => {
       setIsLoading(false);
     }
   };
-
   const handleDemoLogin = async () => {
     setIsLoading(true);
     try {
@@ -244,56 +182,46 @@ export const AuthScreen: React.FC = () => {
       setIsLoading(false);
     }
   };
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex items-center justify-center p-4 relative">
+      {/* Theme Selector - Top Right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeSelector />
+      </div>
+      
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.1'%3E%3Ccircle cx='7' cy='7' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+      }} />
+      </div>
 
-  const inputClassName = "h-12 bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-kuppel-from/50 focus:border-kuppel-from transition-all";
-
-  return (
-    <div className="h-screen w-full grid lg:grid-cols-2">
-      {/* Left Panel - Form */}
-      <div className="flex flex-col items-center justify-center p-8 lg:p-12 bg-background relative">
-        {/* Theme Selector */}
-        <div className="absolute top-4 right-4 z-20">
-          <ThemeSelector />
-        </div>
-
-        <div className="w-full max-w-sm space-y-6">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <Logo width={160} height={54} />
+      <Card className="w-full max-w-md pos-card relative">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Logo width={180} height={60} />
           </div>
-
-          {/* Title */}
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">
-              Bienvenido
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Accede a tu cuenta o crea una nueva
-            </p>
-          </div>
-
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-11">
-              <TabsTrigger value="login" className="h-9">Iniciar</TabsTrigger>
-              <TabsTrigger value="signup" className="h-9">Registro</TabsTrigger>
-            </TabsList>
+          <div>
             
-            <TabsContent value="login" className="space-y-4 mt-6">
+            <CardDescription className="text-muted-foreground mt-2">
+              Accede a tu cuenta o regístrate
+            </CardDescription>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Iniciar</TabsTrigger>
+                  <TabsTrigger value="signup">Registro</TabsTrigger>
+                </TabsList>
+            
+            <TabsContent value="login" className="space-y-4 mt-4">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="login-email" 
-                      type="email" 
-                      placeholder="tu@email.com" 
-                      value={loginEmail} 
-                      onChange={e => setLoginEmail(e.target.value)} 
-                      className={cn("pl-10", inputClassName)} 
-                      disabled={isLoading} 
-                    />
+                    <Input id="login-email" type="email" placeholder="tu@email.com" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="pl-10 h-11" disabled={isLoading} />
                   </div>
                 </div>
 
@@ -301,21 +229,8 @@ export const AuthScreen: React.FC = () => {
                   <Label htmlFor="login-password">Contraseña</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="login-password" 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="Tu contraseña" 
-                      value={loginPassword} 
-                      onChange={e => setLoginPassword(e.target.value)} 
-                      className={cn("pl-10 pr-10", inputClassName)} 
-                      disabled={isLoading} 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)} 
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" 
-                      disabled={isLoading}
-                    >
+                    <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Tu contraseña" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="pl-10 pr-10 h-11" disabled={isLoading} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={isLoading}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -324,7 +239,7 @@ export const AuthScreen: React.FC = () => {
                     <DialogTrigger asChild>
                       <button
                         type="button"
-                        className="text-sm text-kuppel-from hover:text-kuppel-to transition-colors"
+                        className="text-sm text-primary hover:underline"
                       >
                         ¿Olvidó su contraseña?
                       </button>
@@ -345,7 +260,7 @@ export const AuthScreen: React.FC = () => {
                               id="reset-email"
                               type="email"
                               placeholder="tu@email.com"
-                              className={cn("pl-10", inputClassName)}
+                              className="pl-10 h-11"
                               value={resetEmail}
                               onChange={(e) => setResetEmail(e.target.value)}
                               disabled={resetPasswordMutation.isPending}
@@ -355,7 +270,7 @@ export const AuthScreen: React.FC = () => {
                         </div>
                         <Button
                           type="submit"
-                          className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-medium"
+                          className="w-full h-11"
                           disabled={resetPasswordMutation.isPending}
                         >
                           {resetPasswordMutation.isPending ? (
@@ -372,23 +287,17 @@ export const AuthScreen: React.FC = () => {
                   </Dialog>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-medium" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
+                <Button type="submit" className="w-full h-11" disabled={isLoading}>
+                  {isLoading ? <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Verificando...</span>
-                    </div>
-                  ) : 'Iniciar Sesión'}
+                      <span>Verificando credenciales...</span>
+                    </div> : 'Iniciar Sesión'}
                 </Button>
               </form>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-zinc-200 dark:border-zinc-700" />
+                  <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">o</span>
@@ -404,26 +313,26 @@ export const AuthScreen: React.FC = () => {
                       id="magic-email"
                       type="email"
                       placeholder={loginEmail || "tu@email.com"}
-                      className={cn("pl-10", inputClassName)}
+                      className="pl-10 h-11"
                       value={magicLinkEmail}
                       onChange={(e) => setMagicLinkEmail(e.target.value)}
                       disabled={magicLinkMutation.isPending}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Recibirás un enlace mágico en tu email
+                    Recibirás un enlace mágico en tu email para iniciar sesión
                   </p>
                 </div>
                 <Button
                   type="submit"
                   variant="outline"
-                  className="w-full h-12 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  className="w-full h-11"
                   disabled={magicLinkMutation.isPending}
                 >
                   {magicLinkMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      <span>Enviando...</span>
+                      <span>Enviando enlace...</span>
                     </div>
                   ) : (
                     <>
@@ -435,21 +344,13 @@ export const AuthScreen: React.FC = () => {
               </form>
             </TabsContent>
 
-            <TabsContent value="signup" className="space-y-4 mt-6">
+            <TabsContent value="signup" className="space-y-4 mt-4">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Nombre</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="signup-name" 
-                      type="text" 
-                      placeholder="Tu nombre" 
-                      value={signupName} 
-                      onChange={e => setSignupName(e.target.value)} 
-                      className={cn("pl-10", inputClassName)} 
-                      disabled={isLoading} 
-                    />
+                    <Input id="signup-name" type="text" placeholder="Tu nombre" value={signupName} onChange={e => setSignupName(e.target.value)} className="pl-10 h-11" disabled={isLoading} />
                   </div>
                 </div>
 
@@ -457,15 +358,7 @@ export const AuthScreen: React.FC = () => {
                   <Label htmlFor="signup-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="signup-email" 
-                      type="email" 
-                      placeholder="tu@email.com" 
-                      value={signupEmail} 
-                      onChange={e => setSignupEmail(e.target.value)} 
-                      className={cn("pl-10", inputClassName)} 
-                      disabled={isLoading} 
-                    />
+                    <Input id="signup-email" type="email" placeholder="tu@email.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} className="pl-10 h-11" disabled={isLoading} />
                   </div>
                 </div>
 
@@ -473,113 +366,47 @@ export const AuthScreen: React.FC = () => {
                   <Label htmlFor="signup-password">Contraseña</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="signup-password" 
-                      type={showSignupPassword ? "text" : "password"} 
-                      placeholder="Mínimo 6 caracteres" 
-                      value={signupPassword} 
-                      onChange={e => setSignupPassword(e.target.value)} 
-                      className={cn("pl-10 pr-10", inputClassName)} 
-                      disabled={isLoading} 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowSignupPassword(!showSignupPassword)} 
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" 
-                      disabled={isLoading}
-                    >
+                    <Input id="signup-password" type={showSignupPassword ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} className="pl-10 pr-10 h-11" disabled={isLoading} />
+                    <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={isLoading}>
                       {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-medium" 
-                  disabled={isLoading || signUpMutation.isPending}
-                >
-                  {isLoading || signUpMutation.isPending ? (
-                    <div className="flex items-center space-x-2">
+                <Button type="submit" className="w-full h-11" disabled={isLoading || signUpMutation.isPending}>
+                  {isLoading || signUpMutation.isPending ? <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       <span>Creando cuenta...</span>
-                    </div>
-                  ) : (
-                    <>
+                    </div> : <>
                       <UserPlus className="w-4 h-4 mr-2" />
                       Crear Cuenta
-                    </>
-                  )}
+                    </>}
                 </Button>
               </form>
             </TabsContent>
+
           </Tabs>
 
           {/* Demo Login Button */}
-          {shouldUseMockData() && (
-            <div className="pt-4">
+          {shouldUseMockData() && <div className="mt-4">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-zinc-200 dark:border-zinc-700" />
+                  <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    demo
+                    o
                   </span>
                 </div>
               </div>
               
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full h-12 mt-4 border-zinc-200 dark:border-zinc-700" 
-                onClick={handleDemoLogin} 
-                disabled={isLoading}
-              >
+              <Button type="button" variant="outline" className="w-full h-11 mt-4" onClick={handleDemoLogin} disabled={isLoading}>
                 <Zap className="w-4 h-4 mr-2" />
                 Entrar en modo demo
               </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right Panel - Glass Ecosystem (Desktop Only) */}
-      <div className="hidden lg:flex flex-col justify-center items-center bg-[#09090B] relative overflow-hidden">
-        {/* Central Aurora Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,_rgba(192,216,96,0.25)_0%,_rgba(74,183,198,0.15)_40%,_transparent_70%)] blur-3xl" />
-        
-        {/* Noise texture */}
-        <div 
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-          }}
-        />
-
-        {/* Glass Ecosystem Container */}
-        <div className="relative z-10 w-full h-[500px] flex items-center justify-center">
-          {/* Income Card - Top Left */}
-          <IncomeCard />
-          
-          {/* Smart Receipt - Center */}
-          <SmartReceipt />
-          
-          {/* Security Shield - Bottom Right */}
-          <SecurityShield />
-        </div>
-
-        {/* Inspirational Text */}
-        <div className="absolute bottom-16 left-0 right-0 px-12 z-20 text-left">
-          <h2 className="text-3xl font-bold text-white mb-3">
-            El sistema operativo para tu negocio.
-          </h2>
-          <p className="text-zinc-400 text-base max-w-md">
-            Ventas, gastos y facturación en perfecta sincronía.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+            </div>}
+        </CardContent>
+      </Card>
+    </div>;
 };
-
 export default AuthScreen;
