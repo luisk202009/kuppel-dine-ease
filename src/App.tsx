@@ -19,6 +19,7 @@ import { SetupWizard } from "@/components/onboarding/SetupWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicStoreLayout } from "@/components/public-store/PublicStoreLayout";
 import { PublicStorePage } from "@/pages/PublicStorePage";
+import AcceptInvitation from "@/pages/AcceptInvitation";
 
 const queryClient = new QueryClient();
 
@@ -163,6 +164,8 @@ const App = () => (
                 <Route path="/tienda/:slug" element={<PublicStoreLayout />}>
                   <Route index element={<PublicStorePage />} />
                 </Route>
+                {/* Invitation acceptance route */}
+                <Route path="/invite/:token" element={<AcceptInvitation />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
