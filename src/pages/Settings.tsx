@@ -136,7 +136,7 @@ export const Settings: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full">
       {/* Header */}
-      <SettingsHeader />
+      <SettingsHeader onSectionChange={handleSectionChange} />
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden w-full">
