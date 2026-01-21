@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'fee' | 'adjustment';
-export type SourceModule = 'POS_CLOSURE' | 'INVOICE' | 'EXPENSE' | 'MANUAL';
+export type SourceModule = 'POS_CLOSURE' | 'INVOICE' | 'EXPENSE' | 'MANUAL' | 'TRANSFER';
 
 export interface BankTransaction {
   id: string;
@@ -18,6 +18,7 @@ export interface BankTransaction {
   reference_number: string | null;
   created_at: string;
   created_by: string | null;
+  linked_transaction_id: string | null;
   bank_account?: {
     name: string;
     bank_name: string | null;
@@ -34,6 +35,16 @@ export interface CreateBankTransactionData {
   sourceModule?: SourceModule;
   sourceId?: string;
   referenceNumber?: string;
+  linkedTransactionId?: string;
+}
+
+export interface CreateBankTransferData {
+  companyId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date?: string;
+  description?: string;
 }
 
 export interface BankTransactionFilters {
@@ -90,6 +101,22 @@ export const useBankTransactions = (companyId?: string, filters?: BankTransactio
   });
 };
 
+// Compute totals from transactions
+export const useBankTransactionTotals = (transactions: BankTransaction[] | undefined) => {
+  const isCredit = (type: TransactionType) => 
+    type === 'deposit' || type === 'transfer_in';
+
+  const totalEntries = transactions?.reduce((sum, tx) => 
+    isCredit(tx.type) ? sum + tx.amount : sum, 0) || 0;
+
+  const totalExits = transactions?.reduce((sum, tx) => 
+    !isCredit(tx.type) ? sum + tx.amount : sum, 0) || 0;
+
+  const netBalance = totalEntries - totalExits;
+
+  return { totalEntries, totalExits, netBalance };
+};
+
 export const useCreateBankTransaction = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -110,6 +137,7 @@ export const useCreateBankTransaction = () => {
           source_module: data.sourceModule || 'MANUAL',
           source_id: data.sourceId || null,
           reference_number: data.referenceNumber || null,
+          linked_transaction_id: data.linkedTransactionId || null,
           created_by: user?.id || null,
         })
         .select()
@@ -136,6 +164,80 @@ export const useCreateBankTransaction = () => {
         variant: "destructive",
         title: "Error al registrar transacción",
         description: error.message || "No se pudo registrar el movimiento bancario",
+      });
+    },
+  });
+};
+
+export const useCreateBankTransfer = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateBankTransferData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const transferDate = data.date || new Date().toISOString().split('T')[0];
+      const description = data.description || 'Transferencia entre cuentas';
+
+      // Create both transactions atomically
+      // First, create the outgoing transaction
+      const { data: outTx, error: outError } = await supabase
+        .from('bank_transactions')
+        .insert({
+          company_id: data.companyId,
+          bank_account_id: data.fromAccountId,
+          type: 'transfer_out',
+          amount: data.amount,
+          date: transferDate,
+          description,
+          source_module: 'TRANSFER',
+          created_by: user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (outError) throw outError;
+
+      // Then create the incoming transaction with reference to outgoing
+      const { data: inTx, error: inError } = await supabase
+        .from('bank_transactions')
+        .insert({
+          company_id: data.companyId,
+          bank_account_id: data.toAccountId,
+          type: 'transfer_in',
+          amount: data.amount,
+          date: transferDate,
+          description,
+          source_module: 'TRANSFER',
+          linked_transaction_id: outTx.id,
+          created_by: user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (inError) throw inError;
+
+      // Update the outgoing transaction to link to incoming
+      await supabase
+        .from('bank_transactions')
+        .update({ linked_transaction_id: inTx.id })
+        .eq('id', outTx.id);
+
+      return { outTx, inTx };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      toast({
+        title: "Transferencia realizada",
+        description: "Los fondos se han transferido exitosamente entre cuentas",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error en la transferencia",
+        description: error.message || "No se pudo completar la transferencia",
       });
     },
   });
