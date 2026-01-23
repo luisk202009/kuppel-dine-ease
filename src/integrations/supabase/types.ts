@@ -118,6 +118,7 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          linked_transaction_id: string | null
           reference_number: string | null
           source_id: string | null
           source_module: string | null
@@ -132,6 +133,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          linked_transaction_id?: string | null
           reference_number?: string | null
           source_id?: string | null
           source_module?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          linked_transaction_id?: string | null
           reference_number?: string | null
           source_id?: string | null
           source_module?: string | null
@@ -171,6 +174,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "bank_transactions"
             referencedColumns: ["id"]
           },
         ]

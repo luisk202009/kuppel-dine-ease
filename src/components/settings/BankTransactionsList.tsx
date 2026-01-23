@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { format } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
+import Papa from 'papaparse';
 import { 
   ArrowDownCircle, 
   ArrowUpCircle, 
@@ -9,7 +11,12 @@ import {
   Landmark,
   Plus,
   Loader2,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Download,
+  RotateCcw,
+  TrendingUp,
+  TrendingDown,
+  Wallet
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +36,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useBankAccounts } from '@/hooks/useBankAccounts';
-import { useBankTransactions, useCreateBankTransaction, TransactionType } from '@/hooks/useBankTransactions';
+import { 
+  useBankTransactions, 
+  useCreateBankTransaction, 
+  useBankTransactionTotals,
+  TransactionType, 
+  SourceModule 
+} from '@/hooks/useBankTransactions';
 
 interface BankTransactionsListProps {
   companyId: string;
@@ -50,19 +64,55 @@ const sourceModuleLabels: Record<string, string> = {
   INVOICE: 'Factura',
   EXPENSE: 'Gasto',
   MANUAL: 'Manual',
+  TRANSFER: 'Transferencia',
+  payment_receipt: 'Recibo de Cobro',
+  expense_payment: 'Pago de Gasto',
 };
+
+const transactionTypeOptions: { value: TransactionType; label: string }[] = [
+  { value: 'deposit', label: 'Depósitos' },
+  { value: 'withdrawal', label: 'Retiros' },
+  { value: 'transfer_in', label: 'Transferencias entrada' },
+  { value: 'transfer_out', label: 'Transferencias salida' },
+  { value: 'fee', label: 'Comisiones' },
+  { value: 'adjustment', label: 'Ajustes' },
+];
+
+const sourceModuleOptions: { value: SourceModule | string; label: string }[] = [
+  { value: 'POS_CLOSURE', label: 'Cierre de Caja' },
+  { value: 'INVOICE', label: 'Facturas' },
+  { value: 'EXPENSE', label: 'Gastos' },
+  { value: 'MANUAL', label: 'Manual' },
+  { value: 'TRANSFER', label: 'Transferencias' },
+  { value: 'payment_receipt', label: 'Recibos de Cobro' },
+  { value: 'expense_payment', label: 'Pagos de Gasto' },
+];
 
 export const BankTransactionsList: React.FC<BankTransactionsListProps> = ({
   companyId,
 }) => {
+  // Filter states
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedSource, setSelectedSource] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
   const [isFormOpen, setIsFormOpen] = useState(false);
   
   const { data: accounts } = useBankAccounts(companyId);
   const { data: transactions, isLoading } = useBankTransactions(companyId, {
     bankAccountId: selectedAccountId !== 'all' ? selectedAccountId : undefined,
+    startDate: dateRange?.from,
+    endDate: dateRange?.to,
+    type: selectedType !== 'all' ? selectedType as TransactionType : undefined,
+    sourceModule: selectedSource !== 'all' ? selectedSource as SourceModule : undefined,
   });
   const createTransaction = useCreateBankTransaction();
+
+  // KPI totals
+  const { totalEntries, totalExits, netBalance } = useBankTransactionTotals(transactions);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -106,27 +156,82 @@ export const BankTransactionsList: React.FC<BankTransactionsListProps> = ({
     });
   };
 
+  const handleResetFilters = () => {
+    setSelectedAccountId('all');
+    setSelectedType('all');
+    setSelectedSource('all');
+    setDateRange({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!transactions || transactions.length === 0) return;
+
+    const csvData = transactions.map(tx => ({
+      Fecha: format(new Date(tx.date), 'dd/MM/yyyy', { locale: es }),
+      Cuenta: tx.bank_account?.name || 'Desconocida',
+      Tipo: transactionTypeLabels[tx.type],
+      Descripción: tx.description || '-',
+      Monto: isCredit(tx.type) ? tx.amount : -tx.amount,
+      Origen: sourceModuleLabels[tx.source_module || 'MANUAL'] || tx.source_module,
+    }));
+
+    const csv = Papa.unparse(csvData, {
+      header: true,
+      delimiter: ';',
+    });
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `movimientos-bancarios-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const isCredit = (type: TransactionType) => 
     type === 'deposit' || type === 'transfer_in';
+
+  const hasActiveFilters = 
+    selectedAccountId !== 'all' || 
+    selectedType !== 'all' || 
+    selectedSource !== 'all';
 
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="h-5 w-5" />
-              Movimientos Bancarios
-            </CardTitle>
-            <CardDescription>
-              Historial de transacciones de todas las cuentas
-            </CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ArrowRightLeft className="h-5 w-5" />
+                Movimientos Bancarios
+              </CardTitle>
+              <CardDescription>
+                Historial de transacciones de todas las cuentas
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!transactions?.length}>
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button onClick={() => setIsFormOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nuevo
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrar por cuenta" />
+              <SelectTrigger className="w-[160px] h-9">
+                <Landmark className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Cuenta" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las cuentas</SelectItem>
@@ -137,12 +242,90 @@ export const BankTransactionsList: React.FC<BankTransactionsListProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={() => setIsFormOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nuevo
-            </Button>
+
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-[160px] h-9">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los tipos</SelectItem>
+                {transactionTypeOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedSource} onValueChange={setSelectedSource}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Origen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los orígenes</SelectItem>
+                {sourceModuleOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <DateRangePicker
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              className="w-auto"
+            />
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={handleResetFilters}>
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Limpiar
+              </Button>
+            )}
+          </div>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-primary mb-1">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wider">Entradas</span>
+              </div>
+              <p className="text-2xl font-mono font-bold text-primary">
+                {formatCurrency(totalEntries)}
+              </p>
+            </div>
+            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-destructive mb-1">
+                <TrendingDown className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wider">Salidas</span>
+              </div>
+              <p className="text-2xl font-mono font-bold text-destructive">
+                {formatCurrency(totalExits)}
+              </p>
+            </div>
+            <div className={`border rounded-lg p-4 ${
+              netBalance >= 0 
+                ? 'bg-primary/5 border-primary/20' 
+                : 'bg-destructive/5 border-destructive/20'
+            }`}>
+              <div className={`flex items-center gap-2 mb-1 ${
+                netBalance >= 0 ? 'text-primary' : 'text-destructive'
+              }`}>
+                <Wallet className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wider">Saldo Neto</span>
+              </div>
+              <p className={`text-2xl font-mono font-bold ${
+                netBalance >= 0 ? 'text-primary' : 'text-destructive'
+              }`}>
+                {netBalance >= 0 ? '+' : ''}{formatCurrency(netBalance)}
+              </p>
+            </div>
           </div>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -196,7 +379,7 @@ export const BankTransactionsList: React.FC<BankTransactionsListProps> = ({
                   </div>
 
                   <div className="text-right">
-                    <p className={`font-semibold ${
+                    <p className={`font-mono font-semibold ${
                       isCredit(tx.type) ? 'text-primary' : 'text-destructive'
                     }`}>
                       {isCredit(tx.type) ? '+' : '-'}{formatCurrency(tx.amount)}
@@ -251,8 +434,6 @@ export const BankTransactionsList: React.FC<BankTransactionsListProps> = ({
                 <SelectContent>
                   <SelectItem value="deposit">Depósito</SelectItem>
                   <SelectItem value="withdrawal">Retiro</SelectItem>
-                  <SelectItem value="transfer_in">Transferencia entrada</SelectItem>
-                  <SelectItem value="transfer_out">Transferencia salida</SelectItem>
                   <SelectItem value="fee">Comisión bancaria</SelectItem>
                   <SelectItem value="adjustment">Ajuste</SelectItem>
                 </SelectContent>
