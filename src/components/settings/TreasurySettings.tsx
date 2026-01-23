@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Plus, Landmark, Settings2, ArrowRightLeft } from 'lucide-react';
+import { Building2, Plus, Landmark, Settings2, ArrowRightLeft, ArrowLeftRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { BankAccountsList } from './BankAccountsList';
 import { BankAccountForm } from './BankAccountForm';
 import { BankUsageRulesForm } from './BankUsageRulesForm';
 import { BankTransactionsList } from './BankTransactionsList';
+import { BankTransferModal } from './BankTransferModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export const TreasurySettings: React.FC = () => {
@@ -17,6 +18,7 @@ export const TreasurySettings: React.FC = () => {
   
   const [isAccountFormOpen, setIsAccountFormOpen] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | undefined>();
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const handleEditAccount = (accountId: string) => {
     setEditingAccountId(accountId);
@@ -45,6 +47,10 @@ export const TreasurySettings: React.FC = () => {
             Gestiona cuentas bancarias y configura las reglas de tesorería
           </p>
         </div>
+        <Button onClick={() => setIsTransferModalOpen(true)} variant="outline" className="gap-2">
+          <ArrowLeftRight className="h-4 w-4" />
+          Nueva Transferencia
+        </Button>
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-6">
@@ -132,6 +138,13 @@ export const TreasurySettings: React.FC = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Transferencia */}
+      <BankTransferModal
+        companyId={companyId}
+        open={isTransferModalOpen}
+        onOpenChange={setIsTransferModalOpen}
+      />
     </div>
   );
 };

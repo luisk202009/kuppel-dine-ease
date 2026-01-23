@@ -125,21 +125,26 @@ export const useCreateBankTransaction = () => {
     mutationFn: async (data: CreateBankTransactionData) => {
       const { data: { user } } = await supabase.auth.getUser();
       
+      const insertData: any = {
+        company_id: data.companyId,
+        bank_account_id: data.bankAccountId,
+        type: data.type,
+        amount: data.amount,
+        date: data.date || new Date().toISOString().split('T')[0],
+        description: data.description || null,
+        source_module: data.sourceModule || 'MANUAL',
+        source_id: data.sourceId || null,
+        reference_number: data.referenceNumber || null,
+        created_by: user?.id || null,
+      };
+      
+      if (data.linkedTransactionId) {
+        insertData.linked_transaction_id = data.linkedTransactionId;
+      }
+
       const { data: transaction, error } = await supabase
         .from('bank_transactions')
-        .insert({
-          company_id: data.companyId,
-          bank_account_id: data.bankAccountId,
-          type: data.type,
-          amount: data.amount,
-          date: data.date || new Date().toISOString().split('T')[0],
-          description: data.description || null,
-          source_module: data.sourceModule || 'MANUAL',
-          source_id: data.sourceId || null,
-          reference_number: data.referenceNumber || null,
-          linked_transaction_id: data.linkedTransactionId || null,
-          created_by: user?.id || null,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -220,7 +225,7 @@ export const useCreateBankTransfer = () => {
       // Update the outgoing transaction to link to incoming
       await supabase
         .from('bank_transactions')
-        .update({ linked_transaction_id: inTx.id })
+        .update({ linked_transaction_id: inTx.id } as any)
         .eq('id', outTx.id);
 
       return { outTx, inTx };
