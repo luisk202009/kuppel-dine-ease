@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Settings, Wallet, Package, Users, Receipt, BarChart3, CreditCard, DollarSign, Lock, ShoppingCart, FileText } from 'lucide-react';
+import { Loader2, Settings, Wallet, Package, Users, Receipt, BarChart3, CreditCard, DollarSign, Lock, ShoppingCart, FileText, Store, Landmark } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EnabledModules, DEFAULT_ENABLED_MODULES } from '@/types/pos';
@@ -84,6 +84,30 @@ const MODULES_CONFIG: ModuleConfig[] = [
     label: 'Facturación Estándar',
     description: 'Emisión de facturas estándar con ítems personalizados',
     icon: FileText,
+  },
+  {
+    id: 'onlineStore',
+    label: 'Tienda Online',
+    description: 'Catálogo público de productos y pedidos online',
+    icon: Store,
+  },
+  {
+    id: 'treasury',
+    label: 'Tesorería',
+    description: 'Gestión de cuentas bancarias, movimientos y transferencias',
+    icon: Landmark,
+  },
+  {
+    id: 'paymentReceipts',
+    label: 'Pagos Recibidos',
+    description: 'Registro de cobros asociados a facturas',
+    icon: Wallet,
+  },
+  {
+    id: 'expensePayments',
+    label: 'Pagos Realizados',
+    description: 'Registro de pagos asociados a gastos',
+    icon: CreditCard,
   },
 ];
 
