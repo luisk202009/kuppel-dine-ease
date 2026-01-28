@@ -169,6 +169,10 @@ export interface EnabledModules {
   cash: boolean;
   pos: boolean;
   standardInvoicing: boolean;
+  onlineStore: boolean;
+  treasury: boolean;
+  paymentReceipts: boolean;
+  expensePayments: boolean;
 }
 
 export const DEFAULT_ENABLED_MODULES: EnabledModules = {
@@ -182,6 +186,10 @@ export const DEFAULT_ENABLED_MODULES: EnabledModules = {
   cash: true,
   pos: true,
   standardInvoicing: false,
+  onlineStore: false,
+  treasury: true,
+  paymentReceipts: true,
+  expensePayments: true,
 };
 
 // App State Types
