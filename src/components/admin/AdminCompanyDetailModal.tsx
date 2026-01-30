@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon, CreditCard, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Building2, MapPin, Users, TrendingUp, ShoppingCart, ArrowUpIcon, ArrowDownIcon, CreditCard, AlertTriangle, Landmark, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
@@ -149,6 +152,13 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
   const [limitsStatus, setLimitsStatus] = useState<CompanyLimitsStatus | null>(null);
   const [isLoadingLimits, setIsLoadingLimits] = useState(false);
   const [enabledModules, setEnabledModules] = useState<EnabledModules | null>(null);
+  
+  // Dataico configuration state
+  const [dataicoAccountId, setDataicoAccountId] = useState('');
+  const [dataicoAuthToken, setDataicoAuthToken] = useState('');
+  const [dataicoStatus, setDataicoStatus] = useState<string>('pending');
+  const [showDataicoToken, setShowDataicoToken] = useState(false);
+  const [isSavingDataico, setIsSavingDataico] = useState(false);
   const { toast } = useToast();
 
   // Cargar datos mensuales y productos cuando se abre el modal
@@ -159,8 +169,60 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
       fetchPlan();
       fetchLimitsStatus();
       fetchEnabledModules();
+      fetchDataicoConfig();
     }
   }, [open, company]);
+
+  const fetchDataicoConfig = async () => {
+    if (!company) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('dataico_account_id, dataico_auth_token, dataico_status')
+        .eq('id', company.id)
+        .single();
+      
+      if (error) throw error;
+      setDataicoAccountId(data?.dataico_account_id || '');
+      setDataicoAuthToken(data?.dataico_auth_token || '');
+      setDataicoStatus(data?.dataico_status || 'pending');
+    } catch (error) {
+      console.error('Error fetching Dataico config:', error);
+    }
+  };
+
+  const handleSaveDataicoConfig = async () => {
+    if (!company) return;
+    
+    setIsSavingDataico(true);
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          dataico_account_id: dataicoAccountId.trim() || null,
+          dataico_auth_token: dataicoAuthToken.trim() || null,
+          dataico_status: dataicoStatus,
+        })
+        .eq('id', company.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Configuración guardada',
+        description: 'La configuración de Dataico se ha guardado correctamente.',
+      });
+    } catch (error: any) {
+      console.error('Error saving Dataico config:', error);
+      toast({
+        title: 'Error al guardar',
+        description: error.message || 'No se pudo guardar la configuración de Dataico.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingDataico(false);
+    }
+  };
 
   const fetchEnabledModules = async () => {
     if (!company) return;
@@ -656,6 +718,81 @@ export const AdminCompanyDetailModal: React.FC<AdminCompanyDetailModalProps> = (
             initialModules={enabledModules}
             onSave={fetchEnabledModules}
           />
+
+          {/* Configuración Fiscal (Dataico) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Landmark className="h-5 w-5" />
+                <span>Configuración Fiscal (Dataico)</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dataicoAccountId">Account ID</Label>
+                  <Input
+                    id="dataicoAccountId"
+                    placeholder="ID de cuenta en Dataico"
+                    value={dataicoAccountId}
+                    onChange={(e) => setDataicoAccountId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dataicoStatus">Estado</Label>
+                  <Select value={dataicoStatus} onValueChange={setDataicoStatus}>
+                    <SelectTrigger id="dataicoStatus">
+                      <SelectValue placeholder="Seleccionar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendiente de activación</SelectItem>
+                      <SelectItem value="active">Activo</SelectItem>
+                      <SelectItem value="error">Error de conexión</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dataicoAuthToken">Auth Token</Label>
+                <div className="relative">
+                  <Input
+                    id="dataicoAuthToken"
+                    type={showDataicoToken ? 'text' : 'password'}
+                    placeholder="Token de autenticación"
+                    value={dataicoAuthToken}
+                    onChange={(e) => setDataicoAuthToken(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowDataicoToken(!showDataicoToken)}
+                  >
+                    {showDataicoToken ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Este token se almacena de forma segura y no se muestra en la interfaz
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSaveDataicoConfig} 
+                  disabled={isSavingDataico}
+                  size="sm"
+                >
+                  {isSavingDataico && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Guardar Configuración Fiscal
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Usage Summary con comparación de períodos */}
           {usage && (

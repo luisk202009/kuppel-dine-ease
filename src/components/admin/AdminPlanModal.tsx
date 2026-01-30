@@ -45,6 +45,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
   const [maxUsers, setMaxUsers] = useState('');
   const [maxBranches, setMaxBranches] = useState('');
   const [maxDocuments, setMaxDocuments] = useState('');
+  const [maxElectronicDocuments, setMaxElectronicDocuments] = useState('');
 
   useEffect(() => {
     if (plan) {
@@ -64,6 +65,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
       setMaxUsers(planLimits?.max_users?.toString() || '');
       setMaxBranches(planLimits?.max_branches?.toString() || '');
       setMaxDocuments(planLimits?.max_documents_per_month?.toString() || '');
+      setMaxElectronicDocuments(plan.max_electronic_documents?.toString() || '');
     } else {
       // Create mode - reset form
       resetForm();
@@ -84,6 +86,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
     setMaxUsers('');
     setMaxBranches('');
     setMaxDocuments('');
+    setMaxElectronicDocuments('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,6 +122,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
         show_in_wizard: showInWizard,
         trial_days: trialDays ? parseInt(trialDays) : 0,
         limits: Object.keys(limits).length > 0 ? limits : null,
+        max_electronic_documents: maxElectronicDocuments ? parseInt(maxElectronicDocuments) : null,
       };
 
       if (plan) {
@@ -291,7 +295,7 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
             <p className="text-xs text-muted-foreground">
               Deja en blanco para límites ilimitados
             </p>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="maxUsers">Usuarios Máximos</Label>
                 <Input
@@ -321,6 +325,19 @@ export const AdminPlanModal: React.FC<AdminPlanModalProps> = ({ plan, open, onCl
                   value={maxDocuments}
                   onChange={(e) => setMaxDocuments(e.target.value)}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxElectronicDocuments">Docs. Electrónicos</Label>
+                <Input
+                  id="maxElectronicDocuments"
+                  type="number"
+                  placeholder="Ilimitado"
+                  value={maxElectronicDocuments}
+                  onChange={(e) => setMaxElectronicDocuments(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Facturas vía Dataico
+                </p>
               </div>
             </div>
           </div>

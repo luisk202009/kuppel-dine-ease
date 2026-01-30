@@ -377,10 +377,16 @@ export type Database = {
           billing_period: string | null
           business_type: Database["public"]["Enums"]["business_type"] | null
           created_at: string
+          current_month_documents: number | null
+          dataico_account_id: string | null
+          dataico_auth_token: string | null
+          dataico_email: string | null
+          dataico_status: string | null
           email: string | null
           enabled_modules: Json | null
           id: string
           is_active: boolean
+          monthly_document_limit: number | null
           name: string
           owner_id: string | null
           phone: string | null
@@ -399,10 +405,16 @@ export type Database = {
           billing_period?: string | null
           business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
+          current_month_documents?: number | null
+          dataico_account_id?: string | null
+          dataico_auth_token?: string | null
+          dataico_email?: string | null
+          dataico_status?: string | null
           email?: string | null
           enabled_modules?: Json | null
           id?: string
           is_active?: boolean
+          monthly_document_limit?: number | null
           name: string
           owner_id?: string | null
           phone?: string | null
@@ -421,10 +433,16 @@ export type Database = {
           billing_period?: string | null
           business_type?: Database["public"]["Enums"]["business_type"] | null
           created_at?: string
+          current_month_documents?: number | null
+          dataico_account_id?: string | null
+          dataico_auth_token?: string | null
+          dataico_email?: string | null
+          dataico_status?: string | null
           email?: string | null
           enabled_modules?: Json | null
           id?: string
           is_active?: boolean
+          monthly_document_limit?: number | null
           name?: string
           owner_id?: string | null
           phone?: string | null
@@ -1217,6 +1235,7 @@ export type Database = {
           id: string
           is_active: boolean
           limits: Json | null
+          max_electronic_documents: number | null
           name: string
           price_monthly: number | null
           price_yearly: number | null
@@ -1233,6 +1252,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           limits?: Json | null
+          max_electronic_documents?: number | null
           name: string
           price_monthly?: number | null
           price_yearly?: number | null
@@ -1249,6 +1269,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           limits?: Json | null
+          max_electronic_documents?: number | null
           name?: string
           price_monthly?: number | null
           price_yearly?: number | null
