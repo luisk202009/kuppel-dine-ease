@@ -60,7 +60,8 @@ export const BillingDataForm: React.FC = () => {
   const companyId = authState.selectedCompany?.id;
 
   // Check if electronic invoicing module is enabled
-  const enabledModules = authState.selectedCompany?.enabledModules as EnabledModules | undefined;
+  // Use authState.enabledModules which is synced by the context
+  const enabledModules = authState.enabledModules as EnabledModules | undefined;
   const showElectronicBilling = enabledModules?.standardInvoicing === true;
 
   const [formData, setFormData] = useState<BillingData>({
