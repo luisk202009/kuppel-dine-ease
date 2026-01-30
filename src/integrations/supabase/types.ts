@@ -385,6 +385,10 @@ export type Database = {
           email: string | null
           enabled_modules: Json | null
           id: string
+          invoice_prefix: string | null
+          invoice_range_end: number | null
+          invoice_range_start: number | null
+          invoice_resolution: string | null
           is_active: boolean
           monthly_document_limit: number | null
           name: string
@@ -396,6 +400,7 @@ export type Database = {
           store_banner_url: string | null
           subscription_status: string | null
           tax_id: string | null
+          tax_regime: string | null
           trial_end_at: string | null
           updated_at: string
           whatsapp_number: string | null
@@ -413,6 +418,10 @@ export type Database = {
           email?: string | null
           enabled_modules?: Json | null
           id?: string
+          invoice_prefix?: string | null
+          invoice_range_end?: number | null
+          invoice_range_start?: number | null
+          invoice_resolution?: string | null
           is_active?: boolean
           monthly_document_limit?: number | null
           name: string
@@ -424,6 +433,7 @@ export type Database = {
           store_banner_url?: string | null
           subscription_status?: string | null
           tax_id?: string | null
+          tax_regime?: string | null
           trial_end_at?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -441,6 +451,10 @@ export type Database = {
           email?: string | null
           enabled_modules?: Json | null
           id?: string
+          invoice_prefix?: string | null
+          invoice_range_end?: number | null
+          invoice_range_start?: number | null
+          invoice_resolution?: string | null
           is_active?: boolean
           monthly_document_limit?: number | null
           name?: string
@@ -452,6 +466,7 @@ export type Database = {
           store_banner_url?: string | null
           subscription_status?: string | null
           tax_id?: string | null
+          tax_regime?: string | null
           trial_end_at?: string | null
           updated_at?: string
           whatsapp_number?: string | null
