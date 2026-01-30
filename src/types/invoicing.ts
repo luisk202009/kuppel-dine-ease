@@ -55,6 +55,12 @@ export interface StandardInvoice {
   notes?: string;
   termsConditions?: string;
   
+  // Dataico / Electronic Invoicing
+  dataicoUuid?: string;
+  dataicoStatus?: 'pending' | 'sent' | 'accepted' | 'rejected' | null;
+  cufe?: string;
+  dataicoSentAt?: Date;
+  
   // Audit
   createdBy: string;
   createdAt: Date;
@@ -162,6 +168,11 @@ export interface StandardInvoiceRow {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Dataico / Electronic Invoicing
+  dataico_uuid: string | null;
+  dataico_status: string | null;
+  cufe: string | null;
+  dataico_sent_at: string | null;
 }
 
 export interface StandardInvoiceItemRow {
@@ -219,6 +230,12 @@ export const mapInvoiceRowToInvoice = (row: StandardInvoiceRow): StandardInvoice
   status: row.status as InvoiceStatus,
   notes: row.notes || undefined,
   termsConditions: row.terms_conditions || undefined,
+  // Dataico fields
+  dataicoUuid: row.dataico_uuid || undefined,
+  dataicoStatus: row.dataico_status as StandardInvoice['dataicoStatus'] || undefined,
+  cufe: row.cufe || undefined,
+  dataicoSentAt: row.dataico_sent_at ? new Date(row.dataico_sent_at) : undefined,
+  // Audit
   createdBy: row.created_by,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { FileDown, Mail, Loader2 } from 'lucide-react';
+import { FileDown, Mail, Loader2, Zap, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -14,14 +15,25 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useDataico } from '@/hooks/useDataico';
+import { usePOS } from '@/contexts/POSContext';
 
 interface InvoiceActionsProps {
   invoiceId: string;
   customerEmail?: string;
+  invoiceStatus?: string;
+  dataicoUuid?: string;
 }
 
-export const InvoiceActions = ({ invoiceId, customerEmail }: InvoiceActionsProps) => {
+export const InvoiceActions = ({ 
+  invoiceId, 
+  customerEmail,
+  invoiceStatus,
+  dataicoUuid 
+}: InvoiceActionsProps) => {
   const { toast } = useToast();
+  const { authState } = usePOS();
+  const { sendInvoiceToDataico, isLoading: isDataicoLoading } = useDataico();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -30,6 +42,19 @@ export const InvoiceActions = ({ invoiceId, customerEmail }: InvoiceActionsProps
     subject: '',
     message: '',
   });
+
+  // Check Dataico configuration
+  const enabledModules = authState.enabledModules;
+  const hasDataicoConfig = authState.selectedCompany?.dataico_auth_token && 
+                           authState.selectedCompany?.dataico_account_id;
+  const showDataicoButton = enabledModules?.standardInvoicing && 
+                            hasDataicoConfig && 
+                            invoiceStatus === 'issued' && 
+                            !dataicoUuid;
+
+  const handleSendToDataico = async () => {
+    await sendInvoiceToDataico(invoiceId);
+  };
 
   const handleGeneratePdf = async () => {
     setIsGeneratingPdf(true);
@@ -110,7 +135,33 @@ export const InvoiceActions = ({ invoiceId, customerEmail }: InvoiceActionsProps
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
+        {/* Dataico Button - New */}
+        {showDataicoButton && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleSendToDataico}
+            disabled={isDataicoLoading}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white"
+          >
+            {isDataicoLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4 mr-2" />
+            )}
+            Enviar DIAN
+          </Button>
+        )}
+        
+        {/* Synced indicator */}
+        {dataicoUuid && (
+          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            DIAN
+          </Badge>
+        )}
+        
         <Button
           variant="outline"
           size="sm"
