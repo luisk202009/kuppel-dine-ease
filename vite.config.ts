@@ -61,10 +61,10 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: 'Kuppel POS',
-        short_name: 'Kuppel POS',
+        name: 'Kuppel Dine Ease',
+        short_name: 'Kuppel',
         description: 'Sistema de punto de venta para bares, cafés y restaurantes',
-        theme_color: '#0f766e',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
@@ -87,6 +87,12 @@ export default defineConfig(({ mode }) => ({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
             src: '/pwa-maskable-192x192.png',
