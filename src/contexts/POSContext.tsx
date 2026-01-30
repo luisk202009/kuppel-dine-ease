@@ -425,14 +425,17 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
            role: 'cashier' as const,
            isActive: true
          },
-         companies: companies.map((comp: any) => ({
-           id: comp.id,
-           name: comp.name,
-           address: comp.address,
-           phone: comp.phone,
-           email: comp.email,
-           enabledModules: comp.enabledModules || comp.enabled_modules || null,
-         })),
+          companies: companies.map((comp: any) => ({
+            id: comp.id,
+            name: comp.name,
+            address: comp.address,
+            phone: comp.phone,
+            email: comp.email,
+            enabledModules: comp.enabledModules || comp.enabled_modules || null,
+            dataico_auth_token: comp.dataico_auth_token || null,
+            dataico_account_id: comp.dataico_account_id || null,
+            dataico_status: comp.dataico_status || null,
+          })),
          branches: branches.map((branch: any) => ({
            id: branch.id,
            name: branch.name,
@@ -451,14 +454,17 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
        // Auto-select if only one option
        if (!needsSelection && companies[0] && branches[0]) {
-         const transformedCompany = {
-           id: companies[0].id,
-           name: companies[0].name,
-           address: companies[0].address,
-           phone: companies[0].phone,
-           email: companies[0].email,
-           enabledModules: (companies[0] as any).enabledModules || (companies[0] as any).enabled_modules || null,
-         };
+          const transformedCompany = {
+            id: companies[0].id,
+            name: companies[0].name,
+            address: companies[0].address,
+            phone: companies[0].phone,
+            email: companies[0].email,
+            enabledModules: (companies[0] as any).enabledModules || (companies[0] as any).enabled_modules || null,
+            dataico_auth_token: (companies[0] as any).dataico_auth_token || null,
+            dataico_account_id: (companies[0] as any).dataico_account_id || null,
+            dataico_status: (companies[0] as any).dataico_status || null,
+          };
          const transformedBranch = {
            id: branches[0].id,
            name: branches[0].name,
