@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileDown, Mail, Loader2, Zap, CheckCircle } from 'lucide-react';
+import { FileDown, Mail, Loader2, Zap, CheckCircle, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,6 +15,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useDataico } from '@/hooks/useDataico';
 import { usePOS } from '@/contexts/POSContext';
 
@@ -136,53 +143,64 @@ export const InvoiceActions = ({
   return (
     <>
       <div className="flex gap-2 items-center">
-        {/* Dataico Button - New */}
-        {showDataicoButton && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSendToDataico}
-            disabled={isDataicoLoading}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white"
-          >
-            {isDataicoLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Zap className="h-4 w-4 mr-2" />
-            )}
-            Enviar DIAN
-          </Button>
-        )}
-        
-        {/* Synced indicator */}
+        {/* Badge de DIAN sincronizado - se mantiene visible */}
         {dataicoUuid && (
           <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
             <CheckCircle className="h-3 w-3 mr-1" />
             DIAN
           </Badge>
         )}
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleGeneratePdf}
-          disabled={isGeneratingPdf}
-        >
-          {isGeneratingPdf ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <FileDown className="h-4 w-4 mr-2" />
-          )}
-          PDF
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEmailDialogOpen(true)}
-        >
-          <Mail className="h-4 w-4 mr-2" />
-          Email
-        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-popover">
+            {/* Opción Enviar a DIAN */}
+            {showDataicoButton && (
+              <>
+                <DropdownMenuItem 
+                  onClick={handleSendToDataico}
+                  disabled={isDataicoLoading}
+                  className="cursor-pointer"
+                >
+                  {isDataicoLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4 mr-2 text-yellow-600" />
+                  )}
+                  Emitir Factura Electrónica
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            
+            {/* Opción PDF */}
+            <DropdownMenuItem 
+              onClick={handleGeneratePdf}
+              disabled={isGeneratingPdf}
+              className="cursor-pointer"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              Descargar PDF
+            </DropdownMenuItem>
+            
+            {/* Opción Email */}
+            <DropdownMenuItem 
+              onClick={() => setEmailDialogOpen(true)}
+              className="cursor-pointer"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Enviar por Email
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
