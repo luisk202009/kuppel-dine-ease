@@ -1,162 +1,230 @@
 
 
-# Plan: Integración de Campos Dataico en Frontend
+# Plan: Configuración de Facturación Electrónica para Dueños de Negocio
 
 ## Resumen
 
-Se actualizarán los tipos de TypeScript y los componentes del panel de administración para reflejar los nuevos campos de Dataico añadidos a la base de datos.
+Se añadirá una nueva sección de "Configuración de Facturación Electrónica" en el componente de ajustes, visible solo cuando el módulo `standardInvoicing` esté habilitado. Esta sección permitirá a los dueños de negocio configurar los datos fiscales necesarios para Dataico.
 
 ---
 
 ## Archivos a Modificar
 
-### 1. `src/integrations/supabase/types.ts`
+| Archivo | Tipo de Cambio |
+|---------|----------------|
+| `src/integrations/supabase/types.ts` | Agregar campos fiscales que faltan en la tabla `companies` |
+| `src/components/settings/BillingDataForm.tsx` | Agregar sección de Facturación Electrónica |
 
-**Cambios en la tabla `companies` (Row, Insert, Update):**
-```typescript
-// Agregar estos campos:
-dataico_account_id: string | null
-dataico_auth_token: string | null
-dataico_status: string | null
-```
+---
 
-**Cambios en la tabla `plans` (Row, Insert, Update):**
+## 1. Actualización de Tipos (`src/integrations/supabase/types.ts`)
+
+Los siguientes campos ya existen en la base de datos (según el contexto) pero faltan en los tipos:
+
 ```typescript
-// Agregar este campo:
-max_electronic_documents: number | null
+// Añadir a companies.Row, Insert, Update:
+invoice_prefix: string | null
+invoice_resolution: string | null
+invoice_range_start: number | null
+invoice_range_end: number | null
+tax_regime: string | null
 ```
 
 ---
 
-### 2. `src/components/admin/AdminCompanyDetailModal.tsx`
+## 2. Nueva Sección en BillingDataForm
 
-**Nuevos estados y lógica:**
-- Añadir estados para los campos Dataico: `dataicoAccountId`, `dataicoAuthToken`, `dataicoStatus`
-- Crear función `fetchDataicoConfig()` para cargar la configuración actual
-- Crear función `handleSaveDataicoConfig()` para guardar los cambios
+### Ubicación
+Se añadirá una nueva `Card` debajo de la sección "Datos de la Empresa" existente, visible solo si `enabledModules?.standardInvoicing === true`.
 
-**Nueva sección UI después de "CompanyModulesManager":**
+### Diseño de la UI
+
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│ 🏛️ Configuración Fiscal (Dataico)                              │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  ┌─────────────────────┐  ┌─────────────────────┐             │
-│  │ Account ID          │  │ Estado              │             │
-│  │ [________________]  │  │ [pending ▼]         │             │
-│  └─────────────────────┘  └─────────────────────┘             │
-│                                                                │
-│  ┌─────────────────────────────────────────────┐              │
-│  │ Auth Token                                   │              │
-│  │ [••••••••••••••••••••••••••] 👁              │              │
-│  └─────────────────────────────────────────────┘              │
-│                                                                │
-│  [Guardar Configuración Fiscal]                               │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│ 📄 Configuración de Facturación Electrónica                                │
+│                                                                            │
+│ [i] Estos datos son necesarios para que tus facturas tengan validez       │
+│     legal ante la entidad fiscal a través de Dataico.                      │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐                 │
+│  │ Tipo de Contribuyente   │  │ NIT/RUT *               │                 │
+│  │ [Persona Jurídica ▼]    │  │ [900.123.456-7_______] │                 │
+│  └─────────────────────────┘  └─────────────────────────┘                 │
+│                                                                            │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐                 │
+│  │ Prefijo de Facturación  │  │ Resolución DIAN *       │                 │
+│  │ [SETT_______________]   │  │ [18764000001234______]  │                 │
+│  └─────────────────────────┘  └─────────────────────────┘                 │
+│                                                                            │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐                 │
+│  │ Numeración Desde        │  │ Numeración Hasta        │                 │
+│  │ [1____________________] │  │ [5000_________________] │                 │
+│  └─────────────────────────┘  └─────────────────────────┘                 │
+│                                                                            │
+│                                        [💾 Guardar Configuración Fiscal]  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Componentes a usar:**
-- `Card`, `CardHeader`, `CardTitle`, `CardContent`
-- `Input` (normal para Account ID, type="password" para Auth Token)
-- `Select` con opciones: `pending`, `active`, `error`
-- `Button` para guardar
-- `Label` para cada campo
+### Campos del Formulario
 
----
+| Campo UI | Campo DB | Tipo | Requerido |
+|----------|----------|------|-----------|
+| Tipo de Contribuyente | `tax_regime` | Select | No |
+| NIT/RUT | `tax_id` (ya existe) | Input texto | Sí* |
+| Prefijo de Facturación | `invoice_prefix` | Input texto | No |
+| Resolución DIAN | `invoice_resolution` | Input texto | Sí* |
+| Numeración Desde | `invoice_range_start` | Input numérico | No |
+| Numeración Hasta | `invoice_range_end` | Input numérico | No |
 
-### 3. `src/components/admin/AdminPlanModal.tsx`
+*Campos obligatorios solo al guardar la configuración fiscal.
 
-**Nuevos estados:**
-- `maxElectronicDocuments` (string para el input)
+### Opciones del Select "Tipo de Contribuyente"
 
-**Cambios en `useEffect`:**
-- Leer `plan.max_electronic_documents` al cargar un plan
-
-**Cambios en `handleSubmit`:**
-- Incluir `max_electronic_documents` en el objeto `planData`
-
-**Nueva UI en la sección "Límites del Plan":**
-```text
-Añadir un cuarto campo junto a los existentes:
-
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│ Usuarios Máx.   │  │ Sucursales Máx. │  │ Documentos/Mes  │  │ Docs. Electrón. │
-│ [_________]     │  │ [_________]     │  │ [_________]     │  │ [_________]     │
-└─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘
-```
-
-El campo "Docs. Electrónicos" (Límite de Documentos Electrónicos) permite definir cuántas facturas electrónicas (vía Dataico) puede emitir una empresa según su plan.
-
----
-
-## Estructura de Datos
-
-### Tabla `companies` - Campos Dataico
-
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `dataico_account_id` | text | ID de cuenta en Dataico |
-| `dataico_auth_token` | text | Token de autenticación (sensible) |
-| `dataico_status` | text | Estado: `pending`, `active`, `error` |
-
-### Tabla `plans` - Campo Nuevo
-
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `max_electronic_documents` | integer | Límite de facturas electrónicas por mes |
-
----
-
-## Detalles de Implementación
-
-### AdminCompanyDetailModal.tsx
-
-**Ubicación de la nueva sección:** 
-Entre el componente `CompanyModulesManager` y la sección "Resumen de Uso"
-
-**Patrón de guardado:**
 ```typescript
-const handleSaveDataicoConfig = async () => {
-  // Validación básica
-  // Update a supabase con los 3 campos
-  // Toast de éxito/error
-  // Refrescar datos
+const taxRegimeOptions = [
+  { value: 'persona_juridica', label: 'Persona Jurídica' },
+  { value: 'persona_natural', label: 'Persona Natural' },
+];
+```
+
+---
+
+## 3. Lógica de Implementación
+
+### Estado del Formulario
+
+```typescript
+interface ElectronicBillingData {
+  tax_regime: string;
+  tax_id: string;
+  invoice_prefix: string;
+  invoice_resolution: string;
+  invoice_range_start: string;
+  invoice_range_end: string;
 }
 ```
 
-**Opciones del Select de Estado:**
-- `pending` - "Pendiente de activación"
-- `active` - "Activo"
-- `error` - "Error de conexión"
+### Dependencias a importar
 
-### AdminPlanModal.tsx
+```typescript
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info, FileText } from 'lucide-react';
+import { usePOS } from '@/contexts/POSContext';
+```
 
-**Cambios mínimos:**
-- 1 nuevo estado `maxElectronicDocuments`
-- Lectura en useEffect desde `plan.max_electronic_documents`
-- Inclusión en planData al guardar
-- 1 nuevo Input en el grid de límites
+### Obtener enabledModules
+
+El componente necesitará acceder a `enabledModules` desde el contexto de la empresa para determinar la visibilidad:
+
+```typescript
+const { authState } = usePOS();
+const enabledModules = authState.selectedCompany?.enabled_modules as EnabledModules | undefined;
+const showElectronicBilling = enabledModules?.standardInvoicing === true;
+```
+
+### Query para cargar datos adicionales
+
+Modificar la query existente para incluir los nuevos campos:
+
+```typescript
+const { data, error } = await supabase
+  .from('companies')
+  .select('id, name, tax_id, email, phone, address, tax_regime, invoice_prefix, invoice_resolution, invoice_range_start, invoice_range_end')
+  .eq('id', companyId)
+  .single();
+```
+
+### Función de guardado
+
+```typescript
+const handleSaveElectronicBilling = async () => {
+  // Validación: si hay datos, NIT y resolución son obligatorios
+  if (electronicForm.invoice_prefix || electronicForm.invoice_resolution) {
+    if (!electronicForm.tax_id.trim()) {
+      toast({ 
+        title: 'Error', 
+        description: 'El NIT/RUT es obligatorio para facturación electrónica',
+        variant: 'destructive' 
+      });
+      return;
+    }
+    if (!electronicForm.invoice_resolution.trim()) {
+      toast({ 
+        title: 'Error', 
+        description: 'La resolución DIAN es obligatoria para facturación electrónica',
+        variant: 'destructive' 
+      });
+      return;
+    }
+  }
+
+  const { error } = await supabase
+    .from('companies')
+    .update({
+      tax_regime: electronicForm.tax_regime || null,
+      tax_id: electronicForm.tax_id || null,
+      invoice_prefix: electronicForm.invoice_prefix || null,
+      invoice_resolution: electronicForm.invoice_resolution || null,
+      invoice_range_start: electronicForm.invoice_range_start ? parseInt(electronicForm.invoice_range_start) : null,
+      invoice_range_end: electronicForm.invoice_range_end ? parseInt(electronicForm.invoice_range_end) : null,
+    })
+    .eq('id', companyId);
+
+  if (error) throw error;
+  
+  toast({ title: 'Configuración guardada', description: 'Los datos fiscales se actualizaron correctamente' });
+};
+```
 
 ---
 
-## Consideraciones de Seguridad
+## 4. Flujo de Validación
 
-1. **Auth Token como Password:**
-   - El input de `dataico_auth_token` tendrá `type="password"`
-   - Opcionalmente se puede agregar un botón para mostrar/ocultar el token
-
-2. **No exponer en logs:**
-   - Evitar console.log de tokens
-   - El token solo se muestra como asteriscos en la UI
+```text
+Usuario hace clic en "Guardar Configuración Fiscal"
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ ¿Se ingresó algún dato de facturación? │
+└─────────────────────────────────────────┘
+    │                      │
+    │ Sí                   │ No
+    ▼                      ▼
+┌─────────────────┐    Guardar todo
+│ Validar:        │    (campos vacíos → null)
+│ - NIT requerido │
+│ - Resolución req│
+└─────────────────┘
+    │
+    │ ¿Válido?
+    │     │
+    │ Sí  │ No
+    ▼     ▼
+  Guardar  Mostrar error toast
+```
 
 ---
 
-## Resumen de Cambios por Archivo
+## 5. Consideraciones UX
 
-| Archivo | Tipo de Cambio |
-|---------|----------------|
-| `src/integrations/supabase/types.ts` | Agregar tipos para 4 campos nuevos |
-| `AdminCompanyDetailModal.tsx` | Nueva sección Card con 3 inputs + Select + botón guardar |
-| `AdminPlanModal.tsx` | 1 nuevo Input en sección de límites |
+1. **Tooltip informativo**: Añadir un icono `Info` junto al título de la sección con un tooltip que explique la importancia de estos datos.
+
+2. **Visibilidad condicional**: La sección solo aparece si `standardInvoicing` está habilitado en `enabledModules`.
+
+3. **Separación visual**: Usar un `Card` separado del formulario principal de datos de empresa para distinguir la configuración fiscal.
+
+4. **Botón de guardado independiente**: Permitir guardar la configuración fiscal sin afectar los datos básicos de la empresa.
+
+---
+
+## Resultado Esperado
+
+1. Los dueños de negocio con el módulo de facturación habilitado verán una nueva sección en la página de Datos de Facturación.
+2. Podrán configurar todos los datos fiscales necesarios para emitir facturas electrónicas válidas.
+3. El sistema validará que NIT y Resolución estén completos antes de guardar.
+4. Los datos se persistirán correctamente en la tabla `companies` de Supabase.
 
