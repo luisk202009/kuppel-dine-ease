@@ -59,6 +59,21 @@ interface Invoice {
   };
 }
 
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ */
+const escapeHtml = (unsafe: string | null | undefined): string => {
+  if (unsafe == null) return '';
+  if (typeof unsafe !== 'string') return String(unsafe);
+  
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 const formatCurrency = (amount: number, currency: string) => {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -88,8 +103,8 @@ const generateHTML = (invoice: Invoice): string => {
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-        <strong>${item.item_name}</strong>
-        ${item.description ? `<br><span style="color: #6b7280; font-size: 12px;">${item.description}</span>` : ''}
+        <strong>${escapeHtml(item.item_name)}</strong>
+        ${item.description ? `<br><span style="color: #6b7280; font-size: 12px;">${escapeHtml(item.description)}</span>` : ''}
       </td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price, invoice.currency)}</td>
@@ -105,7 +120,7 @@ const generateHTML = (invoice: Invoice): string => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Factura ${invoice.invoice_number}</title>
+  <title>Factura ${escapeHtml(invoice.invoice_number)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1f2937; line-height: 1.5; }
@@ -146,15 +161,15 @@ const generateHTML = (invoice: Invoice): string => {
   <div class="container">
     <div class="header">
       <div class="company-info">
-        <h1>${invoice.branch.company.name}</h1>
-        ${invoice.branch.company.tax_id ? `<p>NIT: ${invoice.branch.company.tax_id}</p>` : ''}
-        ${invoice.branch.company.address ? `<p>${invoice.branch.company.address}</p>` : ''}
-        ${invoice.branch.company.phone ? `<p>Tel: ${invoice.branch.company.phone}</p>` : ''}
-        ${invoice.branch.company.email ? `<p>${invoice.branch.company.email}</p>` : ''}
+        <h1>${escapeHtml(invoice.branch.company.name)}</h1>
+        ${invoice.branch.company.tax_id ? `<p>NIT: ${escapeHtml(invoice.branch.company.tax_id)}</p>` : ''}
+        ${invoice.branch.company.address ? `<p>${escapeHtml(invoice.branch.company.address)}</p>` : ''}
+        ${invoice.branch.company.phone ? `<p>Tel: ${escapeHtml(invoice.branch.company.phone)}</p>` : ''}
+        ${invoice.branch.company.email ? `<p>${escapeHtml(invoice.branch.company.email)}</p>` : ''}
       </div>
       <div class="invoice-info">
-        <div class="invoice-number">${invoice.invoice_number}</div>
-        <div class="invoice-status status-${invoice.status}">${statusLabels[invoice.status] || invoice.status}</div>
+        <div class="invoice-number">${escapeHtml(invoice.invoice_number)}</div>
+        <div class="invoice-status status-${escapeHtml(invoice.status)}">${escapeHtml(statusLabels[invoice.status] || invoice.status)}</div>
       </div>
     </div>
 
@@ -162,19 +177,19 @@ const generateHTML = (invoice: Invoice): string => {
       <div class="party">
         <h3>Facturado a</h3>
         ${invoice.customer ? `
-          <p><strong>${invoice.customer.name} ${invoice.customer.last_name || ''}</strong></p>
-          ${invoice.customer.identification ? `<p>ID: ${invoice.customer.identification}</p>` : ''}
-          ${invoice.customer.address ? `<p>${invoice.customer.address}</p>` : ''}
-          ${invoice.customer.city ? `<p>${invoice.customer.city}</p>` : ''}
-          ${invoice.customer.phone ? `<p>Tel: ${invoice.customer.phone}</p>` : ''}
-          ${invoice.customer.email ? `<p>${invoice.customer.email}</p>` : ''}
+          <p><strong>${escapeHtml(invoice.customer.name)} ${escapeHtml(invoice.customer.last_name || '')}</strong></p>
+          ${invoice.customer.identification ? `<p>ID: ${escapeHtml(invoice.customer.identification)}</p>` : ''}
+          ${invoice.customer.address ? `<p>${escapeHtml(invoice.customer.address)}</p>` : ''}
+          ${invoice.customer.city ? `<p>${escapeHtml(invoice.customer.city)}</p>` : ''}
+          ${invoice.customer.phone ? `<p>Tel: ${escapeHtml(invoice.customer.phone)}</p>` : ''}
+          ${invoice.customer.email ? `<p>${escapeHtml(invoice.customer.email)}</p>` : ''}
         ` : '<p style="color: #9ca3af;">Cliente general</p>'}
       </div>
       <div class="party">
         <h3>Sucursal</h3>
-        <p><strong>${invoice.branch.name}</strong></p>
-        ${invoice.branch.address ? `<p>${invoice.branch.address}</p>` : ''}
-        ${invoice.branch.phone ? `<p>Tel: ${invoice.branch.phone}</p>` : ''}
+        <p><strong>${escapeHtml(invoice.branch.name)}</strong></p>
+        ${invoice.branch.address ? `<p>${escapeHtml(invoice.branch.address)}</p>` : ''}
+        ${invoice.branch.phone ? `<p>Tel: ${escapeHtml(invoice.branch.phone)}</p>` : ''}
       </div>
     </div>
 
@@ -192,7 +207,7 @@ const generateHTML = (invoice: Invoice): string => {
       ${invoice.payment_method ? `
         <div class="date-item">
           <label>Método de pago</label>
-          <p>${invoice.payment_method}</p>
+          <p>${escapeHtml(invoice.payment_method)}</p>
         </div>
       ` : ''}
     </div>
@@ -238,14 +253,14 @@ const generateHTML = (invoice: Invoice): string => {
     ${invoice.notes ? `
       <div class="notes">
         <h3>Notas</h3>
-        <p>${invoice.notes}</p>
+        <p>${escapeHtml(invoice.notes)}</p>
       </div>
     ` : ''}
 
     ${invoice.terms_conditions ? `
       <div class="notes">
         <h3>Términos y Condiciones</h3>
-        <p>${invoice.terms_conditions}</p>
+        <p>${escapeHtml(invoice.terms_conditions)}</p>
       </div>
     ` : ''}
 
@@ -286,11 +301,60 @@ serve(async (req) => {
     console.log(`Generating PDF for invoice: ${invoiceId}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Step 1: Validate authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error("Missing or invalid authorization header");
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - authentication required' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Step 2: Create user client to verify access
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Verify user is authenticated
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error("Authentication failed:", claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`Authenticated user: ${userId}`);
+
+    // Step 3: Check if user has access to this invoice via RLS
+    const { data: invoiceAccess, error: accessError } = await supabaseUser
+      .from('standard_invoices')
+      .select('id, branch_id')
+      .eq('id', invoiceId)
+      .single();
+
+    if (accessError || !invoiceAccess) {
+      console.error("Invoice access denied or not found:", accessError);
+      return new Response(
+        JSON.stringify({ error: 'Invoice not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`User ${userId} has access to invoice ${invoiceId}`);
+
+    // Step 4: Now use service role key to fetch complete data
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch invoice with all related data
-    const { data: invoice, error: invoiceError } = await supabase
+    const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from("standard_invoices")
       .select(`
         *,
@@ -309,7 +373,7 @@ serve(async (req) => {
     }
 
     // Fetch invoice items
-    const { data: items, error: itemsError } = await supabase
+    const { data: items, error: itemsError } = await supabaseAdmin
       .from("standard_invoice_items")
       .select("*")
       .eq("invoice_id", invoiceId)

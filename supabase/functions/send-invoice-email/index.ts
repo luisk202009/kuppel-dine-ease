@@ -49,14 +49,63 @@ serve(async (req) => {
     }
     
     const { invoiceId, recipientEmail, subject, message } = validationResult.data;
-    console.log(`Sending email for invoice: ${invoiceId}`);
+    console.log(`Processing email request for invoice: ${invoiceId}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Step 1: Validate authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error("Missing or invalid authorization header");
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - authentication required' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Step 2: Create user client to verify access
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Verify user is authenticated
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error("Authentication failed:", claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`Authenticated user: ${userId}`);
+
+    // Step 3: Check if user has access to this invoice via RLS
+    const { data: invoiceAccess, error: accessError } = await supabaseUser
+      .from('standard_invoices')
+      .select('id, branch_id')
+      .eq('id', invoiceId)
+      .single();
+
+    if (accessError || !invoiceAccess) {
+      console.error("Invoice access denied or not found:", accessError);
+      return new Response(
+        JSON.stringify({ error: 'Invoice not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`User ${userId} has access to invoice ${invoiceId}, proceeding with email`);
+
+    // Step 4: Now use service role key to fetch complete data
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch invoice with related data
-    const { data: invoice, error: invoiceError } = await supabase
+    const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from("standard_invoices")
       .select(`
         *,
@@ -81,7 +130,7 @@ serve(async (req) => {
     }
 
     // Fetch invoice items
-    const { data: items, error: itemsError } = await supabase
+    const { data: items, error: itemsError } = await supabaseAdmin
       .from("standard_invoice_items")
       .select("*")
       .eq("invoice_id", invoiceId)
