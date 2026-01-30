@@ -1513,8 +1513,12 @@ export type Database = {
           branch_id: string
           created_at: string
           created_by: string
+          cufe: string | null
           currency: string
           customer_id: string | null
+          dataico_sent_at: string | null
+          dataico_status: string | null
+          dataico_uuid: string | null
           due_date: string | null
           id: string
           invoice_number: string
@@ -1537,8 +1541,12 @@ export type Database = {
           branch_id: string
           created_at?: string
           created_by: string
+          cufe?: string | null
           currency?: string
           customer_id?: string | null
+          dataico_sent_at?: string | null
+          dataico_status?: string | null
+          dataico_uuid?: string | null
           due_date?: string | null
           id?: string
           invoice_number: string
@@ -1561,8 +1569,12 @@ export type Database = {
           branch_id?: string
           created_at?: string
           created_by?: string
+          cufe?: string | null
           currency?: string
           customer_id?: string | null
+          dataico_sent_at?: string | null
+          dataico_status?: string | null
+          dataico_uuid?: string | null
           due_date?: string | null
           id?: string
           invoice_number?: string

@@ -13,6 +13,10 @@ export interface Company {
   phone: string;
   email?: string;
   enabledModules?: EnabledModules | null;
+  // Dataico / Electronic Invoicing
+  dataico_auth_token?: string | null;
+  dataico_account_id?: string | null;
+  dataico_status?: string | null;
 }
 
 export interface Branch {

@@ -12,7 +12,9 @@ import {
   FileText,
   Store,
   Printer,
-  Banknote
+  Banknote,
+  Zap,
+  Loader2
 } from 'lucide-react';
 import {
   Table,
@@ -52,6 +54,7 @@ import { InvoiceStatus, InvoiceSource, StandardInvoice } from '@/types/invoicing
 import { PrintPreviewModal } from './print';
 import { RecordPaymentModal } from './RecordPaymentModal';
 import { usePOS } from '@/contexts/POSContext';
+import { useDataico } from '@/hooks/useDataico';
 
 interface InvoiceListProps {
   statusFilter?: InvoiceStatus;
@@ -75,6 +78,7 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
   const [printInvoiceId, setPrintInvoiceId] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentInvoice, setPaymentInvoice] = useState<StandardInvoice | null>(null);
+  const [dataicoInvoiceId, setDataicoInvoiceId] = useState<string | null>(null);
 
   const { data: invoices = [] } = useStandardInvoices({
     status: statusFilter,
@@ -83,6 +87,13 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
   const { data: printInvoice } = useStandardInvoice(printInvoiceId || undefined);
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteStandardInvoice();
+  const { sendInvoiceToDataico, isLoading: isDataicoLoading } = useDataico();
+
+  // Check if Dataico is configured
+  const enabledModules = authState.enabledModules;
+  const hasDataicoConfig = authState.selectedCompany?.dataico_auth_token && 
+                           authState.selectedCompany?.dataico_account_id;
+  const showDataicoButton = enabledModules?.standardInvoicing && hasDataicoConfig;
 
   const handleStatusChange = (invoiceId: string, newStatus: InvoiceStatus) => {
     updateStatus.mutate({ invoiceId, status: newStatus });
@@ -108,6 +119,12 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
   const handleRecordPayment = (invoice: StandardInvoice) => {
     setPaymentInvoice(invoice);
     setPaymentModalOpen(true);
+  };
+
+  const handleSendToDataico = async (invoice: StandardInvoice) => {
+    setDataicoInvoiceId(invoice.id);
+    await sendInvoiceToDataico(invoice.id);
+    setDataicoInvoiceId(null);
   };
 
   if (isLoading) {
@@ -234,7 +251,29 @@ export const InvoiceList = ({ statusFilter, sourceFilter, onEdit, isLoading }: I
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Marcar como pagada
                           </DropdownMenuItem>
+                          {/* Send to DIAN - Only if Dataico is configured and invoice is issued */}
+                          {showDataicoButton && !invoice.dataicoUuid && (
+                            <DropdownMenuItem 
+                              onClick={() => handleSendToDataico(invoice)}
+                              disabled={dataicoInvoiceId === invoice.id}
+                            >
+                              {dataicoInvoiceId === invoice.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Zap className="h-4 w-4 mr-2 text-yellow-600" />
+                              )}
+                              Enviar a la DIAN
+                            </DropdownMenuItem>
+                          )}
                         </>
+                      )}
+
+                      {/* Indicator for already synced */}
+                      {invoice.dataicoUuid && (
+                        <DropdownMenuItem disabled className="text-green-600">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Sincronizada con DIAN
+                        </DropdownMenuItem>
                       )}
                       
                       {(invoice.status === 'draft' || invoice.status === 'issued') && (

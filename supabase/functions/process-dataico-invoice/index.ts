@@ -201,6 +201,14 @@ serve(async (req) => {
     console.log("Dataico response:", JSON.stringify(dataicoResult));
 
     if (!dataicoResponse.ok) {
+      // Update invoice with error status
+      await supabaseAdmin
+        .from('standard_invoices')
+        .update({
+          dataico_status: 'rejected',
+        })
+        .eq('id', invoiceId);
+
       return new Response(
         JSON.stringify({ 
           error: 'Error de Dataico',
@@ -208,6 +216,31 @@ serve(async (req) => {
         }),
         { status: dataicoResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // 10. Update invoice with Dataico response data
+    const updateData: Record<string, any> = {
+      dataico_status: 'sent',
+      dataico_sent_at: new Date().toISOString(),
+    };
+
+    // Extract UUID and CUFE from Dataico response
+    if (dataicoResult.uuid) {
+      updateData.dataico_uuid = dataicoResult.uuid;
+    }
+    if (dataicoResult.cufe) {
+      updateData.cufe = dataicoResult.cufe;
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('standard_invoices')
+      .update(updateData)
+      .eq('id', invoiceId);
+
+    if (updateError) {
+      console.error("Error updating invoice with Dataico data:", updateError);
+    } else {
+      console.log("Invoice updated with Dataico data:", updateData);
     }
 
     return new Response(
