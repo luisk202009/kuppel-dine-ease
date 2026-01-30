@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
 import { StandardInvoiceItemFormData, calculateInvoiceTotals } from '@/types/invoicing';
-
+import { escapeHtml } from '@/lib/htmlEscape';
 interface Customer {
   id: string;
   name: string;
@@ -111,8 +111,8 @@ export const InvoicePreviewModal = ({
         <tr>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-            <strong>${item.itemName}</strong>
-            ${item.description ? `<br><span style="color: #6b7280; font-size: 12px;">${item.description}</span>` : ''}
+            <strong>${escapeHtml(item.itemName)}</strong>
+            ${item.description ? `<br><span style="color: #6b7280; font-size: 12px;">${escapeHtml(item.description)}</span>` : ''}
           </td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unitPrice, data.currency)}</td>
@@ -170,15 +170,15 @@ export const InvoicePreviewModal = ({
   <div class="container">
     <div class="header">
       <div class="company-info">
-        <h1>${data.branch?.company?.name || 'Mi Empresa'}</h1>
-        ${data.branch?.company?.taxId ? `<p>NIT: ${data.branch.company.taxId}</p>` : ''}
-        ${data.branch?.company?.address ? `<p>${data.branch.company.address}</p>` : ''}
-        ${data.branch?.company?.phone ? `<p>Tel: ${data.branch.company.phone}</p>` : ''}
-        ${data.branch?.company?.email ? `<p>${data.branch.company.email}</p>` : ''}
+        <h1>${escapeHtml(data.branch?.company?.name || 'Mi Empresa')}</h1>
+        ${data.branch?.company?.taxId ? `<p>NIT: ${escapeHtml(data.branch.company.taxId)}</p>` : ''}
+        ${data.branch?.company?.address ? `<p>${escapeHtml(data.branch.company.address)}</p>` : ''}
+        ${data.branch?.company?.phone ? `<p>Tel: ${escapeHtml(data.branch.company.phone)}</p>` : ''}
+        ${data.branch?.company?.email ? `<p>${escapeHtml(data.branch.company.email)}</p>` : ''}
       </div>
       <div class="invoice-info">
-        <div class="invoice-number">${data.invoiceNumber || 'NUEVA'}</div>
-        <div class="invoice-status status-${status}">${statusLabels[status] || status}</div>
+        <div class="invoice-number">${escapeHtml(data.invoiceNumber || 'NUEVA')}</div>
+        <div class="invoice-status status-${escapeHtml(status)}">${escapeHtml(statusLabels[status] || status)}</div>
       </div>
     </div>
 
@@ -186,19 +186,19 @@ export const InvoicePreviewModal = ({
       <div class="party">
         <h3>Facturado a</h3>
         ${data.customer ? `
-          <p><strong>${data.customer.name} ${data.customer.lastName || ''}</strong></p>
-          ${data.customer.identification ? `<p>ID: ${data.customer.identification}</p>` : ''}
-          ${data.customer.address ? `<p>${data.customer.address}</p>` : ''}
-          ${data.customer.city ? `<p>${data.customer.city}</p>` : ''}
-          ${data.customer.phone ? `<p>Tel: ${data.customer.phone}</p>` : ''}
-          ${data.customer.email ? `<p>${data.customer.email}</p>` : ''}
+          <p><strong>${escapeHtml(data.customer.name)} ${escapeHtml(data.customer.lastName || '')}</strong></p>
+          ${data.customer.identification ? `<p>ID: ${escapeHtml(data.customer.identification)}</p>` : ''}
+          ${data.customer.address ? `<p>${escapeHtml(data.customer.address)}</p>` : ''}
+          ${data.customer.city ? `<p>${escapeHtml(data.customer.city)}</p>` : ''}
+          ${data.customer.phone ? `<p>Tel: ${escapeHtml(data.customer.phone)}</p>` : ''}
+          ${data.customer.email ? `<p>${escapeHtml(data.customer.email)}</p>` : ''}
         ` : '<p style="color: #9ca3af;">Cliente general</p>'}
       </div>
       <div class="party">
         <h3>Sucursal</h3>
-        <p><strong>${data.branch?.name || 'Sucursal Principal'}</strong></p>
-        ${data.branch?.address ? `<p>${data.branch.address}</p>` : ''}
-        ${data.branch?.phone ? `<p>Tel: ${data.branch.phone}</p>` : ''}
+        <p><strong>${escapeHtml(data.branch?.name || 'Sucursal Principal')}</strong></p>
+        ${data.branch?.address ? `<p>${escapeHtml(data.branch.address)}</p>` : ''}
+        ${data.branch?.phone ? `<p>Tel: ${escapeHtml(data.branch.phone)}</p>` : ''}
       </div>
     </div>
 
@@ -262,14 +262,14 @@ export const InvoicePreviewModal = ({
     ${data.notes ? `
       <div class="notes">
         <h3>Notas</h3>
-        <p>${data.notes}</p>
+        <p>${escapeHtml(data.notes)}</p>
       </div>
     ` : ''}
 
     ${data.termsConditions ? `
       <div class="notes">
         <h3>Términos y Condiciones</h3>
-        <p>${data.termsConditions}</p>
+        <p>${escapeHtml(data.termsConditions)}</p>
       </div>
     ` : ''}
 
