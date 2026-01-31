@@ -1516,6 +1516,7 @@ export type Database = {
           cufe: string | null
           currency: string
           customer_id: string | null
+          dataico_pdf_url: string | null
           dataico_sent_at: string | null
           dataico_status: string | null
           dataico_uuid: string | null
@@ -1544,6 +1545,7 @@ export type Database = {
           cufe?: string | null
           currency?: string
           customer_id?: string | null
+          dataico_pdf_url?: string | null
           dataico_sent_at?: string | null
           dataico_status?: string | null
           dataico_uuid?: string | null
@@ -1572,6 +1574,7 @@ export type Database = {
           cufe?: string | null
           currency?: string
           customer_id?: string | null
+          dataico_pdf_url?: string | null
           dataico_sent_at?: string | null
           dataico_status?: string | null
           dataico_uuid?: string | null
