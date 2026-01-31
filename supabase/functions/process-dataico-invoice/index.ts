@@ -224,12 +224,15 @@ serve(async (req) => {
       dataico_sent_at: new Date().toISOString(),
     };
 
-    // Extract UUID and CUFE from Dataico response
+    // Extract UUID, CUFE, and PDF URL from Dataico response
     if (dataicoResult.uuid) {
       updateData.dataico_uuid = dataicoResult.uuid;
     }
     if (dataicoResult.cufe) {
       updateData.cufe = dataicoResult.cufe;
+    }
+    if (dataicoResult.pdf_url) {
+      updateData.dataico_pdf_url = dataicoResult.pdf_url;
     }
 
     const { error: updateError } = await supabaseAdmin
